@@ -1,17 +1,40 @@
-from abc import abstractmethod
+from abc import abstractmethod, abstractproperty
+from typing import Any
 import logging
+import xarray as xr
+from opendrift.elements import LagrangianArray
 from .state import State
 from .init import Init
 
 logger = logging.getLogger(__name__)
 
 class Simulation(State):
-    ElementType = None
+    ElementType: LagrangianArray
+
+    elements_scheduled: LagrangianArray
+    elements_deactivated: LagrangianArray
+
+    """ Active elements being simulated """
+    elements: LagrangianArray
+
+    ## Environment
+    fallback_values: dict
+
+    ## Output
+    history: xr.Dataset
 
     def __init__(self, init: Init):
         init = init.copy() # TODO: keep this?
 
         self.ElementType = init.ElementType
+
+        self.elements_scheduled = init.elements_scheduled
+        self.elements_deactivated = self.ElementType()
+        self.elements = self.ElementType()
+
+        self.fallback_values = init.get_fallback_values()
+
+
 
     @abstractmethod
     def update(self):
@@ -21,10 +44,8 @@ class Simulation(State):
 
         return False
 
-    def _run_(self):
-        # for ..:
-        #   self.update(..)
-        pass
+    def run(self):
+        assert len(self.elements_scheduled) > 0, "No elements seeded"
 
     def release_elements(self):
         """Activate elements which are scheduled within following timestep."""

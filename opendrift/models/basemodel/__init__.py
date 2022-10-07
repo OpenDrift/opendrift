@@ -20,13 +20,22 @@ class OpenDriftSimulation:
     def run(self):
         match self.state:
             case Init():
-                self.state = self.Simulation(self.state)
+                self.into_simulation()
+                self.run()
 
             case Simulation():
-                self.state = self.state.run()
+                self.state.run()
+                self.state = self.Result(self.state)
 
             case Result():
                 logger.warning("Simulation already done.")
+
+    def into_simulation(self):
+        match self.state:
+            case Init():
+                self.state = self.Simulation(self.state)
+            case _:
+                raise WrongState("Only Init can be converted to Simulation. Try converting to Init first.")
 
     def __getattr__(self, attr):
         """
