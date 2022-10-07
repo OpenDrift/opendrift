@@ -134,12 +134,12 @@ class Leeway(OpenDriftSimulation):
         ElementType = LeewayObj
 
         def __init__(self):
+            super().__init__()
             self.__read_obj_properties__()
 
             self._set_config_default('general:time_step_minutes', 10)
             self._set_config_default('general:time_step_output_minutes', 60)
 
-            super().__init__()
 
         def __read_obj_properties__(self, d=None):
             # Read leeway object properties from file

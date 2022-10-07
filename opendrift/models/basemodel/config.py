@@ -10,6 +10,9 @@ CONFIG_LEVEL_ADVANCED = 3
 class Configurable:
     _config = None
 
+    def __init__(self):
+        self._config = {}
+
     def get_config(self, key):
         if not key in self._config:
             raise ValueError('No config setting named %s' % key)

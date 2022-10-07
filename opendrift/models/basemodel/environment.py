@@ -5,6 +5,7 @@ import numpy as np
 
 from opendrift.timer import Timeable
 from opendrift.readers.basereader import BaseReader, standard_names
+from opendrift.readers import reader_from_url, reader_global_landmask
 
 from .config import Configurable
 
@@ -34,6 +35,8 @@ class Environment(Timeable):
         env = copy.deepcopy(self)
         env.fallback_values = target.get_fallback_values()
         env.__generate_constant_readers__(target)
+        env.__add_auto_landmask__(target)
+        env.__assert_no_missing_variables__()
 
         return env
 
@@ -48,6 +51,66 @@ class Environment(Timeable):
             from opendrift.readers import reader_constant
             rc = reader_constant.Reader(mr)
             self.add_reader(rc, first=True)
+
+    def __add_auto_landmask__(self, config: Configurable):
+        ##############################################################
+        # If no landmask has been added, we determine it dynamically
+        ##############################################################
+        # TODO: some more error checking here
+        # If landmask is requested, it shall not be obtained from other readers
+        if config.get_config('general:use_auto_landmask') is True:
+            if 'land_binary_mask' in self.priority_list:
+                if 'global_landmask' in self.priority_list[
+                        'land_binary_mask']:
+                    self.priority_list['land_binary_mask'] = [
+                        'global_landmask'
+                    ]
+                else:
+                    del self.priority_list['land_binary_mask']
+
+        if config.get_config('general:use_auto_landmask') is True and \
+                ('land_binary_mask' in self.required_variables and \
+                'land_binary_mask' not in self.priority_list \
+                and 'land_binary_mask' not in self.fallback_values):
+            logger.info(
+                'Adding a dynamical landmask with max. priority based on '
+                'assumed maximum speed of %s m/s. '
+                'Adding a customised landmask may be faster...' %
+                self.max_speed)
+            self.timer_start('preparing main loop:making dynamical landmask')
+            reader_landmask = reader_global_landmask.Reader()
+            self.add_reader(reader_landmask)
+            self.timer_end('preparing main loop:making dynamical landmask')
+
+    def __assert_no_missing_variables__(self):
+        missing_variables = self.missing_variables()
+        missing_variables = [
+            m for m in missing_variables if m != 'land_binary_mask'
+        ]
+        if len(missing_variables) > 0:
+            has_fallback = [
+                var for var in missing_variables if var in self.fallback_values
+            ]
+            has_no_fallback = [
+                var for var in missing_variables
+                if var not in self.fallback_values
+            ]
+            #if has_fallback == missing_variables:
+            if len(has_fallback) > 0:  # == missing_variables:
+                logger.info('Fallback values will be used for the following '
+                            'variables which have no readers: ')
+                for var in has_fallback:
+                    logger.info('\t%s: %f' % (var, self.fallback_values[var]))
+            #else:
+            if len(has_no_fallback) > 0 and len(
+                    self._lazy_readers()) == 0:  # == missing_variables:
+                logger.warning(
+                    'No readers added for the following variables: ' +
+                    str(has_no_fallback))
+                raise ValueError('Readers must be added for the '
+                                 'following required variables: ' +
+                                 str(has_no_fallback))
+
 
     def add_readers_from_file(self, filename, timeout=10, lazy=True):
         fp = open(filename, 'r')
@@ -291,6 +354,12 @@ class Environment(Timeable):
             if len(self.priority_list[var]) == 0:
                 del self.priority_list[var]
 
+    def missing_variables(self):
+        """Return list of all variables for which no reader has been added."""
+        return [
+            var for var in self.required_variables
+            if var not in self.priority_list
+        ]
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 

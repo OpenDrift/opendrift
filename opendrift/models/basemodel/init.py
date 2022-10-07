@@ -20,13 +20,10 @@ class Init(State, Configurable):
 
     env: Environment
 
-    def __new__(cls):
-        """
-        We override __new__ so that this initialization is always done before sub-class __init__.
-        """
-        i = super().__new__(cls)
-        i._config = dict()
-        i._add_config({
+    def __init__(self):
+        super().__init__()
+
+        self._add_config({
             # type, default, min, max, enum, important, value, units, description
             'general:use_auto_landmask': {
                 'type':
@@ -216,9 +213,6 @@ class Init(State, Configurable):
             },
         })
 
-        return i
-
-    def __init__(self):
         self.elements_scheduled = self.ElementType()
         self.elements_scheduled_time = np.array([])
         self.env = Environment(self.required_variables)

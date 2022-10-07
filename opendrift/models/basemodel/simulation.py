@@ -46,6 +46,9 @@ class Simulation(State, Configurable):
         self.elements_deactivated = self.ElementType()
         self.elements = self.ElementType()
 
+        if len(self.elements_scheduled) == 0:
+            logger.warning("No elements scheduled")
+
         ## Environment
         self.env = init.env.finalize(self)
 
