@@ -1,47 +1,23 @@
-from . import *
-
+from opendrift.models.basemodel import *
 from opendrift.models.leeway2 import Leeway
+from opendrift.readers import reader_netCDF_CF_generic
 
-"""Tests for Leeway module."""
-def test_leewayprop():
+def test_leeway_prop():
     """Check that Leeway properties are properly read."""
     object_type = 85  # MED-WASTE-7
     lee = Leeway(loglevel=20)
     object_type = object_type
-    assert lee.leewayprop[object_type]['Description'] == '>>Medical waste, syringes, small'
-    assert lee.leewayprop[object_type]['DWSLOPE'] == 1.79
 
-def test_classes():
-    class State:
-        pass
+    assert isinstance(lee.state, Init)
+    assert lee.state.leewayprop[object_type]['Description'] == '>>Medical waste, syringes, small'
+    assert lee.state.leewayprop[object_type]['DWSLOPE'] == 1.79
 
-    class Model:
-        class Init(State):
-            def __init__(self):
-                print("ModelInit.init")
+def test_leeway_init():
+    l = Leeway()
 
-        class Simulation(State):
-            pass
-
-        class Result(State):
-            pass
-
-        state: State
-
-        def __init__(self):
-            self.state = self.Init()
-
-    class CustomModel(Model):
-        class Init(Model.Init):
-            def __init__(self):
-                super().__init__()
-                print("CustomInit.init")
-
-        def __init__(self):
-            super().__init__()
-
-
-    m = Model()
-
-    cm = CustomModel()
+def test_leeway_seed_elements(test_data):
+    l = Leeway()
+    reader_arome = reader_netCDF_CF_generic.Reader(test_data / '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+    l.seed_elements(lon=4.5, lat=59.6, radius=100, number=1000,
+                    time=reader_arome.start_time, object_type=26)
 
