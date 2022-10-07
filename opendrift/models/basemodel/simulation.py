@@ -1,30 +1,44 @@
 from abc import abstractmethod, abstractproperty
-from typing import Any
+from typing import Any, Dict, OrderedDict
 import logging
 import xarray as xr
 from opendrift.elements import LagrangianArray
+from .environment import Environment
 from .state import State
 from .init import Init
+from .config import Configurable
 
 logger = logging.getLogger(__name__)
 
-class Simulation(State):
+
+class Simulation(State, Configurable):
     ElementType: LagrangianArray
 
     elements_scheduled: LagrangianArray
     elements_deactivated: LagrangianArray
-
     """ Active elements being simulated """
     elements: LagrangianArray
 
     ## Environment
-    fallback_values: dict
+    env: Environment
 
     ## Output
     history: xr.Dataset
 
-    def __init__(self, init: Init):
-        init = init.copy() # TODO: keep this?
+    def __init__(self,
+                 init: Init,
+                 time_step=None,
+                 steps=None,
+                 time_step_output=None,
+                 duration=None,
+                 end_time=None,
+                 outfile=None,
+                 export_variables=None,
+                 export_buffer_length=100,
+                 stop_on_error=False):
+
+        init = init.copy()  # TODO: keep this?
+        self._config = init._config
 
         self.ElementType = init.ElementType
 
@@ -32,8 +46,8 @@ class Simulation(State):
         self.elements_deactivated = self.ElementType()
         self.elements = self.ElementType()
 
-        self.fallback_values = init.get_fallback_values()
-
+        ## Environment
+        self.env = init.env.finalize(self)
 
 
     @abstractmethod
@@ -44,7 +58,16 @@ class Simulation(State):
 
         return False
 
-    def run(self):
+    def run(self,
+            time_step=None,
+            steps=None,
+            time_step_output=None,
+            duration=None,
+            end_time=None,
+            outfile=None,
+            export_variables=None,
+            export_buffer_length=100,
+            stop_on_error=False):
         assert len(self.elements_scheduled) > 0, "No elements seeded"
 
     def release_elements(self):
@@ -69,4 +92,3 @@ class Simulation(State):
         self.elements_scheduled.move_elements(self.elements, indices)
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
         logger.debug('Released %i new elements.' % np.sum(indices))
-

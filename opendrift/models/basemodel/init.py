@@ -1,10 +1,13 @@
 from abc import abstractproperty
-from typing import Any
+from typing import Any, OrderedDict, Type
 import copy
 import logging
 import numpy as np
 import pyproj
 
+from opendrift.elements.elements import LagrangianArray
+
+from .environment import Environment
 from .state import State
 from .config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED, CONFIG_LEVEL_ESSENTIAL
 
@@ -13,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 class Init(State, Configurable):
     origin_marker = None
-    elements_scheduled: Any = None
+    elements_scheduled: LagrangianArray
+
+    env: Environment
 
     def __new__(cls):
         """
@@ -216,6 +221,7 @@ class Init(State, Configurable):
     def __init__(self):
         self.elements_scheduled = self.ElementType()
         self.elements_scheduled_time = np.array([])
+        self.env = Environment()
 
     def seed_elements(self,
                       lon,
@@ -419,7 +425,7 @@ class Init(State, Configurable):
             logger.debug('Setting simulation start time to %s' % str(min_time))
 
     @abstractproperty
-    def ElementType(self):
+    def ElementType(self) -> Type[LagrangianArray]:
         """Any trajectory model implementation must define an ElementType."""
         from opendrift.elements import LagrangianArray
         return LagrangianArray
