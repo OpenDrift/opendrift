@@ -21,8 +21,45 @@ class Init(State, Configurable):
 
     env: Environment
 
-    def __init__(self):
+    def __init__(self,
+                 loglevel=logging.DEBUG, logtime='%H:%M:%S', logfile=None):
         super().__init__()
+
+        if loglevel != 'custom':
+            format = '%(levelname)-7s %(name)s:%(lineno)d: %(message)s'
+            datefmt = None
+            if logtime is not False:
+                format = '%(asctime)s ' + format
+                if logtime is not True:
+                    datefmt = logtime
+            formatter = logging.Formatter(format, datefmt=datefmt)
+
+            if loglevel < 10:  # 0 is NOTSET, giving no output
+                loglevel = 10
+
+            od_loggers = [
+                logging.getLogger('opendrift'),
+            ]
+
+            if logfile is not None:
+                handler = logging.FileHandler(logfile, mode='w')
+                handler.setFormatter(formatter)
+                for l in od_loggers:
+                    l.setLevel(loglevel)
+                    l.handlers = []
+                    l.addHandler(handler)
+            else:
+                import coloredlogs
+                fields = coloredlogs.DEFAULT_FIELD_STYLES
+                fields['levelname']['color'] = 'magenta'
+
+                # coloredlogs does not create duplicate handlers
+                for l in od_loggers:
+                    coloredlogs.install(level=loglevel,
+                                        logger=l,
+                                        fmt=format,
+                                        datefmt=datefmt,
+                                        field_styles=fields)
 
         self._add_config({
             # type, default, min, max, enum, important, value, units, description
