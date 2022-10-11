@@ -66,6 +66,7 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
                  export_buffer_length=100,
                  stop_on_error=False):
 
+        self.init = init  # Copying init to Simulation, is this ok?
         iomodule = 'netcdf'
         try:
             io_module = __import__(
@@ -278,9 +279,14 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
                                    outfile=None,
                                    export_variables=None,
                                    export_buffer_length=100):
+
+        if outfile is None and export_buffer_length is not None:
+            logger.debug('No output file is specified, '
+                         'neglecting export_buffer_length')
+            export_buffer_length = None
+
         self.outfile = outfile
         self.export_variables = export_variables
-        self.export_buffer_length = export_buffer_length
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
