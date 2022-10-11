@@ -52,6 +52,7 @@ def test_leeway_run_simulation(test_data):
     l.env.add_reader(reader_arome)
     l.env.add_reader(reader_norkyst)
 
-    l.into_simulation(start_time = reader_arome.start_time, duration=timedelta(days=1))
+    # Had to insert outfile in call below, for the test to pass
+    l.into_simulation(start_time = reader_arome.start_time, duration=timedelta(days=1), outfile='testleeway.nc')
     l.run()
 
