@@ -66,7 +66,9 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
                  export_buffer_length=100,
                  stop_on_error=False):
 
-        self.init = init  # Copying init to Simulation, is this ok?
+        self.origin_marker = init.origin_marker
+        self._config = init._config  # Config is copied from init, is this ok?
+
         iomodule = 'netcdf'
         try:
             io_module = __import__(
@@ -82,9 +84,6 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
             io_module.import_file_xarray, self)
 
         self.stop_on_error = stop_on_error
-
-        init = init.copy()  # TODO: keep this?
-        self._config = init._config
 
         self.ElementType = init.ElementType
 
