@@ -38,7 +38,7 @@ def init(self, filename):
     self.outfile.model_url = 'https://github.com/OpenDrift/opendrift'
     self.outfile.opendrift_class = self.__class__.__name__
     self.outfile.opendrift_module = self.__class__.__module__
-    self.outfile.readers = str(self.readers.keys())
+    self.outfile.readers = str(self.env.readers.keys())
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
     self.outfile.time_step_output = str(self.time_step_output)
@@ -160,8 +160,9 @@ def close(self):
     self.outfile.geospatial_lon_max = self.history['lon'].max()
     self.outfile.geospatial_lon_units = 'degrees_east'
     self.outfile.geospatial_lon_resolution = 'point'
-    self.outfile.runtime = str(datetime.now() -
-                               self.timers['total time'])
+    # total time is not recorded after restructuring, as self.init does not have a timer
+    #self.outfile.runtime = str(datetime.now() -
+    #                           self.timers['total time'])
 
     self.outfile.close()  # Finally close file
 
@@ -240,7 +241,7 @@ def import_file_xarray(self, filename, chunks):
         for name in self.ElementType.variables]
     # Add environment variables
     self.history_metadata = self.ElementType.variables.copy()
-    for env_var in self.required_variables:
+    for env_var in self.env.required_variables:
         if env_var in self.ds.variables:
             history_dtype_fields.append((env_var, np.dtype('float32')))
             self.history_metadata[env_var] = {}
@@ -303,7 +304,7 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
         for name in self.ElementType.variables]
     # Add environment variables
     self.history_metadata = self.ElementType.variables.copy()
-    for env_var in self.required_variables:
+    for env_var in self.env.required_variables:
         if env_var in infile.variables:
             history_dtype_fields.append((env_var, np.dtype('float32')))
             self.history_metadata[env_var] = {}

@@ -20,6 +20,7 @@ from .config import Configurable
 
 logger = logging.getLogger(__name__)
 
+# KF was here
 
 class Simulation(State, Configurable, Timeable, PhysicsMethods):
     ElementType: LagrangianArray
@@ -65,6 +66,9 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
                  export_buffer_length=100,
                  stop_on_error=False):
 
+        self.origin_marker = init.origin_marker
+        self._config = init._config  # Config is copied from init, is this ok?
+
         iomodule = 'netcdf'
         try:
             io_module = __import__(
@@ -80,9 +84,6 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
             io_module.import_file_xarray, self)
 
         self.stop_on_error = stop_on_error
-
-        init = init.copy()  # TODO: keep this?
-        self._config = init._config
 
         self.ElementType = init.ElementType
 
@@ -277,9 +278,14 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
                                    outfile=None,
                                    export_variables=None,
                                    export_buffer_length=100):
+
+        if outfile is None and export_buffer_length is not None:
+            logger.debug('No output file is specified, '
+                         'neglecting export_buffer_length')
+            export_buffer_length = None
+
         self.outfile = outfile
         self.export_variables = export_variables
-        self.export_buffer_length = export_buffer_length
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
@@ -524,10 +530,11 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
             del self.environment
             if hasattr(self, 'environment_profiles'):
                 del self.environment_profiles
-            self.io_import_file(self.outfile)
+            self.io_import_file(self.outfile_name)
 
         self.timer_end('cleaning up')
-        self.timer_end('total time')
+        # Disbling total time since Init does not have a timer after restructuring
+        #self.timer_end('total time')
 
 
     def release_elements(self):
@@ -1004,3 +1011,35 @@ class Simulation(State, Configurable, Timeable, PhysicsMethods):
             % (D, speed.min(), speed.max()))
         self.update_positions(x_vel, y_vel)
 
+
+    def performance(self):
+        '''Report the time spent on various tasks'''
+
+        outStr = '--------------------\n'
+        outStr += 'Reader performance:\n'
+        for r in self.env.readers:
+            reader = self.env.readers[r]
+            if reader.is_lazy:
+                continue
+            outStr += '--------------------\n'
+            outStr += r + '\n'
+            outStr += reader.performance()
+
+        outStr += '--------------------\n'
+        outStr += 'Performance:\n'
+        for category, time in self.timing.items():
+            timestr = str(time)[0:str(time).find('.') + 2]
+            for i, c in enumerate(timestr):
+                if c in '123456789.':
+                    timestr = timestr[i:]  # Strip leading 0 and :
+                    if c == '.':
+                        timestr = '0' + timestr
+                    break
+            parts = category.split(':')
+            indent = '  ' * (len(parts) - 1)
+            category = parts[-1]
+            category = category.replace('<colon>', ':')
+            outStr += '%s%7s %s\n' % (indent, timestr, category)
+
+        outStr += '--------------------\n'
+        return outStr
