@@ -102,6 +102,9 @@ class Reader(BaseReader, StructuredReader):
         except Exception as e:
             raise ValueError(e)
 
+        if gridfile is not None:  # Merging gridfile dataset with main dataset
+            gf = xr.open_dataset(gridfile)
+            self.Dataset = xr.merge([self.Dataset, gf])
 
         if 'Vtransform' in self.Dataset.variables:
             self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
@@ -146,7 +149,6 @@ class Reader(BaseReader, StructuredReader):
             del self.ROMS_variable_mapping['u']
             del self.ROMS_variable_mapping['v']
 
-        self.detected_gridvars = []
         if 'lat_rho' in self.Dataset.variables:
             # Horizontal oordinates and directions
             self.lat = self.Dataset.variables['lat_rho'][:]
@@ -157,34 +159,11 @@ class Reader(BaseReader, StructuredReader):
                 self.lon, self.lat = np.meshgrid(self.lon, self.lat)
                 self.angle_xi_east = 0
         else:
-            if gridfile is None:
-                raise ValueError(filename + ' does not contain lon/lat '
-                                 'arrays, please supply a grid-file '
-                                 '"gridfile=<grid_file>"')
-            else:
-                gf = xr.open_dataset(gridfile)
-                gridvars = ['lat_rho', 'notvar', 'lon_rho', 'mask_rho', 'mask_u', 'mask_v', 'angle', 'h']
-                for gv in gridvars:
-                    if gv in gf.variables:
-                        self.detected_gridvars.append(gv)
-                        if gv in ['lat_rho', 'lon_rho']:
-                            setname = gv[0:3]
-                            setattr(self, setname, gf.variables[gv][:].data)
-                        elif gv in ['angle']:
-                            setname = 'angle_xi_east'
-                            setattr(self, setname, gf.variables[gv][:])
-                        elif gv == 'h':
-                            setname = 'sea_floor_depth_below_sea_level'
-                            setattr(self, setname, gf.variables[gv][:])
-                        else:
-                            setname = gv
-                            setattr(self, gv, gf.variables[gv][:])
-                if self.lat.ndim == 1:
-                    self.lon, self.lat = np.meshgrid(self.lon, self.lat)
-                    self.angle_xi_east = 0
+            raise ValueError(filename + ' does not contain lon/lat '
+                             'arrays, please supply a grid-file: "gridfile=<grid_file>"')
 
         for var in list(self.ROMS_variable_mapping):  # Remove unused variables
-            if var not in self.Dataset.variables and var not in self.detected_gridvars:
+            if var not in self.Dataset.variables:
                 del self.ROMS_variable_mapping[var]
 
         try:  # Check for GLS parameters (diffusivity)
@@ -225,9 +204,6 @@ class Reader(BaseReader, StructuredReader):
             var = self.Dataset.variables[var_name]
             if 'standard_name' in var.attrs and var_name not in self.ROMS_variable_mapping.keys():
                 self.ROMS_variable_mapping[var_name] = var.attrs['standard_name']
-            if var_name in self.ROMS_variable_mapping.keys():
-                self.variables.append(self.ROMS_variable_mapping[var_name])
-        for var_name in self.detected_gridvars:
             if var_name in self.ROMS_variable_mapping.keys():
                 self.variables.append(self.ROMS_variable_mapping[var_name])
 
@@ -337,14 +313,14 @@ class Reader(BaseReader, StructuredReader):
         for par in requested_variables:
             varname = [name for name, cf in
                        self.ROMS_variable_mapping.items() if cf == par]
-            if varname[0] in self.Dataset.variables:
-                var = self.Dataset.variables[varname[0]]
+            var = self.Dataset.variables[varname[0]]
 
             if par == 'land_binary_mask':
                 if not hasattr(self, 'land_binary_mask'):
                     # Read landmask for whole domain, for later re-use
-                    self.land_binary_mask = \
-                        1 - self.Dataset.variables['mask_rho'][:]
+                    if 'mask_rho' in self.Dataset.variables:
+                        self.land_binary_mask = \
+                            1 - self.Dataset.variables['mask_rho'][:]
                 variables[par] = self.land_binary_mask[indy, indx]
             elif par == 'sea_floor_depth_below_sea_level':
                 if not hasattr(self, 'sea_floor_depth_below_sea_level'):
@@ -387,10 +363,13 @@ class Reader(BaseReader, StructuredReader):
                             continue
                     mask = self.mask_v[indygrid, indxgrid]
                 else:
-                    if not hasattr(self, 'mask_rho'):
+                    if not hasattr(self, 'land_binary_mask'):
                         # For ROMS-Agrif this must perhaps be mask_psi?
-                        self.mask_rho = self.Dataset.variables['mask_rho'][:]
-                    mask = self.mask_rho[indygrid, indxgrid]
+                        if 'mask_rho' in self.Dataset.variables:
+                            self.land_binary_mask = self.Dataset.variables['mask_rho'][:]
+                        elif 'mask_psi' in self.Dataset.variables:
+                            self.land_binary_mask = self.Dataset.variables['mask_psi'][:]
+                    mask = self.land_binary_mask[indygrid, indxgrid]
                 mask = np.asarray(mask)
                 if mask.min() == 0 and par != 'land_binary_mask':
                     first_mask_point = np.where(mask.ravel()==0)[0][0]
@@ -401,7 +380,7 @@ class Reader(BaseReader, StructuredReader):
                     mask_values[par] = upper.ravel()[first_mask_point]
                     variables[par][variables[par]==mask_values[par]] = np.nan
 
-            if 'var' in locals() and var.ndim == 4:
+            if var.ndim == 4:
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
                     logger.debug('sigma to z for ' + varname[0])
