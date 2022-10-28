@@ -227,6 +227,14 @@ class Reader(BaseReader, StructuredReader):
         requested_variables, time, x, y, z, outside = self.check_arguments(
             requested_variables, time, x, y, z)
 
+        if 'land_binary_mask' in requested_variables and not hasattr(self, 'land_binary_mask'):
+            # Read landmask for whole domain, for later re-use
+            self.land_binary_mask = 1 - self.Dataset.variables['mask_rho'][:]
+
+        if 'sea_floor_depth_below_sea_level' in requested_variables and not hasattr(
+                    self, 'sea_floor_depth_below_sea_level'):
+            self.sea_floor_depth_below_sea_level = self.Dataset.variables['h'][:]
+
         # If one vector component is requested, but not the other
         # we must add the other for correct rotation
         for vector_pair in vector_pairs_xy:
@@ -316,15 +324,8 @@ class Reader(BaseReader, StructuredReader):
             var = self.Dataset.variables[varname[0]]
 
             if par == 'land_binary_mask':
-                if not hasattr(self, 'land_binary_mask'):
-                    # Read landmask for whole domain, for later re-use
-                    if 'mask_rho' in self.Dataset.variables:
-                        self.land_binary_mask = \
-                            1 - self.Dataset.variables['mask_rho'][:]
-                variables[par] = self.land_binary_mask[indy, indx]
+               variables[par] = self.land_binary_mask[indy, indx]
             elif par == 'sea_floor_depth_below_sea_level':
-                if not hasattr(self, 'sea_floor_depth_below_sea_level'):
-                    self.sea_floor_depth_below_sea_level = self.Dataset.variables['h'][:]
                 variables[par] = self.sea_floor_depth_below_sea_level[indy, indx]
             elif var.ndim == 2:
                 variables[par] = var[indy, indx]
@@ -366,10 +367,10 @@ class Reader(BaseReader, StructuredReader):
                     if not hasattr(self, 'land_binary_mask'):
                         # For ROMS-Agrif this must perhaps be mask_psi?
                         if 'mask_rho' in self.Dataset.variables:
-                            self.mask_rho = self.Dataset.variables['mask_rho'][:]
+                            self.land_binary_mask = 1 - self.Dataset.variables['mask_rho'][:]
                         elif 'mask_psi' in self.Dataset.variables:
-                            self.mask_rho = self.Dataset.variables['mask_psi'][:]
-                    mask = self.mask_rho[indygrid, indxgrid]
+                            self.land_binary_mask = 1 - self.Dataset.variables['mask_psi'][:]
+                    mask = 1 - self.land_binary_mask[indygrid, indxgrid]
                 mask = np.asarray(mask)
                 if mask.min() == 0 and par != 'land_binary_mask':
                     first_mask_point = np.where(mask.ravel()==0)[0][0]
