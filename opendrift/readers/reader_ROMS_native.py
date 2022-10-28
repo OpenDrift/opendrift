@@ -366,10 +366,10 @@ class Reader(BaseReader, StructuredReader):
                     if not hasattr(self, 'land_binary_mask'):
                         # For ROMS-Agrif this must perhaps be mask_psi?
                         if 'mask_rho' in self.Dataset.variables:
-                            self.land_binary_mask = 1 - self.Dataset.variables['mask_rho'][:]
+                            self.mask_rho = self.Dataset.variables['mask_rho'][:]
                         elif 'mask_psi' in self.Dataset.variables:
-                            self.land_binary_mask = 1 - self.Dataset.variables['mask_psi'][:]
-                    mask = self.land_binary_mask[indygrid, indxgrid]
+                            self.mask_rho = self.Dataset.variables['mask_psi'][:]
+                    mask = self.mask_rho[indygrid, indxgrid]
                 mask = np.asarray(mask)
                 if mask.min() == 0 and par != 'land_binary_mask':
                     first_mask_point = np.where(mask.ravel()==0)[0][0]
