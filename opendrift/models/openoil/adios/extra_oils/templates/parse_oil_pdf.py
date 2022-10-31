@@ -8,6 +8,8 @@ import traceback
 import tkinter as tk
 from tkinter import ttk
 
+import adios_db.scripting as ads
+
 
 def parse_weathering_table(df, oil):
     import adios_db.scripting as ads
@@ -57,39 +59,14 @@ def parse_weathering_table(df, oil):
 
     print(oil, 'Finished oil!')
 
-#class ScrollbarFrame(tk.Frame):
-#    """
-#    Extends class tk.Frame to support a scrollable Frame
-#    This class is independent from the widgets to be scrolled and
-#    can be used to replace a standard tk.Frame
-#    """
-#    def __init__(self, parent, **kwargs):
-#        tk.Frame.__init__(self, parent, **kwargs)
-#
-#        # The Scrollbar, layout to the right
-#        vsb = tk.Scrollbar(self, orient="vertical")
-#        vsb.pack(side="right", fill="y")
-#
-#        # The Canvas which supports the Scrollbar Interface, layout to the left
-#        self.canvas = tk.Canvas(self, borderwidth=0, background="#ffffff")
-#        self.canvas.pack(side="left", fill="both", expand=True)
-#
-#        # Bind the Scrollbar to the self.canvas Scrollbar Interface
-#        self.canvas.configure(yscrollcommand=vsb.set)
-#        vsb.configure(command=self.canvas.yview)
-#
-#        # The Frame to be scrolled, layout into the canvas
-#        # All widgets to be scrolled have to use this Frame as parent
-#        self.scrolled_frame = tk.Frame(self.canvas, background=self.canvas.cget('bg'))
-#        self.canvas.create_window((4, 4), window=self.scrolled_frame, anchor="nw")
-#
-#        # Configures the scrollregion of the Canvas dynamically
-#        self.scrolled_frame.bind("<Configure>", self.on_configure)
-#
-#    def on_configure(self, event):
-#        """Set the scroll region to encompass the scrolled frame"""
-#        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-#
+def parse_cuts_table(df, oil):
+    print('PARSING CUTS')
+    print(df)
+    cd = df.to_numpy()
+    print(cd, cd.shape)
+    temperatures = cd[:,0]
+    volumes = cd[:,1]
+    print('PARSED CUTS')
 
 class ScrollableFrame(tk.Frame):
     def __init__(self, container, *args, **kwargs):
@@ -134,12 +111,13 @@ class ParseOilPDF(tk.Tk):
         self.n = ttk.Notebook(self.master)
         self.n.pack()
         self.tabs = ttk.Frame(self.n)
-        self.oil = ttk.Frame(self.n)
+        self.oil_main = ttk.Frame(self.n)
+        self.oil = ScrollableFrame(self.oil_main)
         self.n.add(self.tabs, text='Tables')
-        self.n.add(self.oil, text='Oil')
+        self.n.add(self.oil_main, text='Oil')
 
-        mf = tk.Frame(self, bg='cyan', width=1500, height=150, padx=3, pady=3)
-        cf = tk.Frame(self, bg='yellow', width=1500, height=1500, padx=3, pady=3)
+        mf = tk.Frame(self.tabs, bg='cyan', width=1500, height=150, padx=3, pady=3)
+        cf = tk.Frame(self.tabs, bg='yellow', width=1500, height=1500, padx=3, pady=3)
 
         mf.pack()
         cf.pack(fill=tk.BOTH, expand=1)
@@ -180,7 +158,7 @@ class ParseOilPDF(tk.Tk):
             elif len(df.columns) == 5:
                 # Check if this is a valid weathering table
                 oil = ads.Oil('dummy')
-                oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+                oil.sub_sample.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
                 for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
                     oil.sub_samples[i].metadata.name = s
                     oil.sub_samples[i].metadata.short_name = s
@@ -200,7 +178,7 @@ class ParseOilPDF(tk.Tk):
             width = len(txt[0])
             for tx in txt:
                 print(tx, len(tx), 'JOLA')
-            color='blue'
+            color='yellow'
             self.tables[table] = tk.Text(parent.scrollable_frame, bg=color, width=width)
             tableno = tableno + 1
             self.tables[table].insert(tk.END, df)
@@ -237,12 +215,23 @@ class ParseOilPDF(tk.Tk):
             except Exception as e:
                 print(e)
                 print(traceback.format_exc())
+            try:
+                parse_cuts_table(df, oil)
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
 
         oil.to_file('test.json')
         v = oil.validate()
         print(v, 'VALIDATE')
         import os
         os.system('cat test.json')
+        with open('test.json', 'r') as file:
+            oil_json = file.read()#.replace('\n', '')
+        for widget in self.oil.scrollable_frame.winfo_children():  # Clear oil tab
+            widget.destroy()
+        tk.Label(self.oil, text=oil_json,
+                 font=('Courier', 10, 'normal')).pack()
 
 if __name__ == '__main__':
     ParseOilPDF().mainloop()
