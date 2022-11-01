@@ -1845,6 +1845,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 y = np.random.randn(np.sum(number)) * radius
                 az = np.degrees(np.arctan2(x, y))
                 dist = np.sqrt(x * x + y * y)
+                dist = dist * (radius/np.max(dist)) # set dist to range [0,radius]
             elif radius_type == 'uniform':
                 az = np.random.randn(np.sum(number)) * 360
                 dist = np.sqrt(np.random.uniform(0, 1,
