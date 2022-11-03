@@ -329,7 +329,7 @@ class ChemicalDrift(OceanDrift):
             #
             'chemical:compound': {'type': 'enum',
                 'enum': ['Naphthalene','Phenanthrene','Fluoranthene',
-                         'Benzo(a)anthracene','Benzo(a)pyrene','Dibenzo(a,h)anthracene', None], 
+                         'Benzo-a-anthracene','Benzo-a-pyrene','Dibenzo-ah-anthracene', None], 
                 'default': None,
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             })
@@ -2331,9 +2331,9 @@ class ChemicalDrift(OceanDrift):
             "Naphthalene":              [2.81,   0.77],
             "Phenanthrene":             [1.51,   0.29],
             "Fluoranthene":             [0.16,   0.04],
-            "Benzo(a)anthracene":       [0.12,   0.05],
-            "Benzo(a)pyrene":           [0.05,   0.02],
-            "Dibenzo(a,h)anthracene":   [0.03,   0.01],
+            "Benzo-a-anthracene":       [0.12,   0.05],
+            "Benzo-a-pyrene":           [0.05,   0.02],
+            "Dibenzo-ah-anthracene":    [0.03,   0.01],
             #
             "Acenaphthylene":           [0.12,   0.07],
             "Acenaphthene":             [0.19,   0.07],
@@ -2364,9 +2364,9 @@ class ChemicalDrift(OceanDrift):
             "Naphthalene":              [2.08,   1.05],
             "Phenanthrene":             [5.00,   2.30],
             "Fluoranthene":             [0.63,	 0.41],
-            "Benzo(a)anthracene":       [0.30,	 0.29],
-            "Benzo(a)pyrene":           [0.06,	 0.05],
-            "Dibenzo(a,h)anthracene":   [0.03,	 0.02],
+            "Benzo-a-anthracene":       [0.30,	 0.29],
+            "Benzo-a-pyrene":           [0.06,	 0.05],
+            "Dibenzo-ah-anthracene":    [0.03,	 0.02],
             #
             "Acenaphthylene":           [0.09,   0.06],
             "Acenaphthene":             [0.47,   0.31],
@@ -2451,7 +2451,7 @@ class ChemicalDrift(OceanDrift):
     def init_chemical_compound(self, chemical_compound = None):
         ''' Chemical parameters for a selection of PAHs:
             Naphthalene, Phenanthrene, Fluorene,
-            Benzo(a)anthracene, Benzo(a)pyrene, Dibenzo(a,h)anthracene
+            Benzo-a-anthracene, Benzo-a-pyrene, Dibenzo-ah-anthracene
 
             Data collected from literature by
             Isabel Hanstein (University of Heidelberg / Norwegian Meteorological Insitute)
@@ -2558,7 +2558,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 30315)
 
-        elif self.get_config('chemical:compound') == "Benzo(a)anthracene":
+        elif self.get_config('chemical:compound') == "Benzo-a-anthracene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2589,7 +2589,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 46200)
 
-        elif self.get_config('chemical:compound') == "Benzo(a)pyrene":
+        elif self.get_config('chemical:compound') == "Benzo-a-pyrene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2620,7 +2620,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)
 
-        elif self.get_config('chemical:compound') == "Dibenzo(a,h)anthracene":
+        elif self.get_config('chemical:compound') == "Dibenzo-ah-anthracene":
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2649,7 +2649,7 @@ class ChemicalDrift(OceanDrift):
 
             self.set_config('chemical:transformations:Solub', 0.00142)
             self.set_config('chemical:transformations:Tref_Solub', 25)
-            self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo(a)pyrene value
+            self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo-a-pyrene value
 
     def plot_mass(self,
                   legend=['dissolved','SPM','sediment'],
