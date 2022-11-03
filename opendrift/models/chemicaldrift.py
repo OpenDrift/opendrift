@@ -1888,13 +1888,12 @@ class ChemicalDrift(OceanDrift):
         # TODO Make sure that these are saved when the simulation data is saved to the ncdf file
         # Then this workaround can be removed
         if not hasattr(self,'nspecies'):
-            self.nspecies=5
+            self.nspecies=4
         if not hasattr(self,'name_species'):
-            self.name_species = ['LMM',
-                                 'Humic colloid',
-                                 'Particle reversible',
-                                 'Sediment reversible',
-                                 'Sediment slowly reversible']
+            self.name_species = ['dissolved',
+                                 'DOC',
+                                 'SPM',
+                                 'sediment']
 
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
@@ -1941,7 +1940,7 @@ class ChemicalDrift(OceanDrift):
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
         else:
             z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
-        logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
+        logger.info('vertical grid boundaries: {}'.format(  [str(item) for item in z_array] ) )
 
         #
         # H is array containing number of elements within each box defined by lon_array, lat_array and z_array
@@ -1968,7 +1967,7 @@ class ChemicalDrift(OceanDrift):
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
-            logger.info('H.shape: ' + str(H.shape))
+            logger.debug('H.shape: ' + str(H.shape))
             Hsm = np.zeros_like(H)
             for zi in range(len(z_array)-1):
                 for sp in range(self.nspecies):
@@ -2004,14 +2003,14 @@ class ChemicalDrift(OceanDrift):
         #    conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
-                if not self.name_species[sp].startswith('Sed'):
-                    print('divide by volume')
+                if not self.name_species[sp].lower().startswith('sed'):
+                    #print('divide by volume')
                     H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume
                     if horizontal_smoothing:
                         Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume
-                elif self.name_species[sp].startswith('Sed'):
-                    print('divide by mass')
-                    print(pixel_sed_mass)
+                elif self.name_species[sp].lower().startswith('sed'):
+                    #print('divide by mass')
+                    #print(pixel_sed_mass)
                     H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_sed_mass
                     if horizontal_smoothing:
                         Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_sed_mass
@@ -2028,8 +2027,8 @@ class ChemicalDrift(OceanDrift):
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
-            logger.info ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
-            logger.info ('odt '+ str(odt))   # number of average slices
+            logger.debug ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
+            logger.debug ('odt '+ str(odt))   # number of average slices
 
 
             # This may probably be written more efficiently!
@@ -2088,8 +2087,7 @@ class ChemicalDrift(OceanDrift):
         nc.variables['lat'].units = 'degrees_north'
         nc.variables['depth'][:] = z_array[1:]
         nc.variables['specie'][:] = np.arange(self.nspecies)
-        outstr = ['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)]
-        nc.variables['specie'].names = outstr
+        nc.variables['specie'].long_name = ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
 
 
 
@@ -2122,9 +2120,10 @@ class ChemicalDrift(OceanDrift):
             H = np.ma.masked_where(Landmask==1,H)
             H = np.swapaxes(H, 3, 4) #.astype('i4')
             nc.variables['concentration'][:] = H
-            nc.variables['concentration'].long_name = 'Chemical concentration'
+            nc.variables['concentration'].long_name = self.get_config('chemical:compound') +' concentration ' + '\n' + 'specie '+ \
+                                                            ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
             nc.variables['concentration'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration'].units = mass_unit+'/m3'
+            nc.variables['concentration'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
 
 
         # Chemical concentration, horizontally smoothed
@@ -2134,9 +2133,10 @@ class ChemicalDrift(OceanDrift):
             Hsm = np.ma.masked_where(Landmask==1, Hsm)
             Hsm = np.swapaxes(Hsm, 3, 4) #.astype('i4')
             nc.variables['concentration_smooth'][:] = Hsm
-            nc.variables['concentration_smooth'].long_name = 'Horizontally smoothed Chemical concentration'
+            nc.variables['concentration_smooth'].long_name = self.get_config('chemical:compound') +' horizontally smoothed concentration '  + '\n' + 'specie '+ \
+                                                            ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
             nc.variables['concentration_smooth'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_smooth'].units = mass_unit+'/m3'
+            nc.variables['concentration_smooth'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
             nc.variables['concentration_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
 
 
@@ -2148,9 +2148,10 @@ class ChemicalDrift(OceanDrift):
             conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
             #conc2 = np.ma.masked_where(landmask==1, conc2)
             nc.variables['concentration_avg'][:] = conc2
-            nc.variables['concentration_avg'].long_name = 'Time averaged Chemical concentration'
+            nc.variables['concentration_avg'].long_name = self.get_config('chemical:compound') + ' time averaged concentration ' + '\n' + 'specie '+ \
+                                                            ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
             nc.variables['concentration_avg'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_avg'].units = mass_unit+'/m3'+' ('+mass_unit+'/Kg)'
+            nc.variables['concentration_avg'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
 
 
         # Volume of boxes
@@ -2159,7 +2160,7 @@ class ChemicalDrift(OceanDrift):
         pixel_volume = np.swapaxes(pixel_volume, 1, 2) #.astype('i4')
         pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
         nc.variables['volume'][:] = pixel_volume
-        nc.variables['volume'].long_name = 'Volume of grid cell'
+        nc.variables['volume'].long_name = 'Volume of grid cell (' + str(pixelsize_m)+'x'+str(pixelsize_m)+'m)'
         nc.variables['volume'].grid_mapping = 'projection_lonlat'
         nc.variables['volume'].units = 'm3'
 
@@ -2180,12 +2181,8 @@ class ChemicalDrift(OceanDrift):
         nc.variables['land'].grid_mapping = 'projection_lonlat'
         nc.variables['land'].units = 'm'
 
-        print(type(landmask))
-        print(landmask.data)
-        #print(landmask.mask)
         nc.close()
         logger.info('Wrote to '+filename)
-
 
 
 
