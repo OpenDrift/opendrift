@@ -226,8 +226,9 @@ def import_file_xarray(self, filename, chunks):
         self.time_step_output = timedelta(seconds=float(ts1 - ts0))
     self.time = self.end_time  # Using end time as default
     self.status_categories = self.ds.status.flag_meanings.split()
-    if 'flag_meanings' in self.ds.origin_marker.attrs:
-        self.origin_marker = [s.replace('_', ' ') for s in self.ds.origin_marker.flag_meanings.split()]
+    if 'origin_marker' in self.ds.variables :
+        if 'flag_meanings' in self.ds.origin_marker.attrs:
+            self.origin_marker = [s.replace('_', ' ') for s in self.ds.origin_marker.flag_meanings.split()]
 
     num_elements = len(self.ds.trajectory)
     elements=np.arange(num_elements)
