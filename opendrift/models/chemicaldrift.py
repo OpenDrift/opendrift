@@ -2341,10 +2341,10 @@ class ChemicalDrift(OceanDrift):
             "Anthracene":               [0.08,   0.04],
             "Pyrene":                   [0.31,   0.11],
             "Chrysene":                 [0.19,   0.07],
-            "Benzo(b)fluoranthene":     [0.04,   0.02],
-            "Benzo(k)fluoranthene":     [0.01,   0.01],
-            "Indeno(1,2,3-cd)pyrene":   [0.07,   0.06],
-            "Benzo(ghi)perylene":       [0.02,   0.01],
+            "Benzo-b-fluoranthene":     [0.04,   0.02],
+            "Benzo-k-fluoranthene":     [0.01,   0.01],
+            "Indeno-123cd-pyrene":      [0.07,   0.06],
+            "Benzo-ghi-perylene":       [0.02,   0.01],
             }
 
         emission_factors_closed_loop = {
@@ -2374,10 +2374,10 @@ class ChemicalDrift(OceanDrift):
             "Anthracene":               [1.55,   2.00],
             "Pyrene":                   [0.76,   0.59],
             "Chrysene":                 [0.50,   0.45],
-            "Benzo(b)fluoranthene":     [0.14,   0.12],
-            "Benzo(k)fluoranthene":     [0.02,   0.02],
-            "Indeno(1,2,3-cd)pyrene":   [0.04,   0.03],
-            "Benzo(ghi)perylene":       [0.07,   0.07],
+            "Benzo-b-fluoranthene":     [0.14,   0.12],
+            "Benzo-k-fluoranthene":     [0.02,   0.02],
+            "Indeno-123-cd-pyrene":     [0.04,   0.03],
+            "Benzo-ghi-perylene":       [0.07,   0.07],
             }
 
         if scrubber_type=="open_loop":
