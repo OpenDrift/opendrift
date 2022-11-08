@@ -2313,6 +2313,12 @@ class ChemicalDrift(OceanDrift):
 
             Hermansson et al 2021
             https://doi.org/10.1016/j.trd.2021.102912
+
+            bilge water, gray water, anti fouling paint,
+            sewage, food waster
+
+            from EMERGE Deliverable 2.1
+
         """
         emission_factors_open_loop = {
             #                           mean    +/-95%
@@ -2327,6 +2333,8 @@ class ChemicalDrift(OceanDrift):
             "Nickel":                   [48.,    12.],
             "Vanadium":                 [170.,   49.],
             "Zinc":                     [110.,   59.],
+            "Cobalt":                   [0.17,   0.14],
+            "Selenium":                 [97.,    38],
             #
             "Naphthalene":              [2.81,   0.77],
             "Phenanthrene":             [1.51,   0.29],
@@ -2345,6 +2353,11 @@ class ChemicalDrift(OceanDrift):
             "Benzo-k-fluoranthene":     [0.01,   0.01],
             "Indeno-123cd-pyrene":      [0.07,   0.06],
             "Benzo-ghi-perylene":       [0.02,   0.01],
+            #
+            "Nitrate":                  [2830.,    2060.],
+            "Nitrite":                  [760.,     680.],
+            "Ammonium":                 [730.,     30.],
+            "Sulphur":                  [2200000., 446000.],
             }
 
         emission_factors_closed_loop = {
@@ -2360,6 +2373,8 @@ class ChemicalDrift(OceanDrift):
             "Nickel":                   [2700.,  860.],
             "Vanadium":                 [9100.,  3200.],
             "Zinc":                     [370.,   200.],
+            "Cobalt":                   [0.,     0.],
+            "Selenium":                 [0.,     0.],
             #
             "Naphthalene":              [2.08,   1.05],
             "Phenanthrene":             [5.00,   2.30],
@@ -2378,13 +2393,117 @@ class ChemicalDrift(OceanDrift):
             "Benzo-k-fluoranthene":     [0.02,   0.02],
             "Indeno-123-cd-pyrene":     [0.04,   0.03],
             "Benzo-ghi-perylene":       [0.07,   0.07],
+            #
+            "Nitrate":                  [110980.,   100000.],
+            "Nitrite":                  [55760.,    55000.],
+            "Ammonium":                 [0.,        0.],
+            "Sulphur":                  [12280000., 10104000.],
             }
 
-        if scrubber_type=="open_loop":
-            return emission_factors_open_loop.get(chemical_compound)[0]
-        elif scrubber_type=="closed_loop":
-            return emission_factors_closed_loop.get(chemical_compound)[0]
+        emission_factors_grey_water = {
+            #                           mean    +/-95%
+            #                           ug/L    ug/L
+            "Arsenic":                  [5.98,    3.17],
+            "Cadmium":                  [0.16,    0.09],
+            "Chromium":                 [7.28,    2.06],
+            "Copper":                   [267.,    97.],
+            "Lead":                     [25.6,    21.01],
+            "Mercury":                  [0.16,    0.09],
+            "Nickel":                   [25.0,    19.36],
+            "Selenium":                 [16.1,    10.64],
+            "Zinc":                     [517.,    112.],
+            #
+            "Nitrogen":                  [28900., 0.0],
+         }
 
+        emission_factors_bilge_water = {
+            #                           mean    +/-95%
+            #                           ug/L    ug/L
+            "Arsenic":                  [35.9,    33.2],
+            "Cadmium":                  [0.32,   0.07],
+            "Chromium":                 [16.3,   15.4],
+            "Copper":                   [49.7,   22.9],
+            "Lead":                     [3.0,    1.24],
+            "Nickel":                   [71.1,   11.8],
+            "Selenium":                 [2.95,     1.01],
+            "Vanadium":                 [76.5,   22.4],
+            "Zinc":                     [949.,   660.],
+            #
+            "Nitrate":                  [110980.,  100000.],
+            "Nitrite":                  [55760.,   55000.],
+            "Ammonium":                 [0.,     0.],
+            "Sulphur":                  [12280000., 10104000.],
+            #
+            "Naphthalene":              [50.6,   34.3],
+            "Phenanthrene":             [3.67,   2.51],
+            "Fluoranthene":             [0.60,   0.96],
+            "Benzo(a)anthracene":       [0.10,   0.18],
+            "Benzo(a)pyrene":           [0.10,   0.15],
+            "Dibenzo(a,h)anthracene":   [0.02,   0.01],
+            #
+            "Acenaphthylene":           [0.29,   0.17],
+            "Acenaphthene":             [1.42,   0.86],
+            "Fluorene":                 [3.33,   2.43],
+            "Anthracene":               [0.22,   0.14],
+            "Pyrene":                   [1.23,   1.33],
+            "Chrysene":                 [0.17,   0.25],
+            "Benzo(b)fluoranthene":     [0.09,   0.13],
+            "Benzo(k)fluoranthene":     [0.03,   0.00],
+            "Indeno(1,2,3-cd)pyrene":   [0.05,   0.06],
+            "Benzo(ghi)perylene":       [0.13,   0.16],
+         }
+
+        emission_factors_sewage_water = {
+            #                           mean    +/-95%
+            #                           ug/L    ug/L
+            "Arsenic":                  [22.9,    7.4],
+            "Cadmium":                  [0.12,   0.10],
+            "Chromium":                 [11.9,    8.2],
+            "Copper":                   [319,     190],
+            "Lead":                     [6.5,     3.1],
+            "Mercury":                  [0.22,   0.12],
+            "Nickel":                   [32.3,   21.3],
+            "Selenium":                 [43.7,   18.3],
+            "Zinc":                     [395.,   174.],
+            #
+            "Nitrogen":                  [430.,  0.],
+         }
+
+        emission_factors_AFP = {
+            # Copper = 63.546 g/mol
+            # Zinc = 65.38 g/mol
+            # CuPyr = 315.86 g/mol = Copper(II) pyrithione = 0.2112 of Cu
+            # CuO = 79.55 g/mol = Copper(II) oxide = 0.7989 of Cu
+            # Zineb = 275.7 g/mol = Zinc ethylenebis(dithiocarbamate) = 0.2371 of Zn
+            # ZnO = 81.38 g/mol = Zinc(II) oxide = 0.8033 of Zn
+            # ZPyr = 317.70 g/mol = Zinc(II) pyrithione = 0.2058 of Zn
+
+            #                           mean    +/-95%
+            #                           ug/L    ug/L
+            "CuO_AFP":                  [0.2112,    0.],
+            "CuPyr_AFP":                [0.7989,    0.],
+            "Zineb_AFP":                [0.2371,    0.],
+            "ZnO_AFP":                  [0.8033,    0.],
+            "ZnPyr_AFP":                [0.2058,    0.],
+         }
+        if scrubber_type=="open_loop":
+            Emission_factors = emission_factors_open_loop.get(chemical_compound)[0]
+        elif scrubber_type=="closed_loop":
+            Emission_factors = emission_factors_closed_loop.get(chemical_compound)[0]
+        elif scrubber_type=="bilge_water":
+            Emission_factors = emission_factors_bilge_water.get(chemical_compound)[0]
+        elif scrubber_type=="grey_water":
+            Emission_factors = emission_factors_grey_water.get(chemical_compound)[0]
+        elif scrubber_type=="sewage_water":
+            Emission_factors = emission_factors_sewage_water.get(chemical_compound)[0]
+        elif scrubber_type=="AFP": # Copper and Zinc from antifouling paint
+            Emission_factors = 1e6*emission_factors_AFP.get(chemical_compound)[0]  # 1g = 1e6 ug: AFP is expressed as g
+        elif scrubber_type=="N_sewage": # Nitrogen from sewage
+            Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
+        elif scrubber_type=="N_foodwaste": # Nitrogen from foodwaste
+            Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
+
+        return Emission_factors
         # TODO: Add emission uncertainty based on 95% confidence interval
 
     def seed_from_STEAM(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, number_of_elements=None, **kwargs):
