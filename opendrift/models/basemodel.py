@@ -3401,9 +3401,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         markersizebymass = False
         if isinstance(markersize, str):
-            if markersize == 'mass':
+            if markersize.startswith('mass'):
                 markersizebymass = True
-                markersize = 20
+                if markersize[len('mass'):] == '':
+                    # default initial size if not specified
+                    markersize = 100
+                else:
+                    markersize = int(markersize[len('mass'):])
 
         start_time = datetime.now()
         if cmap is None:
@@ -3503,11 +3507,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           y_deactive[index_of_last_deactivated < i]])
 
                 if markersizebymass:
-                    points.set_sizes(
-                        100 * (self.history['mass'][:, i] /
-                               (self.history['mass'][:, i] +
-                                self.history['mass_degraded'][:, i] +
-                                self.history['mass_volatilized'][:, i])))
+                    if 'chemicaldrift' in self.__module__:
+                        points.set_sizes(
+                            markersize * (self.history['mass'][:, i] /
+                                          (self.history['mass'][:, i] +
+                                           self.history['mass_degraded'][:, i] +
+                                           self.history['mass_volatilized'][:, i])))
+                    elif 'openoil' in self.__module__:
+                        points.set_sizes(
+                            markersize * (self.history['mass_oil'][:, i] /
+                                          (self.history['mass_oil'][:, i] +
+                                           self.history['mass_biodegraded'][:, i] +
+                                           self.history['mass_dispersed'][:, i] +
+                                           self.history['mass_evaporated'][:, i])))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
