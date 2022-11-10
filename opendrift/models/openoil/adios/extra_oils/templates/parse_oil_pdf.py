@@ -8,10 +8,6 @@ import traceback
 import tkinter as tk
 from tkinter import ttk
 
-# Commented out to avoid breaking circleCI tests due to import error
-# import adios_db.scripting as ads
-
-
 def parse_weathering_table(df, oil):
     import adios_db.scripting as ads
     from adios_db.models.oil.physical_properties import DynamicViscosityPoint
@@ -235,8 +231,10 @@ class ParseOilPDF(tk.Tk):
                  font=('Courier', 10, 'normal')).pack()
 
 if __name__ == '__main__':
-    ParseOilPDF().mainloop()
 
+    import adios_db.scripting as ads
+
+    ParseOilPDF().mainloop()
 
 
 ########################################################
