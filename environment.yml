@@ -35,4 +35,3 @@ dependencies:
     - motuclient
     - pytest-sphinx
     - git+https://github.com/OpenDrift/trajan.git
-    - git+https://github.com/NOAA-ORR-ERD/adios_oil_database.git

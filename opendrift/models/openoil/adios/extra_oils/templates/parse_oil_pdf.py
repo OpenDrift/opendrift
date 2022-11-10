@@ -8,7 +8,10 @@ import traceback
 import tkinter as tk
 from tkinter import ttk
 
-import adios_db.scripting as ads
+try:
+    import adios_db.scripting as ads
+except:
+    pass  # to avoid breaking circleCI tests due to import error
 
 
 def parse_weathering_table(df, oil):
