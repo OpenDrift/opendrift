@@ -34,3 +34,4 @@ dependencies:
   - pip:
     - motuclient
     - pytest-sphinx
+    - git+https://github.com/OpenDrift/trajan.git

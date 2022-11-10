@@ -21,7 +21,7 @@ opendrift_gui = "opendrift.scripts.opendrift_gui:main"
 grib = ["cfgrib", "pygrib"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.8"
 matplotlib = ">=3.5"
 numpy = ">=1.23"
 scipy = ">=1.9"
