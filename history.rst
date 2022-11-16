@@ -1,6 +1,13 @@
 History
 =======
 
+2022-11-16 / Release v1.10.2
+----------------------------
+* Optimizations to reading results files.
+* ROMS reader improvements.
+* ChemD: many improvements.
+* Bugfixes.
+
 2022-09-27 / Release v1.10.1
 ----------------------------
 * Using cartopy shapes for full resolution again because of performance issues.
