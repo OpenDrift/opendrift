@@ -328,7 +328,9 @@ class Reader(StructuredReader, BaseReader):
                 # User may specify mapping if standard_name is missing, or to override existing
                 standard_name = standard_name_mapping[var_name]
                 self.variable_mapping[standard_name] = str(var_name)
-            elif 'standard_name' in var.attrs:
+            elif 'standard_name' in var.attrs and 'hybrid' not in var.dims:
+                # Skipping hybrid dim is workaround to prevent parsing upper winds from ECMWF
+                # A permanent solution for selecting correct variable is needed
                 standard_name = str(var.attrs['standard_name'])
                 if standard_name in self.variable_aliases:  # Mapping if needed
                     standard_name = self.variable_aliases[standard_name]
