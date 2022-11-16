@@ -1,6 +1,10 @@
 History
 =======
 
+2022-11-16 / Release v1.10.3
+----------------------------
+* Fix paths in opendrift_gui.
+
 2022-11-16 / Release v1.10.2
 ----------------------------
 * Optimizations to reading results files.
