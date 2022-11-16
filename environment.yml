@@ -1,6 +1,5 @@
 name: opendrift
 channels:
-  - opendrift
   - conda-forge
 dependencies:
   - matplotlib>=3.5
