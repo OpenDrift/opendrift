@@ -1,6 +1,10 @@
 History
 =======
 
+2022-11-16 / Release v1.10.4
+----------------------------
+* Workaround in reader_netCDF_CF_generic to prevent wrong wind field from ECMWF model to be selected
+
 2022-11-16 / Release v1.10.3
 ----------------------------
 * Fix paths in opendrift_gui.
