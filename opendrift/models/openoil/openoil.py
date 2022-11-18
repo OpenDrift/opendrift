@@ -1417,11 +1417,13 @@ class OpenOil(OceanDrift):
         """
         Sets the oil type by specifying the name, the first match will be chosen. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
         """
+
+        self.set_config('seed:oil_type', oiltype)
         oiltype = adios.oil_name_alias.get(oiltype, oiltype)
         logger.info(f'setting oil_type to: {oiltype}')
 
         self.oil_name = oiltype
-        self.set_config('seed:oil_type', oiltype)
+
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.find_full_oil_from_name(self.oil_name)
             if not self.oiltype.valid():
