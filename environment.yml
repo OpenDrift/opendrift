@@ -29,8 +29,8 @@ dependencies:
   - cmocean
   - utm
   - roaring-landmask>=0.7
+  - trajan
   - pip
   - pip:
     - motuclient
     - pytest-sphinx
-    - git+https://github.com/OpenDrift/trajan.git
