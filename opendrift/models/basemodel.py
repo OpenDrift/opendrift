@@ -1363,7 +1363,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     logger.info(
                         'Problems setting mask on missing_indices!')
                     logger.exception(ex)
-                print(missing_indices, 'MISSIND')
                 if (type(missing_indices)
                         == np.int64) or (type(missing_indices) == np.int32):
                     missing_indices = []
