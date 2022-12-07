@@ -29,7 +29,7 @@ dependencies:
   - cmocean
   - utm
   - roaring-landmask>=0.7
-  - trajan
+  - trajan>=0.1.3
   - pip
   - pip:
     - motuclient
