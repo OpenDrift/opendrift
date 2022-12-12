@@ -157,7 +157,7 @@ class TestPhysics(unittest.TestCase):
         o.set_config('vertical_mixing:timestep', 4)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -49.5, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.3, 1)
         #######################################################
 
 
