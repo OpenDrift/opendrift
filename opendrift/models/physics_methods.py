@@ -270,7 +270,7 @@ def verticaldiffusivity_Large1994(windspeed, depth, mixedlayerdepth=50, backgrou
     cd = 1.25e-3  # Kara et al. 2007
     windstress = windspeed*windspeed * cd * rhoa
 
-    K = MLD * stabilityfunction(depth/MLD) * 0.4 * G(depth/MLD) * windstress
+    K = MLD * stabilityfunction(depth/MLD) * 0.4 * G(depth/MLD) * windstress + (depth/MLD)*background_diffusivity
     K[depth>=MLD] = background_diffusivity
 
     return K
