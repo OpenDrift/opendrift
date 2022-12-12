@@ -185,8 +185,11 @@ class ChemicalDrift(OceanDrift):
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Transformations
             'chemical:transformations:Kd': {'type': 'float', 'default': 2.0,
-                'min': 0, 'max': 1e9, 'units': '',
+                'min': 0, 'max': 1e9, 'units': 'm3/kg',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+            'chemical:transformations:S0': {'type': 'float', 'default': 0.0,
+                'min': 0, 'max': 100, 'units': 'PSU',
+                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'parameter controlling salinity dependency of Kd for metals'},
             'chemical:transformations:Dc': {'type': 'float', 'default': 1.16e-5,                # Simonsen 2019
                 'min': 0, 'max': 1e6, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
@@ -329,7 +332,8 @@ class ChemicalDrift(OceanDrift):
             #
             'chemical:compound': {'type': 'enum',
                 'enum': ['Naphthalene','Phenanthrene','Fluoranthene',
-                         'Benzo-a-anthracene','Benzo-a-pyrene','Dibenzo-ah-anthracene', None], 
+                         'Benzo-a-anthracene','Benzo-a-pyrene','Dibenzo-ah-anthracene',
+                         'Copper','Cadmium','Chromium','Lead','Vanadium','Zinc','Nickel',None],
                 'default': None,
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             })
@@ -939,7 +943,7 @@ class ChemicalDrift(OceanDrift):
             sed_poro        =  self.get_config('chemical:sediment:porosity')      # sediment porosity
             sed_H =  self.get_config('chemical:sediment:layer_thickness')      # thickness of seabed interaction layer (m)
 
-            self.k_ads = Dc * Kd * 1e3 # L/(Kg*s)
+            #self.k_ads = Dc * Kd * 1e3 # L/(Kg*s)
             self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * concSPM
             self.transfer_rates[self.num_prev,self.num_lmm] = Dc
             self.transfer_rates[self.num_lmm,self.num_srev] = \
@@ -1266,6 +1270,8 @@ class ChemicalDrift(OceanDrift):
                 KOC_SPM_initial = (self.Kd_SPM)/fOC_SPM # L/Kg / KgOC/Kg = L/KgOC
                 KOC_DOM_initial = (self.Kd_DOM)/Org2C
 
+                # filtering out zero values from temperature and salinity
+                # TODO: Find out if problem is in the reader or in the data
                 temperature=self.environment.sea_water_temperature
                 temperature[temperature==0]=np.median(temperature)
 
@@ -1300,7 +1306,7 @@ class ChemicalDrift(OceanDrift):
 
             # Updating sorption rates
 
-            if transfer_setup=='organics' or transfer_setup == 'metals':
+            if transfer_setup=='organics':
 
                 # Updating sorption rates according to local SPM concentration
 
@@ -1319,6 +1325,46 @@ class ChemicalDrift(OceanDrift):
 
                 self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
                     self.k_ads * concSPM[self.elements.specie==self.num_lmm]      # k13
+
+            if transfer_setup == 'metals':
+
+                # Updating sorption rates according to local SPM concentration and salinity
+
+                concSPM=self.environment.spm * 1e-3 # (Kg/m3) from (g/m3)
+
+                salinity=self.environment.sea_water_salinity
+
+                # Apply SPM concentration profile if SPM reader has not depth coordinate
+                # SPM concentration is kept constant to surface value in the mixed layer
+                # Exponentially decreasing with depth below the mixed layers
+                if not self.SPM_vertical_levels_given:
+                    lowerMLD = self.elements.z < -self.environment.ocean_mixed_layer_thickness
+                    #concSPM[lowerMLD] = concSPM[lowerMLD]/2
+                    concSPM[lowerMLD] = concSPM[lowerMLD] * np.exp(
+                        -(self.elements.z[lowerMLD]+self.environment.ocean_mixed_layer_thickness[lowerMLD])
+                        *np.log(0.5)/self.get_config('chemical:particle_concentration_half_depth')
+                        )
+
+                Kd0         = self.get_config('chemical:transformations:Kd') # (m3/Kg)
+                S0          = self.get_config('chemical:transformations:S0') # (PSU)
+                Dc          = self.get_config('chemical:transformations:Dc') # (1/s)
+                sed_L       = self.get_config('chemical:sediment:mixing_depth')     # sediment mixing depth (m)
+                sed_dens    = self.get_config('chemical:sediment:density') # default particle density (kg/m3)
+                sed_f       = self.get_config('chemical:sediment:effective_fraction')      # fraction of effective sorbents
+                sed_phi     = self.get_config('chemical:sediment:corr_factor')      # sediment correction factor
+                sed_poro    = self.get_config('chemical:sediment:porosity')      # sediment porosity
+                sed_H       = self.get_config('chemical:sediment:layer_thickness')      # thickness of seabed interaction layer (m)
+
+                # Adjust Kd for salinity according to Perianez 2018 https://doi.org/10.1016/j.jenvrad.2018.02.014
+                if S0>0:
+                    Kd=Kd0*(S0+salinity[self.elements.specie==self.num_lmm])/S0
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_prev] = \
+                    Dc * Kd * concSPM[self.elements.specie==self.num_lmm]      # k13
+
+                self.elements.transfer_rates1D[self.elements.specie==self.num_lmm,self.num_srev] = \
+                    Dc * Kd * sed_L * sed_dens * (1.-sed_poro) * sed_f * sed_phi / sed_H
+
 
             if transfer_setup=='organics':
 
@@ -2769,6 +2815,63 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Solub', 0.00142)
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo-a-pyrene value
+
+        elif self.get_config('chemical:compound') == "Copper":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 60.1)            # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 50)             # Merlin Expo, high confidence
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+        elif self.get_config('chemical:compound') == "Zinc":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 173)             # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 100)            # Merlin Expo, high confidence
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+        elif self.get_config('chemical:compound') == "Lead":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 369)             # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 500)            # Merlin Expo, strong confidence
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+        elif self.get_config('chemical:compound') == "Vanadium":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 42.9)            # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 5)              # Merlin Expo, weak confidence
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+        elif self.get_config('chemical:compound') == "Cadmium":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 134)             # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 79)             # Merlin Expo, strong confidence
+            #self.set_config('chemical:transformations:Kd', 6.6)            # Turner Millward 2002
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+        elif self.get_config('chemical:compound') == "Chromium":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 124)             # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 130)            # Cr(III) Merlin Expo, moderate confidence
+            #self.set_config('chemical:transformations:Kd', 180)            # Turner Millward 2002
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+        elif self.get_config('chemical:compound') == "Nickel":
+            self.set_config('chemical:transfer_setup','metals')
+            self.set_config('chemical:transformations:Kd', 31.1)            # Tomczak et Al 2019
+            #self.set_config('chemical:transformations:Kd', 25)             # Merlin Expo, strong confidence
+            #self.set_config('chemical:transformations:Kd', 5.3)            # Turner Millward 2002
+            self.set_config('chemical:transformations:S0', 17.0)            # note below
+
+# Default value for S0 is set to 17.0. This correspond to a Kd at salinity 35 being 32.7%
+# of the fresh water value, which was the average reduction obtained comparing the values
+# in Tomczak et Al 2019 to the "ocean margins" recommended values in IAEA TRS no.422, for a
+# selection of metals (Cd, Cr, Hg, Ni, Pb, Zn). This gives very similar results the value
+# 15.8, suggested in Perianez 2018.
+# https://doi.org/10.1016/j.apgeochem.2019.04.003
+# https://www-pub.iaea.org/MTCD/Publications/PDF/TRS422_web.pdf
+# https://doi.org/10.1016/j.jenvrad.2018.02.014
+#
+# Merlin Expo Kd values are mean values from Allison and Allison 2005
+# https://cfpub.epa.gov/si/si_public_record_report.cfm?dirEntryId=135783
 
     def plot_mass(self,
                   legend=['dissolved','SPM','sediment'],
