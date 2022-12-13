@@ -1411,10 +1411,11 @@ class ChemicalDrift(OceanDrift):
 
         specie_in  = self.elements.specie.copy()    # for storage of the initial partitioning
         specie_out = self.elements.specie.copy()    # for storage of the final partitioning
-        deltat = self.time_step.seconds             # length of a time step
+        deltat = self.time_step.total_seconds()     # length of a time step
         phaseshift = np.array(self.num_elements_active()*[False])  # Denotes which trajectory that shall be transformed
 
         p = 1. - np.exp(-self.elements.transfer_rates1D*deltat)  # Probability for transformation
+
         psum = np.sum(p,axis=1)
 
         ran1=np.random.random(self.num_elements_active())
@@ -1671,7 +1672,7 @@ class ChemicalDrift(OceanDrift):
 
                 k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
 
-                degraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.seconds))
+                degraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.total_seconds()))
 
                 # Degradation in the sediments
 
@@ -1687,7 +1688,7 @@ class ChemicalDrift(OceanDrift):
 
                 k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
 
-                degraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.seconds))
+                degraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.total_seconds()))
 
             self.elements.mass_degraded_water[W] = self.elements.mass_degraded_water[W] + degraded_now[W]
             self.elements.mass_degraded_sediment[S] = self.elements.mass_degraded_sediment[S] + degraded_now[S]
@@ -1804,7 +1805,7 @@ class ChemicalDrift(OceanDrift):
             #logger.debug('S: %s ' % S)
             #logger.debug('Thick: %s ' % Thick)
 
-            volatilized_now[W] = self.elements.mass[W] * (1-np.exp(-K_volatilization * self.time_step.seconds))
+            volatilized_now[W] = self.elements.mass[W] * (1-np.exp(-K_volatilization * self.time_step.total_seconds()))
 
             self.elements.mass_volatilized = self.elements.mass_volatilized + volatilized_now
             self.elements.mass = self.elements.mass - volatilized_now
@@ -2908,15 +2909,15 @@ class ChemicalDrift(OceanDrift):
         if mass_unit=='ug' and self.elements.variables['mass']['units']=='ug':
             mass_conversion_factor=1
 
-        time_conversion_factor = self.time_step.seconds / (60*60)
+        time_conversion_factor = self.time_step_output.total_seconds() / (60*60)
         if time_unit=='seconds':
-            time_conversion_factor = self.time_step.seconds
+            time_conversion_factor = self.time_step_output.total_seconds()
         if time_unit=='minutes':
-            time_conversion_factor = self.time_step.seconds / 60
+            time_conversion_factor = self.time_step_output.total_seconds() / 60
         if time_unit=='hours':
-            time_conversion_factor = self.time_step.seconds / (60*60)
+            time_conversion_factor = self.time_step_output.total_seconds() / (60*60)
         if time_unit=='days':
-            time_conversion_factor = self.time_step.seconds / (24*60*60)
+            time_conversion_factor = self.time_step_output.total_seconds() / (24*60*60)
 
         for i in range(steps):
 
