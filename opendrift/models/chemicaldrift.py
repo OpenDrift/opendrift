@@ -95,7 +95,7 @@ class ChemicalDrift(OceanDrift):
         'x_wind': {'fallback': 0},
         'y_wind': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
-        'sea_floor_depth_below_sea_level': {'fallback': None},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'ocean_vertical_diffusivity': {'fallback': 0.0001, 'profiles': True},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
