@@ -63,6 +63,18 @@ class SedimentDrift(OceanDrift):
 
         super(SedimentDrift, self).__init__(*args, **kwargs)
 
+        self._add_config({
+            'vertical_mixing:resuspension_threshold': {
+                'type': 'float',
+                'default': 0.2,
+                'min': 0,
+                'max': 3,
+                'units': 'm/s',
+                'description':
+                'Sedimented particles will be resuspended if bottom current shear exceeds this value.',
+                'level': self.CONFIG_LEVEL_ESSENTIAL
+            }})
+
         # By default, sediments do not strand towards coastline
         # TODO: A more sophisticated stranding algorithm is needed
         self._set_config_default('general:coastline_action', 'previous')
@@ -102,7 +114,8 @@ class SedimentDrift(OceanDrift):
 
     def resuspension(self):
         """Resuspending elements if current speed > .5 m/s"""
-        resuspending = np.logical_and(self.current_speed()>.5, self.elements.moving==0)
+        threshold = self.get_config('vertical_mixing:resuspension_threshold')
+        resuspending = np.logical_and(self.current_speed() > threshold, self.elements.moving==0)
         if np.sum(resuspending) > 0:
             # Allow moving again
             self.elements.moving[resuspending] = 1
