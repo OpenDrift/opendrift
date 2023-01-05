@@ -398,7 +398,7 @@ jobs:
 
       - add_ssh_keys:
           fingerprints:
-            - "49:f4:a4:5c:2f:d4:6a:0f:26:21:a0:f2:d4:3c:71:ff"
+            - "	c0:95:6e:db:93:97:28:a7:45:f4:d7:30:e3:fe:a6:8f"
       - run:
           name: Deploy docs to gh-pages branch
           command: gh-pages --dotfiles --message "[skip ci] Updates" --dist docs/build/html --repo git@github.com:OpenDrift/opendrift.github.io.git --branch master
