@@ -44,7 +44,7 @@ commands:
             cat envconfig
 
       - restore_cache:
-          key: v19-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v20-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
       - run:
           name: Install requirements
@@ -70,7 +70,7 @@ commands:
             fi
 
       - save_cache:
-          key: v19-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v20-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
             - "/opt/conda/envs"
       - run:
@@ -320,7 +320,7 @@ jobs:
             echo "Build examples: ${BUILD_EXAMPLES}"
 
       - restore_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
 
       - install_conda_environment
 
@@ -334,7 +334,7 @@ jobs:
             pip install sphinx-rtd-theme
 
       - save_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
