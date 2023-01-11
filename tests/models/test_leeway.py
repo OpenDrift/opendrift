@@ -66,6 +66,10 @@ def test_leewayrun(tmpdir, test_data):
     asciif = tmpdir + '/leeway_ascii.txt'
     lee.export_ascii(asciif)
     asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
+    from difflib import Differ
+    with open(asciif) as file_1, open(asciitarget) as file_2:
+        differ = Differ()
+        for line in differ.compare(file_1.readlines(), file_2.readlines()):
+            print(line)
     import filecmp
-    filecmp.clear_cache()  # otherwise cache gave error on CircleCI
     assert filecmp.cmp(asciif, asciitarget)
