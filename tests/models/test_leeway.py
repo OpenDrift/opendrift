@@ -67,4 +67,5 @@ def test_leewayrun(tmpdir, test_data):
     lee.export_ascii(asciif)
     asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
     import filecmp
+    filecmp.clear_cache()  # otherwise cache gave error on CircleCI
     assert filecmp.cmp(asciif, asciitarget)
