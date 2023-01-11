@@ -111,7 +111,7 @@ for isp,sp in enumerate(o.name_species):
 
 print('Number of transformations:')
 for isp in range(o.nspecies):
-    print('{}'.format(['{:>9}'.format(np.int(item)) for item in o.ntransformations[isp,:]]) )
+    print('{}'.format(['{:>9}'.format(np.int32(item)) for item in o.ntransformations[isp,:]]) )
 
 o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
