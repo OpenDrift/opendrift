@@ -434,27 +434,3 @@ workflows:
           filters:
             branches:
              only: master
-
-  # This workflow will deploy images on merge to master only
-  # build-and-publish-docker-image:
-  #   jobs:
-
-  #     - docker-publish/publish:
-  #         image: opendrift/opendrift
-  #         dockerfile: Dockerfile
-  #         tag: latest
-  #         filters:
-  #           branches:
-  #            only: master
-  #         after_build:
-  #           - run:
-  #               name: Publish Docker Containers with Python Version 3
-  #               command: |
-  #                  # Here we preview the Docker Tag
-  #                  pushd opendrift
-  #                  DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
-  #                  popd
-
-  #                  echo "Version for Docker tag is ${DOCKER_TAG}"
-  #                  docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
-
