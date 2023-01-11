@@ -29,4 +29,7 @@ ensemble_number = np.remainder(np.arange(o.num_elements_total()), len(r.realizat
 o.animation(fast=True, color=ensemble_number, legend=['Member ' + str(i) for i in r.realizations], colorbar=False)
 
 #%%
+# We see that elements forced by different wind ensemble members move differently
+
+#%%
 # .. image:: /gallery/animations/example_ensemble_0.gif
