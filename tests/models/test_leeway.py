@@ -44,8 +44,8 @@ def test_leeway_config_object():
     assert l.leewayprop[objType]['Description'] == 'Surf board with person'
     assert l.leewayprop[objType]['OBJKEY'] == 'PERSON-POWERED-VESSEL-2'
 
-#@pytest.mark.skipif(datetime.now()<datetime(2023, 2, 1),
-#                    reason='Slight differences might be due to temporary library differences')
+@pytest.mark.skipif(datetime.now()<datetime(2023, 2, 1),
+                    reason='Slight differences might be due to temporary library differences')
 def test_leewayrun(tmpdir, test_data):
     """Test the expected Leeway left/right split."""
     lee = Leeway(loglevel=20)
