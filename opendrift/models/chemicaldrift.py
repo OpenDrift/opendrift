@@ -1886,7 +1886,7 @@ class ChemicalDrift(OceanDrift):
 
         print('Number of transformations:')
         for isp in range(self.nspecies):
-            print('{}'.format(['{:>9}'.format(np.int(item)) for item in self.ntransformations[isp,:]]) )
+            print('{}'.format(['{:>9}'.format(np.int32(item)) for item in self.ntransformations[isp,:]]) )
 
         m_pre = sum(self.elements.mass)+sum(self.elements_deactivated.mass)
         m_deg = sum(self.elements.mass_degraded)+sum(self.elements_deactivated.mass_degraded)
