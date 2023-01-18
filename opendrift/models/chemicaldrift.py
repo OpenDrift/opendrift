@@ -1913,12 +1913,20 @@ class ChemicalDrift(OceanDrift):
                                               horizontal_smoothing=False,
                                               smoothing_cells=0,
                                               reader_sea_depth=None,
-                                              ):
+                                              landmask_shapefile=None):
         '''Write netCDF file with map of Chemical species densities and concentrations'''
 
         from netCDF4 import Dataset, date2num #, stringtochar
 
-        if 'global_landmask' not in self.readers.keys():
+        if landmask_shapefile is not None:
+            if 'shape' in self.readers.keys():
+                # removing previously stored landmask
+                del self.readers['shape']
+            # Adding new landmask
+            from opendrift.readers import reader_shape
+            custom_landmask = reader_shape.Reader.from_shpfiles(landmask_shapefile)
+            self.add_reader(custom_landmask)
+        elif 'global_landmask' not in self.readers.keys():
             from opendrift.readers import reader_global_landmask
             global_landmask = reader_global_landmask.Reader()
             self.add_reader(global_landmask)
@@ -2004,8 +2012,10 @@ class ChemicalDrift(OceanDrift):
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
         landmask = np.zeros_like(H[0,0,0,:,:])
-        #landmask = self.readers['shape'].__on_land__(lon_array,lat_array)
-        landmask = self.readers['global_landmask'].__on_land__(lon_array,lat_array)
+        if landmask_shapefile is not None:
+            landmask = self.readers['shape'].__on_land__(lon_array,lat_array)
+        else:
+            landmask = self.readers['global_landmask'].__on_land__(lon_array,lat_array)
         Landmask=np.zeros_like(H)
         for zi in range(len(z_array)-1):
             for sp in range(self.nspecies):
