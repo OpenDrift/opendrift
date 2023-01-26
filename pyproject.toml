@@ -21,7 +21,7 @@ opendrift_gui = "opendrift.scripts.opendrift_gui:main"
 grib = ["cfgrib", "pygrib"]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<4"
 matplotlib = ">=3.5"
 numpy = ">=1.23"
 scipy = ">=1.9"
@@ -43,6 +43,7 @@ roaring-landmask = ">=0.7"
 requests = "^2.28.1"
 pykdtree = "^1.3.5"
 trajan = ">=0.1.3"
+xhistogram = ">=0.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"

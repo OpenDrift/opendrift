@@ -1,6 +1,15 @@
 History
 =======
 
+2023-01-26 / Release v1.10.5
+----------------------------
+* Multiple improvements to the chemicaldrift model.
+* Fix issue where oil type alias for 'EKOFISK BLEND 2002' did not work.
+* Leeway: number of elements now equal to length of lon,lat input array (if number not given).
+* Leeway: ASCII output gives small numerical difference on different platforms, presumably because of numerical errors.
+* Fixing bug in get_environment, where unmasked arrays of nan did not lead to call for more readers.
+* Add trajan as dependency.
+
 2022-11-16 / Release v1.10.4
 ----------------------------
 * Workaround in reader_netCDF_CF_generic to prevent wrong wind field from ECMWF model to be selected

@@ -94,5 +94,23 @@ def test_set_oil_type_by_id():
     assert o.oiltype.name == 'AASGARD A 2003'
     print(o.oiltype)
 
+def test_oil_type_alias():
+    o = OpenOil(loglevel=50)
+    o.set_oiltype('EKOFISK BLEND 2002')
+    # o.set_oiltype('EKOFISK BLEND 2000')
 
+    o = OpenOil(loglevel=50)
+    o.set_config('seed:oil_type', 'EKOFISK BLEND 2002')
 
+    o.set_config('environment:fallback:x_wind', 7)
+    o.set_config('environment:fallback:y_wind', 0)
+    o.set_config('environment:fallback:x_sea_water_velocity', .7)
+    o.set_config('environment:fallback:y_sea_water_velocity', 0)
+    o.set_config('environment:fallback:land_binary_mask', 0)
+    o.seed_elements(4.7,
+                    60.0,
+                    radius=3000,
+                    number=3,
+                    z=0,
+                    time=datetime.now())
+    o.run(steps=3)
