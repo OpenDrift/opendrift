@@ -417,8 +417,8 @@ workflows:
             - build_package
             - python_39
           filters:
-            branches:
-             only: master
+            tags:
+             only: /v.*/
 
   docs:
     jobs:
