@@ -83,6 +83,7 @@ class SeaLice(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'upward_sea_water_velocity': {'fallback': 0},
         # 'sea_surface_wave_significant_height': {'fallback': 0},
         # 'x_wind': {'fallback': 0},
         # 'y_wind': {'fallback': 0},
@@ -112,7 +113,7 @@ class SeaLice(OceanDrift):
                                 'min': None, 'max': None, 'units': 'seconds',
                                 'description': 'Time between particle release',
                                 'level': self.CONFIG_LEVEL_ESSENTIAL},
-            'lice:death_rate':{'type':'float', 'default':0.01/3600,
+            'lice:death_rate':{'type':'float', 'default':0.17/24/3600,
                                 'min': 0., 'max': None, 'units': 's-1',
                                 'description': 'Rate of Larvae death per seconds',
                                 'level': self.CONFIG_LEVEL_BASIC},
@@ -120,7 +121,7 @@ class SeaLice(OceanDrift):
                                 'min': 0., 'max': None, 'units': 's-1',
                                 'description': 'Rate of Nauplii maturation in Copepodids',
                                 'level': self.CONFIG_LEVEL_BASIC},
-            'lice:maturity_date':{'type':'float', 'default':3.63,
+            'lice:maturity_date':{'type':'float', 'default':5,
                                 'min': 0., 'max': None, 'units': 'days',
                                 'description': 'Days to start maturing into Copepodids',
                                 'level': self.CONFIG_LEVEL_BASIC},
@@ -139,6 +140,10 @@ class SeaLice(OceanDrift):
             'lice:avoided_salinity':{'type':'float', 'default':32.,
                                 'min': 0., 'max': 50., 'units': 'PSU',
                                 'description': 'Salinity actively avoided',
+                                'level': self.CONFIG_LEVEL_BASIC},
+            'lice:avoided_turbulence':{'type':'float', 'default':0.0005,
+                                'min': 0., 'max': 50., 'units': 'm.s-1',
+                                'description': 'upward velocity actively avoided',
                                 'level': self.CONFIG_LEVEL_BASIC},
             'lice:nu':{'type':'float', 'default':500.,
                                 'min': 100, 'max': 1000, 'units': 'nm',
@@ -175,6 +180,7 @@ class SeaLice(OceanDrift):
                                 *self.time_step.total_seconds()
         self.freezing_salinity=self.get_config(self.prefix+'freezing_salinity')
         self.avoided_salinity=self.get_config(self.prefix+'avoided_salinity')
+        self.avoided_turbulence=self.get_config(self.prefix+'avoided_turbulence')
         self.k_water=self.get_config(self.prefix+'k_water')
         self.Nauplii_light_trigger=self.get_config(self.prefix+'Nauplii_light_trigger')
         self.Copepodid_light_trigger=self.get_config(self.prefix+'Copepodid_light_trigger')
@@ -229,7 +235,7 @@ class SeaLice(OceanDrift):
         logger.debug("Building global population model")
         death_rate=self.get_config(self.prefix+'death_rate')* self.time_step.total_seconds()
         maturation_rate=self.get_config(self.prefix+'maturation_rate')* self.time_step.total_seconds()
-        duration = self.expected_steps_calculation #self.get_config('general:duration')/ self.time_step.total_seconds()
+        duration = self.get_config('general:duration')/ self.time_step.total_seconds()
         Mat = int(np.ceil(self.get_config(self.prefix+'maturity_date')*24*3600/ \
                     self.time_step.total_seconds())) # maturity age in timestep
         t=np.arange(0,duration+1,dtype=np.int)
@@ -349,14 +355,14 @@ class SeaLice(OceanDrift):
                     (self.environment.sea_water_salinity<self.avoided_salinity))
 
         Normal_salt = self.environment.sea_water_salinity>=self.avoided_salinity
-
+        Stormy= self.environment.upward_sea_water_velocity>self.avoided_turbulence
         self.sensing()
         ### Irradiance computation
         self.irradiance()
         ### identify the elements involved in the different scenarios
         Filter_N= self.elements.copepodid < self.elements.nauplii
         Filter_C=~Filter_N
-        safe_up_salt=Normal_salt&self.elements.safe_salinity_above.astype(np.bool)
+        safe_up_salt=~Stormy&Normal_salt&self.elements.safe_salinity_above.astype(np.bool)
         #### need to be able to deal with false arrays of Filter_N and C...
         ### They generate empty arrays
         light_mig_N= safe_up_salt&Filter_N&(self.elements.light \
@@ -373,7 +379,7 @@ class SeaLice(OceanDrift):
                         self.environment.sea_water_temperature)
 
         ### Active migration
-        going_down=np.logical_or(Avoiding,down_temp_mig)
+        going_down=np.logical_or(np.logical_or(Avoiding,down_temp_mig),Stormy)
         going_up=np.logical_or(np.logical_or(light_mig_N,light_mig_C),up_temp_mig)
         logger.debug("{} going down, {} going up".format(going_down.sum(), going_up.sum()))
         self.elements.z[going_down] -= self.vertical_migration_speed
@@ -383,7 +389,7 @@ class SeaLice(OceanDrift):
     def update(self):
         self.SI_pop()
         self.degree_days()
-        self.advect_ocean_current()        
+        self.advect_ocean_current()
         # self.vertical_mixing()
         self.Lice_vertical_migration()
         self.depth_test()

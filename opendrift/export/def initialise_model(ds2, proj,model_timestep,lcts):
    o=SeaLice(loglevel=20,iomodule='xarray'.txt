@@ -1,0 +1,10 @@
+def initialise_model(ds2, proj,model_timestep,lcts):
+    o=SeaLice(loglevel=20,iomodule='xarray')
+    butte = R2(filename=ds2, proj4=proj, engine='zarr')
+    o.add_reader(butte)
+    filename=initialise_irradiance(butte)
+    proj_latlon='+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'
+    r2 = Reader(filename,standard_name_mapping={'ALLSKY_SFC_SW_DWN':'surface_net_downward_radiative_flux'})
+    o.add_reader(r2)
+    o =configure_model(o,model_timestep,lcts)
+    return o, butte.start_time, butte.start_time+timedelta(days=1)

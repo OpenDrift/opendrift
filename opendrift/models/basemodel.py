@@ -2982,7 +2982,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             del self.environment
             if hasattr(self, 'environment_profiles'):
                 del self.environment_profiles
-            self.io_import_file(outfile)
+            #self.io_import_file(outfile)
 
         self.timer_end('cleaning up')
         self.timer_end('total time')
