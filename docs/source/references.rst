@@ -3,6 +3,22 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Simonsen, M., Albretsen, J., Saetra, Ø., Asplin, L., Lind, O.C., & Teien, H. (2023). High resolution modeling of aluminium transport in a fjord estuary with focus on mean circulation and irregular flow events. The Science of the total environment, 161399. https://doi.org/10.1016/j.scitotenv.2023.161399
+
+Anselain, T., Heggy, E., Dobbelaere, T. et al. Qatar Peninsula’s vulnerability to oil spills and its implications for the global gas supply. Nat Sustain (2023). https://doi.org/10.1038/s41893-022-01037-w
+
+Merlino, S.; Locritani, M.; Guarnieri, A.; Delrosso, D.; Bianucci, M.; Paterni, M. Marine Litter Tracking System: A Case Study with Open-Source Technology and a Citizen Science-Based Approach. Sensors 2023, 23, 935. https://doi.org/10.3390/s23020935
+
+Bruciaferri, D., Tonani, M., Ascione, I., Al Senafi, F., O'Dea, E., Hewitt, H. T., and Saulter, A.: GULF18, a high-resolution NEMO-based tidal ocean model of the Arabian/Persian Gulf, Geosci. Model Dev., 15, 8705–8730, https://doi.org/10.5194/gmd-15-8705-2022, 2022.
+
+Crivellaro, M.S., Candido, D.V., Lima Silveira T.C., Carvalhal Fonseca A., Segal, B. (2022) A tool for a race against time: Dispersal simulations to support ongoing monitoring program of the invasive coral Tubastraea coccinea. Mar. Pol. Bulletin, 185. ISSN 0025-326X.
+
+Delcloo, A.W., Verstraeten, W.W., Kouznetsov, R., Hoebelke, L., Bruffaerts, N., Sofiev, M. (2022). Forecasting Birch Pollen Levels in Belgium: First Analysis of the 2021 Season. In: Mensink, C., Jorba, O. (eds) Air Pollution Modeling and its Application XXVIII. ITM 2021. Springer Proceedings in Complexity. Springer, Cham. https://doi.org/10.1007/978-3-031-12786-1_16
+
+Rosas, Eloah & Martins, Flávio & Tosic, Marko & Janeiro, Joao & Mendonça, Fernando & Mills, Lara. (2022). Pathways and Hot Spots of Floating and Submerged Microplastics in Atlantic Iberian Marine Waters: A Modelling Approach. Journal of Marine Science and Engineering. 10. 1640. 10.3390/jmse10111640. 
+
+Kyriakidis, P., Moutsiou, T., Nikolaidis, A., Reepmeyer, C., Leventis, G., Demesticha, S., Akylas, E., Kassianidou, V., Michailides, C., Zomeni, Z., Bar-Yosef, D., Makovsky, Y., McCartney, C. (2022). Virtual Sea-Drifting Experiments between the Island of Cyprus and the Surrounding Mainland in the Early Prehistoric Eastern Mediterranean. Heritage. 5. 3081-3099. 10.3390/heritage5040160. 
+
 Rodríguez-Villegas C., Figueroa R.I, Pérez-Santos I, Molinet C., Saldías G.S., Rosales S.A, Álvarez G., Linford P., Díaz P.A., Continental shelf off northern Chilean Patagonia: A potential risk zone for the onset of Alexandrium catenella toxic bloom? Marine Pollution Bulletin 184 (2022) 114103, https://doi.org/10.1016/j.marpolbul.2022.11410
 
 Devis Morales A.D., Rubio E.R., Martínez D.R., Numerical modeling of oil spills in the Gulf of Morrosquillo, Colombian Caribean, Ciencia, Tecnologia y Futuro Vol 12, Num 1 June 2022. pages 69 - 83, https://doi.org/10.29047/01225383.396.
