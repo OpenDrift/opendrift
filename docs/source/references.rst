@@ -47,6 +47,8 @@ Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulati
 
 Reche P., Artal O., Pinilla E., Ruiz C., Venegas O., Arriagada A., Falvey M., CHONOS: Oceanographic information website for Chilean Patagonia, Ocean & Coastal Management, Volume 208, 1 July 2021, https://doi.org/10.1016/j.ocecoaman.2021.105634
 
+J. Anarumo, T. Miles, H. Roarty, J. Kohut and N. Beaird, "An Open-Source Software Application for Drifter Trajectory Prediction in the Mid-Atlantic Bight," Global Oceans 2020: Singapore – U.S. Gulf Coast, Biloxi, MS, USA, 2020, pp. 1-8, https://doi.org/10.1109/IEEECONF38699.2020.9389124
+
 Peytavin, A., Sainte-Rose, B., Forget, G., and Campin, J.-M.: Ocean Plastic Assimilator v0.1: Assimilation of Plastics Concentration Data Into Lagrangian Dispersion Models, Geosci. Model Dev. Discuss. [preprint], https://doi.org/10.5194/gmd-2020-385, in review, 2021.
 
 Melsom A., Kvile K.Ø., Dagestad K.-F., Broström G., Langangen Ø., Exploring drift simulations from ocean circulation experiments: Application to cod eggs and larval drift, Accepted for publication, https://doi.org/10.3354/cr01652
