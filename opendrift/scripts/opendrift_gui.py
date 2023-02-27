@@ -463,7 +463,8 @@ class OpenDriftGUI(tk.Tk):
         elif command == 'copy_netcdf':
             import shutil
             from tkinter import filedialog
-            folder_selected = filedialog.askdirectory()
+            import pathlib
+            folder_selected = filedialog.askdirectory(initialdir=pathlib.Path.home())
             try:
                 shutil.copy(self.o.outfile_name, folder_selected)
                 print('Copied netCDF file to:\n' \
