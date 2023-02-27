@@ -5257,8 +5257,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 outStr += '  %s (%s)\n' % (dr, reason)
         if hasattr(self, 'time'):
             outStr += '\nTime:\n'
-            outStr += '\tStart: %s\n' % (self.start_time)
-            outStr += '\tPresent: %s\n' % (self.time)
+            outStr += '\tStart: %s UTC\n' % (self.start_time)
+            outStr += '\tPresent: %s UTC\n' % (self.time)
             if hasattr(self, 'time_step'):
                 outStr += '\tCalculation steps: %i * %s - total time: %s\n' % (
                     self.steps_calculation, self.time_step,

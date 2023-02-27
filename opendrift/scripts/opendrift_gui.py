@@ -201,7 +201,8 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.start, text='Month').grid(row=20, column=1)
         tk.Label(self.start, text='Year').grid(row=20, column=2)
         tk.Label(self.start, text='Hour').grid(row=20, column=3)
-        tk.Label(self.start, text='Minutes [UTC]').grid(row=20, column=4)
+        tk.Label(self.start, text='Minutes').grid(row=20, column=4)
+        tk.Label(self.start, text='Timezone').grid(row=0, column=4)
         self.datevar = tk.StringVar()
         self.dates = range(1, 32)
         self.datevar.set(now.day)
@@ -236,6 +237,13 @@ class OpenDriftGUI(tk.Tk):
                                     *self.minutes)
         self.minute.grid(row=30, column=4)
 
+        self.timezonevar = tk.StringVar()
+        self.timezone = ['UTC', 'CET']
+        self.timezonevar.set('UTC')
+        self.timezone = tk.OptionMenu(self.start, self.timezonevar,
+                                    *self.timezone)
+        self.timezone.grid(row=10, column=4)
+
         self.datevar.trace('w', self.copy_position)
         self.monthvar.trace('w', self.copy_position)
         self.yearvar.trace('w', self.copy_position)
@@ -267,7 +275,7 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.end, text='Month', bg='gray').grid(row=20, column=1)
         tk.Label(self.end, text='Year', bg='gray').grid(row=20, column=2)
         tk.Label(self.end, text='Hour', bg='gray').grid(row=20, column=3)
-        tk.Label(self.end, text='Minutes [UTC]', bg='gray').grid(row=20, column=4)
+        tk.Label(self.end, text='Minutes', bg='gray').grid(row=20, column=4)
         self.edatevar = tk.StringVar()
         self.edates = range(1, 32)
         self.edatevar.set(now.day)
@@ -452,8 +460,17 @@ class OpenDriftGUI(tk.Tk):
                                          zlayers=zlayer, time=time, specie=specie )
         elif command == 'showanimationprofile':
             self.o.guipp_showanimationprofile()
-
-
+        elif command == 'copy_netcdf':
+            import shutil
+            from tkinter import filedialog
+            folder_selected = filedialog.askdirectory()
+            try:
+                shutil.copy(self.o.outfile_name, folder_selected)
+                print('Copied netCDF file to:\n' \
+                      f'{folder_selected}/{os.path.basename(self.o.outfile_name)}')
+            except Exception as e:
+                print('Could not copy file:')
+                print(e)
 
     def validate_config(self, value_if_allowed, prior_value, key):
         """From config menu selection."""
@@ -696,7 +713,7 @@ class OpenDriftGUI(tk.Tk):
         try:
             self.budgetbutton.destroy()
         except Exception as e:
-            print(e)
+            #print(e)
             pass
         month = int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(int(self.yearvar.get()), month,
@@ -708,6 +725,16 @@ class OpenDriftGUI(tk.Tk):
                             int(self.edatevar.get()),
                             int(self.ehourvar.get()),
                             int(self.eminutevar.get()))
+
+        timezone = self.timezonevar.get()
+        if timezone != 'UTC':
+            import pytz
+            local = pytz.timezone(timezone)
+            local_start = local.localize(start_time, is_dst=None)
+            local_end = local.localize(end_time, is_dst=None)
+            start_time = local_start.astimezone(pytz.utc).replace(tzinfo=None)
+            end_time = local_end.astimezone(pytz.utc).replace(tzinfo=None)
+
         sys.stdout.flush()
         lon = float(self.lon.get())
         lat = float(self.lat.get())
@@ -826,6 +853,10 @@ class OpenDriftGUI(tk.Tk):
                 os.chmod(diana_filename, 0o666)
             except:
                 pass
+
+            tk.Button(self.results, text='Copy netCDF file',
+                      command=lambda: self.handle_result(
+                          'copy_netcdf')).grid(row=81, column=1)
 
 def main():
     OpenDriftGUI().mainloop()
