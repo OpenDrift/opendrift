@@ -630,9 +630,12 @@ class PhysicsMethods:
             return
 
         wdf = wind_drift_factor.copy()
+        wdf_air = wdf.copy()
         if surface_only is False:
             # linear decrease from surface down to wind_drift_depth
             wdf = wdf*(wind_drift_depth+self.elements.z)/wind_drift_depth
+            # Resetting wdf for elements in air
+            wdf[self.elements.z>0] = wdf_air[self.elements.z>0]
         wdf[~surface] = 0.0
         wdfmin = wdf[surface].min()
         wdfmax = wdf[surface].max()
