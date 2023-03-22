@@ -789,9 +789,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                      None)
             self.environment.land_binary_mask = en.land_binary_mask
 
-        if i == 'stranding':  # Deactivate elements on land
-            self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                     reason='stranded')
+        if i == 'stranding':  # Deactivate elements on land, but not in air
+            self.deactivate_elements((self.environment.land_binary_mask == 1) &
+                                     (self.elements.z <= 0), reason='stranded')
         elif i == 'previous':  # Go back to previous position (in water)
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
