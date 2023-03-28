@@ -1999,6 +1999,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             'radius': [float(radius[0]), float(radius[-1])],
             'number': number
         }
+        # convert array to string in case of array input to seed cone
+        for key in properties.keys():
+            if isinstance(properties[key],np.ndarray):
+                properties[key] = np.array2string(properties[key])
+                
         f = geojson.Feature(geometry=geo, properties=properties)
         self.seed_geojson.append(f)
 
