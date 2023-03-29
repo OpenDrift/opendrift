@@ -162,8 +162,10 @@ jobs:
       - run:
           name: Publish packages
           command: |
-            source activate opendrift
-            poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+            if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
+              source activate opendrift
+              poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+            fi
 
   python_310:
     <<: *test-template
@@ -418,7 +420,9 @@ workflows:
             - python_39
           filters:
             tags:
-             only: /v.*/
+              only: /^v.*/
+            branches:
+              only: master
 
   docs:
     jobs:
