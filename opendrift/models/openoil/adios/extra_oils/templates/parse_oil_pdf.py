@@ -155,7 +155,7 @@ class ParseOilPDF(tk.Tk):
             elif len(df.columns) == 5:
                 # Check if this is a valid weathering table
                 oil = ads.Oil('dummy')
-                oil.sub_sample.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
+                oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
                 for i, s in enumerate(['Fresh oil', 'Topped to 150C', 'Topped to 200C', 'Topped to 250C']):
                     oil.sub_samples[i].metadata.name = s
                     oil.sub_samples[i].metadata.short_name = s
