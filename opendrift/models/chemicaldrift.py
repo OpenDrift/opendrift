@@ -146,9 +146,9 @@ class ChemicalDrift(OceanDrift):
             'chemical:particle_concentration_half_depth': {'type': 'float', 'default': 20,
                 'min': 0, 'max': 100, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'chemical:doc_concentration_half_depth': {'type': 'float', 'default': 20,
-                'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:doc_concentration_half_depth': {'type': 'float', 'default': 1000, # TODO: check better
+                'min': 0, 'max': 1000, 'units': 'm',                                     # Vertical conc drops more slowly slower than for SPM
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},                # example: 10.3389/fmars.2017.00436. lower limit around 40 umol/L
             'chemical:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
@@ -225,22 +225,25 @@ class ChemicalDrift(OceanDrift):
                 'min': 0, 'max': 1, 'units': 'L/mol',
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:pKa_acid': {'type': 'float', 'default': -1,
-                'min': 0, 'max': 14, 'units': '',
+                'min': -1, 'max': 14, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:pKa_base': {'type': 'float', 'default': -1,
-                'min': 0, 'max': 14, 'units': '',
+                'min': -1, 'max': 14, 'units': '',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:KOC_DOM': {'type': 'float', 'default': -1,
-                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
+                'min': -1, 'max': 10000000000, 'units': 'L/KgOC',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:KOC_sed': {'type': 'float', 'default': -1,
-                'min': 1, 'max': 10000000000, 'units': 'L/KgOC',
+                'min': -1, 'max': 10000000000, 'units': 'L/KgOC',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:fOC_SPM': {'type': 'float', 'default': 0.05,
                 'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:transformations:fOC_sed': {'type': 'float', 'default': 0.05,
                 'min': 0.01, 'max': 0.1, 'units': 'gOC/g',
+                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+            'chemical:transformations:aggregation_rate': {'type': 'float', 'default': 0,
+                'min': 0, 'max': 1, 'units': 's-1',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Degradation in water column
             'chemical:transformations:t12_W_tot': {'type': 'float', 'default': 224.08,      # Naphthalene
@@ -327,7 +330,7 @@ class ChemicalDrift(OceanDrift):
                 'min': 0, 'max': 10, 'units': 'm/year',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             'chemical:sediment:buried_leaking_rate': {'type': 'float', 'default': 0,
-                'min': 0, 'max': 10, 'units': 'm/year',
+                'min': 0, 'max': 10, 'units': 's-1',
                 'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
             #
             'chemical:compound': {'type': 'enum',
@@ -919,7 +922,7 @@ class ChemicalDrift(OceanDrift):
             self.transfer_rates[self.num_ssrev,self.num_srev] = sed_leaking_rate                # k64
 
 
-            self.transfer_rates[self.num_humcol,self.num_prev] = 1.e-5      # k23, Salinity interval >20 psu
+            self.transfer_rates[self.num_humcol,self.num_prev] = self.get_config('chemical:transformations:aggregation_rate')
             self.transfer_rates[self.num_prev,self.num_humcol] = 0          # TODO check if valid for organics
 
         elif transfer_setup == 'metals':                                # renamed from radionuclides Bokna_137Cs
@@ -1953,7 +1956,7 @@ class ChemicalDrift(OceanDrift):
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         # Default bathymetry resolution 500x500. Can be increased (carefully) if high-res data is available and needed
-        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,1000), np.linspace(llcrnrlat,urcrnrlat,1000))
+        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,500), np.linspace(llcrnrlat,urcrnrlat,500))
         self.conc_lon=grid[0]
         self.conc_lat=grid[1]
 
