@@ -24,56 +24,6 @@ logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader, StructuredReader
 import xarray as xr
 
-def proj_from_CF_dict(c):
-
-    # This method should be extended to other projections:
-    # https://cfconventions.org/wkt-proj-4.html
-    if not 'grid_mapping_name' in c:
-        raise ValueError('grid_mapping not given in dictionary')
-    gm = c['grid_mapping_name']
-
-    if 'earth_radius' in c:
-        earth_radius = c['earth_radius']
-    else:
-        earth_radius = 6371000.
-    if gm == 'polar_stereographic':
-        lon_0 = 0  # default, but dangerous
-        for l0 in ['longitude_of_projection_origin',
-                   'longitude_of_central_meridian',
-                   'straight_vertical_longitude_from_pole']:
-            if l0 in c:
-                lon_0 = c[l0]
-        if 'latitude_of_origin' in c:
-            lat_ts = c['latitude_of_origin']
-        else:
-            lat_ts = c['latitude_of_projection_origin']
-        if 'false_easting' in c:
-            x0 = c['false_easting']
-        else:
-            x0 = 0  # dangerous?
-        if 'false_northing' in c:
-            y0 = c['false_northing']
-        else:
-            y0 = 0  # dangerous: is there a better default?
-        if 'scale_factor_at_projection_origin' in c:
-            k0 = c['scale_factor_at_projection_origin']
-        else:
-            k0 = 1.0
-        proj4 = ('+proj={!s} +lat_0={!s} +lon_0={!s} +lat_ts={!s} '
-                 '+k_0={!s} +x_0={!s} +y_0={!s} +units=m +a={!s} '
-                 '+no_defs'.format('stere',
-                                   c['latitude_of_projection_origin'],
-                                   lon_0, lat_ts, k0, x0, y0, earth_radius)
-                 )
-
-    elif gm == 'rotated_latitude_longitude':
-        proj4 = '+proj=ob_tran +o_proj=longlat +lon_0=%s +o_lat_p=%s +R=%s +no_defs' % (
-                c['grid_north_pole_longitude']-180, c['grid_north_pole_latitude'], earth_radius)
-
-    proj = pyproj.Proj(proj4)
-
-    return proj4, proj
-
 
 class Reader(StructuredReader, BaseReader):
     """
@@ -172,9 +122,10 @@ class Reader(StructuredReader, BaseReader):
                     logger.debug(
                         ('Parsing CF grid mapping dictionary:'
                         ' ' + str(var.attrs)))
-                    try:
-                        self.proj4, proj =\
-                            proj_from_CF_dict(var.attrs)
+                    try:  # parse proj4 with pyproj.CRS
+                        crs = pyproj.CRS.from_cf(var.attrs)
+                        self.proj4 = crs.to_proj4()
+                        proj = pyproj.Proj(proj4)
                     except:
                         logger.info('Could not parse CF grid_mapping')
 
