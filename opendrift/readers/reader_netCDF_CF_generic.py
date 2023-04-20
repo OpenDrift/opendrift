@@ -125,7 +125,7 @@ class Reader(StructuredReader, BaseReader):
                     try:  # parse proj4 with pyproj.CRS
                         crs = pyproj.CRS.from_cf(var.attrs)
                         self.proj4 = crs.to_proj4()
-                        proj = pyproj.Proj(proj4)
+                        proj = pyproj.Proj(self.proj4)
                     except:
                         logger.info('Could not parse CF grid_mapping')
 
