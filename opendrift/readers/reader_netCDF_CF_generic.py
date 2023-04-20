@@ -114,11 +114,7 @@ class Reader(StructuredReader, BaseReader):
             var = self.Dataset.variables[var_name]
 
             if self.proj4 is None:
-                if 'proj4' in var.attrs:
-                    self.proj4 = str(var.attrs['proj4'])
-                elif 'proj4_string' in var.attrs:
-                    self.proj4 = str(var.attrs['proj4_string'])
-                elif 'grid_mapping_name' in var.attrs:
+                if 'grid_mapping_name' in var.attrs:
                     logger.debug(
                         ('Parsing CF grid mapping dictionary:'
                         ' ' + str(var.attrs)))
@@ -128,6 +124,11 @@ class Reader(StructuredReader, BaseReader):
                         proj = pyproj.Proj(self.proj4)
                     except:
                         logger.info('Could not parse CF grid_mapping')
+                if self.proj4 is None:
+                    if 'proj4' in var.attrs:
+                        self.proj4 = str(var.attrs['proj4'])
+                    elif 'proj4_string' in var.attrs:
+                        self.proj4 = str(var.attrs['proj4_string'])
 
             standard_name = var.attrs['standard_name'] if 'standard_name' in var.attrs else ''
             long_name = var.attrs['long_name'] if 'long_name' in var.attrs else ''
