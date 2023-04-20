@@ -455,7 +455,7 @@ class TestReaders(unittest.TestCase):
                               testlon, testlat, testz,
                               o.required_profiles)
         self.assertAlmostEqual(env['sea_water_temperature'][0], 4.251, 2)
-        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.122, 3)
+        self.assertAlmostEqual(env['sea_water_temperature'][1], -0.148, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
             missing, [False,False,False,False,False]))
@@ -464,7 +464,7 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
         #self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
-                               2.159, 3)
+                               2.095, 3)
         # Get separate data
         env2, env_profiles2, missing2 = \
             o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',

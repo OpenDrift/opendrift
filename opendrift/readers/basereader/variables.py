@@ -53,7 +53,8 @@ class ReaderDomain(Timeable):
 
         x = self.xmin + (self.xmax - self.xmin) / 2
         y = self.ymin + (self.ymax - self.ymin) / 2
-        return self.xy2lonlat(x, y)
+        lo, la = self.xy2lonlat(x, y)
+        return(lo[0], la[0])
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
