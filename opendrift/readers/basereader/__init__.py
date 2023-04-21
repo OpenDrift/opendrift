@@ -89,7 +89,9 @@ class BaseReader(Variables, Combine, Filter):
                                  'northward_eulerian_current_velocity', 'surface_geostrophic_northward_sea_water_velocity',
                                  'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid',
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
-        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
+        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind',
+        'sea_surface_wave_stokes_drift_x_velocity': 'eastward_surface_stokes_drift',
+        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift'}
 
     def __init__(self):
         """Common constructor for all readers"""
@@ -170,7 +172,7 @@ class BaseReader(Variables, Combine, Filter):
             self.activate_environment_mapping(m)
 
     def y_is_north(self):
-        if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
+        if (self.proj.crs.is_geographic and 'ob_tran' not in self.proj4) or '+proj=merc' in self.proj.srs:
             return True
         else:
             return False
@@ -181,13 +183,14 @@ class BaseReader(Variables, Combine, Filter):
         pass  # to be overriden by specific readers
 
     def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
+        vx, vy = np.meshgrid(variables['x'], variables['y'])
         for vectorpair in vector_pairs_xy:
             if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
                 if proj_to is None:
                     proj_to = self.proj
                 logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
                 variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
-                    variables['x'], variables['y'],
+                    vx, vy,
                     variables[vectorpair[0]], variables[vectorpair[1]],
                     proj_from, proj_to)
 

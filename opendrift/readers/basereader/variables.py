@@ -722,7 +722,7 @@ class Variables(ReaderDomain):
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
-            if self.proj.crs.is_geographic:
+            if self.proj.crs.is_geographic and 'ob_tran' not in self.proj4:
                 logger.debug('Reader projection is latlon - '
                              'rotation of vectors is not needed.')
             else:
