@@ -2379,6 +2379,9 @@ class ChemicalDrift(OceanDrift):
 
             from EMERGE Deliverable 2.1
 
+            ash (atmospheric depositions)
+            from EMERGE Deliverable 3.2
+
         """
         emission_factors_open_loop = {
             #                           mean    +/-95%
@@ -2546,6 +2549,21 @@ class ChemicalDrift(OceanDrift):
             "ZnO_AFP":                  [0.8033,    0.],
             "ZnPyr_AFP":                [0.2058,    0.],
          }
+
+        emission_factors_SILAM_ash {
+            #                           g/g
+            "Aresenic":                 [8.09E-5],
+            "Cadmium":                  [6.30E-6],
+            "Chromium":                 [2.10E-4],
+            "Copper":                   [2.52E-4],
+            "Iron":                     [2.52E-2],
+            "Mercury":                  [6.30E-6],
+            "Nickel":                   [4.10E-2],
+            "Lead":                     [1.16E-4],
+            "Vanadium":                 [8.30E-2],
+            "Zinc":                     [2.42E-3],
+         }
+
         if scrubber_type=="open_loop":
             Emission_factors = emission_factors_open_loop.get(chemical_compound)[0]
         elif scrubber_type=="closed_loop":
@@ -2562,6 +2580,10 @@ class ChemicalDrift(OceanDrift):
             Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
         elif scrubber_type=="N_foodwaste": # Nitrogen from foodwaste
             Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
+        elif scrubber_type=="SILAM_metals":
+            Emission_factors = 1e9  #+ 1kg = 1e9 ug: Lead and Cadmium depositions given in kg
+        elif scrubber_type=="SILAM_metals_from_ash"
+            Emission_factors = 1e9*emission_factors_SILAM_ash.get(chemical_compound)[0] # 1kg=1e9ug: Ash depositions given in kg
 
         return Emission_factors
         # TODO: Add emission uncertainty based on 95% confidence interval
