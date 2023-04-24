@@ -30,9 +30,9 @@ class Reader(StructuredReader, BaseReader):
     A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
 
     Args:
-        :param filename: A single netCDF file, or a pattern of files. The
+        :param filename: A single netCDF file, a pattern of files, or a xr.Dataset. The
                          netCDF file can also be an URL to an OPeNDAP server.
-        :type filename: string, requiered.
+        :type filename: string, xr.Dataset (required).
 
         :param name: Name of reader
         :type name: string, optional
@@ -67,35 +67,39 @@ class Reader(StructuredReader, BaseReader):
     def __init__(self, filename=None, zarr_storage_options=None, name=None, proj4=None,
                  standard_name_mapping={}, ensemble_member=None):
 
-        if zarr_storage_options is not None:
-            self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
-            if name is None:
-                self.name = filename
-            else:
-                self.name = name
+        if isinstance(filename, xr.Dataset):
+            self.Dataset = filename
+            self.name = name if name is not None else str(filename)
         else:
-            if filename is None:
-                raise ValueError('Need filename as argument to constructor')
-
-            filestr = str(filename)
-            if name is None:
-                self.name = filestr
-            else:
-                self.name = name
-
-            try:
-                # Open file, check that everything is ok
-                logger.info('Opening dataset: ' + filestr)
-                if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                    logger.info('Opening files with MFDataset')
-                    self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
-                                                     chunks={'time': 1}, decode_times=False)
-                elif ensemble_member is not None:
-                    self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
+            if zarr_storage_options is not None:
+                self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
+                if name is None:
+                    self.name = filename
                 else:
-                    self.Dataset = xr.open_dataset(filename, decode_times=False)
-            except Exception as e:
-                raise ValueError(e)
+                    self.name = name
+            else:
+                if filename is None:
+                    raise ValueError('Need filename as argument to constructor')
+
+                filestr = str(filename)
+                if name is None:
+                    self.name = filestr
+                else:
+                    self.name = name
+
+                try:
+                    # Open file, check that everything is ok
+                    logger.info('Opening dataset: ' + filestr)
+                    if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+                        logger.info('Opening files with MFDataset')
+                        self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
+                                                        chunks={'time': 1}, decode_times=False)
+                    elif ensemble_member is not None:
+                        self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
+                    else:
+                        self.Dataset = xr.open_dataset(filename, decode_times=False)
+                except Exception as e:
+                    raise ValueError(e)
 
         # NB: check below might not be waterproof
         if 'ocean_time' in self.Dataset.dims and 'eta_u' in self.Dataset.dims and \
@@ -346,7 +350,7 @@ class Reader(StructuredReader, BaseReader):
 
         if self.global_coverage():
             if self.lon_range() == '0to360':
-                x = np.mod(x, 360)  # Shift x/lons to 0-360 
+                x = np.mod(x, 360)  # Shift x/lons to 0-360
             elif self.lon_range() == '-180to180':
                 x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
         indx = np.floor(np.abs(x-self.x[0])/self.delta_x-clipped).astype(int) + clipped
