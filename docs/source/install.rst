@@ -59,13 +59,13 @@ If you later want to edit the OpenDrift source code, or be able to update from r
 
 .. code-block:: bash
 
-   $ conda remove opendrift
+   $ conda remove --force opendrift
 
 5. Install as editable:
 
 .. code-block:: bash
 
-   $ pip install -e --no-deps .
+   $ pip install --no-deps -e .
 
 Building and using the Docker image
 +++++++++++++++++++++++++++++++++++
