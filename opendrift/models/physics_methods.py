@@ -323,6 +323,10 @@ def gls_tke(windstress, depth, sea_water_density,
     return K
 
 
+def stokes_transport(mean_wave_period, significant_wave_height):
+    mean_wave_frequency = 2.*np.pi/mean_wave_period
+    return mean_wave_frequency * np.power(significant_wave_height, 2) / 16
+
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
     """
@@ -333,12 +337,7 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
-    fm02 = fm02 = 1. / mean_wave_period
-
-    total_transport = (2.*np.pi/16.)*fm02*np.power(
-                       significant_wave_height, 2)
-
-    k = (stokes_surface_speed/(2*total_transport))
+    k = stokes_surface_speed / (2*stokes_transport(mean_wave_period, significant_wave_height))
 
     stokes_speed = stokes_surface_speed*np.exp(2*k*z)
 

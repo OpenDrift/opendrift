@@ -21,31 +21,28 @@ import types
 import traceback
 import inspect
 import logging
-
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
+
 import geojson
 import xarray as xr
-
 import numpy as np
 import scipy
 import pyproj
-try:
-    import matplotlib
-    matplotlib.rcParams['legend.numpoints'] = 1
-    matplotlib.rcParams['legend.scatterpoints'] = 1
-    import matplotlib.pyplot as plt
-    from matplotlib import animation
-    from matplotlib.patches import Polygon
-    from matplotlib.path import Path
-    import cartopy
-    import cartopy.crs as ccrs
-    import cartopy.feature as cfeature
-except ImportError:
-    print('matplotlib and/or cartopy is not available, can not make plots')
+import matplotlib
+matplotlib.rcParams['legend.numpoints'] = 1
+matplotlib.rcParams['legend.scatterpoints'] = 1
+matplotlib.rcParams['figure.autolayout'] = True
+import matplotlib.pyplot as plt
+from matplotlib import animation
+from matplotlib.patches import Polygon
+from matplotlib.path import Path
+#import cartopy
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 import opendrift
 from opendrift.timer import Timeable
@@ -3313,7 +3310,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         gl.top_labels = None
 
         fig.canvas.draw()
-        fig.set_tight_layout(True)
 
         if not hasattr(self, 'ds'):
             try:
@@ -3786,7 +3782,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             plt.legend()
 
         fig.canvas.draw()
-        fig.set_tight_layout(True)
         if colorbar is True:
             if color is not False:
                 if isinstance(color, str) or clabel is not None:
@@ -4511,7 +4506,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         #plt.gca().tick_params(labelsize=14)
 
         #fig.canvas.draw()
-        #fig.set_tight_layout(True)
         if filename is not None:
             plt.savefig(filename)
             logger.info('Time to make plot: ' +
