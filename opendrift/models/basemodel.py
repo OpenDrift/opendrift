@@ -3309,6 +3309,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         gl = ax.gridlines(ccrs.PlateCarree(globe=globe), draw_labels=True)
         gl.top_labels = None
 
+        fig.set_layout_engine('tight')
         fig.canvas.draw()
 
         if not hasattr(self, 'ds'):
@@ -3782,6 +3783,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             plt.legend()
 
         fig.canvas.draw()
+        fig.set_layout_engine('tight')
         if colorbar is True:
             if color is not False:
                 if isinstance(color, str) or clabel is not None:
