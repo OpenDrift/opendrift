@@ -3309,8 +3309,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         gl = ax.gridlines(ccrs.PlateCarree(globe=globe), draw_labels=True)
         gl.top_labels = None
 
-        fig.set_layout_engine('tight')
         fig.canvas.draw()
+        fig.set_layout_engine('tight')
 
         if not hasattr(self, 'ds'):
             try:
