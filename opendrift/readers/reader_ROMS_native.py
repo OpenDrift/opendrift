@@ -87,7 +87,8 @@ class Reader(BaseReader, StructuredReader):
                 def drop_non_essential_vars_pop(ds):
                     dropvars = [v for v in ds.variables if v not in
                                 list(self.ROMS_variable_mapping.keys()) + gls_param +
-                                ['ocean_time', 's_rho', 'Cs_r', 'hc', 'angle', 'Vtransform']
+                                ['ocean_time', 'time', 'bulk_time', 's_rho',
+                                 'Cs_r', 'hc', 'angle', 'Vtransform']
                                 and v[0:3] not in ['lon', 'lat', 'mas']]
                     logger.debug('Dropping variables: %s' % dropvars)
                     ds = ds.drop_vars(dropvars)
@@ -177,10 +178,12 @@ class Reader(BaseReader, StructuredReader):
             logger.info('Did not find complete set of GLS parameters')
 
         # Get time coverage
-        try:
-            ocean_time = self.Dataset.variables['ocean_time']
-        except:
-            ocean_time = self.Dataset.variables['time']
+        ocean_time = None
+        for tv in ['ocean_time', 'time', 'bulk_time']:
+            if tv in self.Dataset.variables:
+                ocean_time = self.Dataset.variables[tv]
+        if ocean_time is None:
+            raise ValueError('Time variable not found in ROMS file')
         time_units = ocean_time.attrs['units']
         if time_units == 'second':
             logger.info('Ocean time given as seconds relative to start '
