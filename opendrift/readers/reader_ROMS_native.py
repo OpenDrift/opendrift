@@ -58,6 +58,8 @@ class Reader(BaseReader, StructuredReader):
             'AKs': 'ocean_vertical_diffusivity',
             'sustr': 'surface_downward_x_stress',
             'svstr': 'surface_downward_y_stress',
+            'uwind': 'x_wind',
+            'vwind': 'y_wind',
             'Uwind': 'x_wind',
             'Vwind': 'y_wind'}
 
