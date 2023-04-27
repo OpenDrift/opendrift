@@ -69,13 +69,10 @@ dsub.traj.plot(land='h')
 plt.show()
 
 #%%
-# Plotting individual trajectories in red
-d.traj.plot(color='red', alpha=0.01, land='mask')  # Plotting trajectories in red
-#%%
-# Overlaying a "mean" trajectory in black
-dmean = d.mean('trajectory', skipna=True)
+# With several plots on the same figure
+d.traj.plot(color='red', alpha=0.01, land='mask')  # Plotting individual trajectories in red
+dmean = d.mean('trajectory', skipna=True) # Overlaying a "mean" trajectory in black
 dmean.traj.plot(color='k', linewidth=5)
-#%%
 # Showing the a sub-period of the mean trajectory in yellow
 dmean.sel(time=slice('2015-11-17', '2015-11-17 12')).traj.plot(color='yellow', linewidth=5)
 plt.tight_layout()
