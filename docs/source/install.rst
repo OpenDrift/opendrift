@@ -95,5 +95,5 @@ and run it:
 
 .. code-block:: bash
 
-  $ docker run --it --rm opendrift
+  $ docker run -it --rm opendrift
 
