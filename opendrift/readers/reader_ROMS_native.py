@@ -58,6 +58,10 @@ class Reader(BaseReader, StructuredReader):
             'AKs': 'ocean_vertical_diffusivity',
             'sustr': 'surface_downward_x_stress',
             'svstr': 'surface_downward_y_stress',
+            'tair': 'air_temperature',
+            'wspd': 'wind_speed',
+            'uwnd': 'x_wind',
+            'vwnd': 'y_wind',
             'uwind': 'x_wind',
             'vwind': 'y_wind',
             'Uwind': 'x_wind',
@@ -191,6 +195,10 @@ class Reader(BaseReader, StructuredReader):
             logger.info('Ocean time given as seconds relative to start '
                          'Setting artifical start time of 1 Jan 2000.')
             time_units = 'seconds since 2000-01-01 00:00:00'
+        if time_units == 'days':
+            logger.info('Ocean time given as days relative to start '
+                         'Setting artifical start time of 1 Jan 2000.')
+            time_units = 'days since 2000-01-01 00:00:00'
         self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
