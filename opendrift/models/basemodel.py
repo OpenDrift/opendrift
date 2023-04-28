@@ -994,7 +994,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if var not in self.priority_list
         ]
 
-    def get_reader_groups(self, variables=None):
+    def get_reader_groups(self, variables=None, time=None):
         """Find which groups of variables are provided by the same readers.
 
         This function loops through 'priority_list' (see above) and groups
@@ -1214,11 +1214,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if co is not None:
                 env[variable] = np.ma.ones(env[variable].shape) * co
 
-        for i, variable_group in enumerate(variable_groups):
+        for variable_group, reader_group in zip(variable_groups, reader_groups):
             logger.debug('----------------------------------------')
             logger.debug('Variable group %s' % (str(variable_group)))
             logger.debug('----------------------------------------')
-            reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
             # For each reader:
             for reader_name in reader_group:
@@ -1227,10 +1226,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.timer_start('main loop:readers:' +
                                  reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
-                if reader.is_lazy:
-                    logger.warning('Reader is lazy, should not happen')
-                    import sys
-                    sys.exit('Should not happen')
                 if not reader.covers_time(time):
                     logger.debug('\tOutside time coverage of reader.')
                     if reader_name == reader_group[-1]:
