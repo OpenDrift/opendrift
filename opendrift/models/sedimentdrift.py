@@ -54,7 +54,7 @@ class SedimentDrift(OceanDrift):
         'land_binary_mask': {'fallback': None},
         'ocean_vertical_diffusivity': {'fallback': 0.02},
         'ocean_mixed_layer_thickness': {'fallback': 50},
-        'sea_floor_depth_below_sea_level': {'fallback': 0},
+        'sea_floor_depth_below_sea_level': {'fallback': 10000},
         }
 
     def __init__(self, *args, **kwargs):
