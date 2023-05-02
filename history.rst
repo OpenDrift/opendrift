@@ -1,6 +1,13 @@
 History
 =======
 
+2023-05-02 / Release v1.10.7
+----------------------------
+* CF projection info is now parsed with pyproj.CF.from_cf()
+* Fixed bug in rotate_variable_dict for rotated pole projection
+* netCDF generic reader now accepts Xarray Datasets in addition to filenames or URLs
+* ROMS reader now accepts also time variable named 'bulk_time' and unit of days. Added uwnd,uwind,vwnd,wvind,tair,wspd to mapping variables
+
 2023-03-29 / Release v1.10.6
 ----------------------------
 * Added five new oils to OpenOil/ADIOS. Mapped NJORD 1997 to NJORD 2002.
