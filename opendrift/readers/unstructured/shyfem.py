@@ -111,7 +111,7 @@ class Reader(BaseReader, UnstructuredReader):
 
             var = self.dataset[var_name]
             if 'standard_name' in var.ncattrs():
-                std_name = var.getncattr('standard_name')
+                std_name = getattr(var, 'standard_name')
                 std_name = self.variable_aliases.get(std_name, std_name)
                 self.variable_mapping[std_name] = str(var_name)
 

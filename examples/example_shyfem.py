@@ -16,6 +16,7 @@ o.set_config('general:coastline_action', 'previous')
 shyfem = shyfem.Reader('https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstructured_adriatic.nc')
 o.add_reader(shyfem)
 print(shyfem)
+stop
 
 # Seed elements at defined positions, depth and time
 N = 1000
