@@ -2543,14 +2543,14 @@ class ChemicalDrift(OceanDrift):
 
             #                           mean    +/-95%
             #                           ug/L    ug/L
-            "CuO_AFP":                  [0.2112,    0.],
-            "CuPyr_AFP":                [0.7989,    0.],
+            "CuO_AFP":                  [0.7989,    0.],
+            "CuPyr_AFP":                [0.2112,    0.],
             "Zineb_AFP":                [0.2371,    0.],
             "ZnO_AFP":                  [0.8033,    0.],
             "ZnPyr_AFP":                [0.2058,    0.],
          }
 
-        emission_factors_SILAM_ash {
+        emission_factors_SILAM_ash = {
             #                           g/g
             "Aresenic":                 [8.09E-5],
             "Cadmium":                  [6.30E-6],
@@ -2576,13 +2576,15 @@ class ChemicalDrift(OceanDrift):
             Emission_factors = emission_factors_sewage_water.get(chemical_compound)[0]
         elif scrubber_type=="AFP": # Copper and Zinc from antifouling paint
             Emission_factors = 1e6*emission_factors_AFP.get(chemical_compound)[0]  # 1g = 1e6 ug: AFP is expressed as g
+        elif scrubber_type=="AFP_metals_total":
+            Emission_factors = 1e6 # g to ug
         elif scrubber_type=="N_sewage": # Nitrogen from sewage
             Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
         elif scrubber_type=="N_foodwaste": # Nitrogen from foodwaste
             Emission_factors = 1e9  # 1kg = 1e9 ug: N_sewage is expressed as kg
         elif scrubber_type=="SILAM_metals":
             Emission_factors = 1e9  #+ 1kg = 1e9 ug: Lead and Cadmium depositions given in kg
-        elif scrubber_type=="SILAM_metals_from_ash"
+        elif scrubber_type=="SILAM_metals_from_ash":
             Emission_factors = 1e9*emission_factors_SILAM_ash.get(chemical_compound)[0] # 1kg=1e9ug: Ash depositions given in kg
 
         return Emission_factors
