@@ -283,9 +283,9 @@ class Reader(BaseReader, UnstructuredReader):
         z = xr.DataArray(z, dims=['particles'])
 
         if node_variables:
-            logger.debug("Interpolating face-variables..")
+            logger.debug("Interpolating node-variables..")
 
-            nodes = xr.DataArray(self._nearest_face_(x, y), dims=['particles'])
+            nodes = xr.DataArray(self._nearest_node_(x, y), dims=['particles'])
             
             assert len(nodes) == len(x)
 
