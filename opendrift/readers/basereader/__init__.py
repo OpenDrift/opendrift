@@ -182,18 +182,6 @@ class BaseReader(Variables, Combine, Filter):
         logger.debug('Nothing more to prepare for ' + self.name)
         pass  # to be overriden by specific readers
 
-    def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
-        vx, vy = np.meshgrid(variables['x'], variables['y'])
-        for vectorpair in vector_pairs_xy:
-            if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
-                if proj_to is None:
-                    proj_to = self.proj
-                logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
-                variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
-                    vx, vy,
-                    variables[vectorpair[0]], variables[vectorpair[1]],
-                    proj_from, proj_to)
-
     def index_of_closest_z(self, requested_z):
         """Return (internal) index of z closest to requested z.
 

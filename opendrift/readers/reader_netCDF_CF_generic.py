@@ -463,7 +463,15 @@ class Reader(StructuredReader, BaseReader):
             if self.y_is_north() is True:
                 logger.debug('North is up, no rotation necessary')
             else:
-                self.rotate_variable_dict(variables)
+                rx, ry = np.meshgrid(variables['x'], variables['y'])
+                lon, lat = self.xy2lonlat(rx, ry)
+                from opendrift.readers.basereader import vector_pairs_xy
+                for vectorpair in vector_pairs_xy:
+                    if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
+                        logger.debug(f'Rotating vector from east/north to xy orientation: {vectorpair}')
+                        variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
+                            lon, lat, variables[vectorpair[0]], variables[vectorpair[1]],
+                            pyproj.Proj('+proj=latlong'), self.proj)
 
         if hasattr(self, 'shift_x'):
             # "hidden feature": if reader.shift_x and reader.shift_y are defined,
