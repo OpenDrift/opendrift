@@ -565,6 +565,7 @@ class Variables(ReaderDomain):
 
         # Convert any masked arrays to NumPy arrays
         if isinstance(variable, np.ma.MaskedArray):
+            variable = variable.astype(np.float32)
             variable = variable.filled(np.nan)
 
         # Mask values outside valid_min, valid_max (self.standard_names)
