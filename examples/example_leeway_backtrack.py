@@ -45,16 +45,16 @@ lons, lats = np.meshgrid(lons, lats)
 
 #%%
 # Simulating first backwards for 24 hours:
-o.seed_elements(lon=ilon, lat=ilat, radius=100, number=1000,
+o.seed_elements(lon=ilon, lat=ilat, radius=5000, radius_type='uniform', number=5000,
                  time=end_time, object_type=object_type)
 o.run(duration=duration, time_step=-900, time_step_output=3600, outfile=outfile)
 od = opendrift.open_xarray(outfile)
 density_backwards = od.get_histogram(pixelsize_m=5000).isel(time=-1).isel(origin_marker=0)
-o.plot(background=density_backwards.where(density_backwards>0), text=text, corners=corners, fast=True)
+o.plot(background=density_backwards.where(density_backwards>0), clabel='Density of elements', text=text, corners=corners, fast=True)
 os.remove(outfile)
 
 #%%
-# Simulating then forwards starting at a uniform grid 24 hours earlier (440 x 320 = 140800 elements at ~500m separation)
+# Simulating then forwards, starting at a uniform grid 24 hours earlier (440 x 320 = 140800 elements at ~500m separation)
 o = Leeway(loglevel=50)
 o.add_reader([reader_norkyst, reader_arome])
 o.seed_elements(lon=lons, lat=lats, radius=0,
@@ -78,12 +78,12 @@ o_hit = opendrift.open(outfile, elements=hits)
 o.animation(compare=o_hit, legend=['All', 'Elements hitting target'], fast=True, corners=corners, text=text)
 
 #%%
-# .. image:: /gallery/animations/example_leeway_backwards_0.gif
+# .. image:: /gallery/animations/example_leeway_backtrack_0.gif
 
-o.plot(compare=o_hit, legend=['All', 'Elements hitting target'], fast=True, corners=corners, text=text)
+o.plot(compare=o_hit, legend=['All', 'Elements hitting target'], show_elements=False, fast=True, corners=corners, text=text)
 
 #%%
 # Plot the initial density of elements that actually hit the target after 24 hours. To be compared with the density figure from backwards simulation (see top)
 of = opendrift.open_xarray(outfile, elements=hits)
 density_forwards = of.get_histogram(pixelsize_m=5000).isel(time=0).isel(origin_marker=0)
-o_hit.plot(background=density_forwards.where(density_forwards>0), text=text, corners=corners, fast=True)
+o_hit.plot(background=density_forwards.where(density_forwards>0), clabel='Density of elements', text=text, corners=corners, fast=True)
