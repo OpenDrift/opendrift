@@ -38,8 +38,8 @@ ilon = 4.3  # Incident position
 ilat = 60.6
 text = [{'s': 'Observation', 'x': ilon, 'y': ilat, 'fontsize': 20, 'color': 'g', 'zorder': 1000}]
 # Define domain of possible origin
-lons = np.arange(3.4, 5, .1/20)
-lats = np.arange(59.7, 60.8, .05/20)
+lons = np.arange(3.4, 5, .1/50)
+lats = np.arange(59.7, 60.8, .05/50)
 corners = [lons[0], lons[-1], lats[0], lats[-1]]
 lons, lats = np.meshgrid(lons, lats)
 
@@ -50,7 +50,7 @@ o.seed_elements(lon=ilon, lat=ilat, radius=5000, radius_type='uniform', number=5
 o.run(duration=duration, time_step=-900, time_step_output=3600, outfile=outfile)
 od = opendrift.open_xarray(outfile)
 density_backwards = od.get_histogram(pixelsize_m=5000).isel(time=-1).isel(origin_marker=0)
-o.plot(background=density_backwards.where(density_backwards>0), clabel='Density of elements', text=text, corners=corners, fast=True)
+o.plot(background=density_backwards.where(density_backwards>0), clabel='Density of elements', text=text, corners=corners, fast=True, markersize=2)
 os.remove(outfile)
 
 #%%
@@ -86,4 +86,4 @@ o.plot(compare=o_hit, legend=['All', 'Elements hitting target'], show_elements=F
 # Plot the initial density of elements that actually hit the target after 24 hours. To be compared with the density figure from backwards simulation (see top)
 of = opendrift.open_xarray(outfile, elements=hits)
 density_forwards = of.get_histogram(pixelsize_m=5000).isel(time=0).isel(origin_marker=0)
-o_hit.plot(background=density_forwards.where(density_forwards>0), clabel='Density of elements', text=text, corners=corners, fast=True)
+o_hit.plot(background=density_forwards.where(density_forwards>0), clabel='Density of elements', text=text, corners=corners, fast=True, markersize=2)
