@@ -210,11 +210,13 @@ def close(self):
         print(me)
         print('Could not convert netCDF file from unlimited to fixed dimension. Could be due to netCDF library incompatibility(?)')
 
-def import_file_xarray(self, filename, chunks):
+def import_file_xarray(self, filename, chunks, elements=None):
 
     import xarray as xr
     logger.debug('Importing with Xarray from ' + filename)
     self.ds = xr.open_dataset(filename, chunks=chunks)
+    if elements is not None:
+        self.ds = self.ds.isel(trajectory=elements)
 
     self.steps_output = len(self.ds.time)
     ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
