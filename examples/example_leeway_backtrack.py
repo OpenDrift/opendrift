@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Leeway forward and backward
-============================
+Leeway backtracking
+====================
 """
 
 import os
@@ -45,12 +45,15 @@ lons, lats = np.meshgrid(lons, lats)
 
 #%%
 # Simulating first backwards for 24 hours:
-o.seed_elements(lon=ilon, lat=ilat, radius=5000, radius_type='uniform', number=5000,
+o.seed_elements(lon=ilon, lat=ilat, radius=5000, radius_type='uniform', number=30000,
                  time=end_time, object_type=object_type)
 o.run(duration=duration, time_step=-900, time_step_output=3600, outfile=outfile)
 od = opendrift.open_xarray(outfile)
 density_backwards = od.get_histogram(pixelsize_m=5000).isel(time=-1).isel(origin_marker=0)
-o.plot(background=density_backwards.where(density_backwards>0), clabel='Density of elements', text=text, corners=corners, fast=True, markersize=2)
+density_backwards = density_backwards.where(density_backwards>0)
+density_backwards = density_backwards/density_backwards.sum()*100
+vmax = density_backwards.max()
+o.plot(background=density_backwards, clabel='Probability of origin [%]', text=text, corners=corners, fast=True, markersize=.5, lalpha=.02, vmin=0, vmax=vmax)
 os.remove(outfile)
 
 #%%
@@ -86,4 +89,5 @@ o.plot(compare=o_hit, legend=['All', 'Elements hitting target'], show_elements=F
 # Plot the initial density of elements that actually hit the target after 24 hours. To be compared with the density figure from backwards simulation (see top)
 of = opendrift.open_xarray(outfile, elements=hits)
 density_forwards = of.get_histogram(pixelsize_m=5000).isel(time=0).isel(origin_marker=0)
-o_hit.plot(background=density_forwards.where(density_forwards>0), clabel='Density of elements', text=text, corners=corners, fast=True, markersize=2)
+density_forwards = density_forwards.where(density_forwards>0)
+o_hit.plot(background=density_forwards/density_forwards.sum()*100, clabel='Probability of origin [%]', text=text, corners=corners, fast=True, markersize=.5, lalpha=.02, vmin=0, vmax=vmax)

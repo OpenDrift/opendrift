@@ -4087,6 +4087,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              show_trajectories=True,
              show_initial=True,
              density_pixelsize_m=1000,
+             lalpha=None,
              bgalpha=1,
              clabel=None,
              surface_color=None,
@@ -4182,11 +4183,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         markercolor = self.plot_comparison_colors[0]
 
         # The more elements, the more transparent we make the lines
-        min_alpha = 0.1
-        max_elements = 5000.0
-        alpha = min_alpha**(2 * (self.num_elements_total() - 1) /
-                            (max_elements - 1))
-        alpha = np.max((min_alpha, alpha))
+        if lalpha is None:
+            min_alpha = 0.1
+            max_elements = 5000.0
+            alpha = min_alpha**(2 * (self.num_elements_total() - 1) /
+                                (max_elements - 1))
+            alpha = np.max((min_alpha, alpha))
+        else:
+            alpha = lalpha  #  provided transparency of trajectories
+        print(alpha, 'ALPHA')
         if legend is False:
             legend = None
         if self.history is not None and linewidth != 0 and show_trajectories is True:
