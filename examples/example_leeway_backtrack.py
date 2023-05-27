@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Leeway backtracking
-====================
+===================
 """
 
 import os
@@ -38,8 +38,8 @@ ilon = 4.3  # Incident position
 ilat = 60.6
 text = [{'s': 'Observation', 'x': ilon, 'y': ilat, 'fontsize': 20, 'color': 'g', 'zorder': 1000}]
 # Define domain of possible origin
-lons = np.arange(3.4, 5, .1/30)
-lats = np.arange(59.7, 60.8, .05/30)
+lons = np.arange(3.4, 5, .1/25)
+lats = np.arange(59.7, 60.8, .05/25)
 corners = [lons[0], lons[-1], lats[0], lats[-1]]
 lons, lats = np.meshgrid(lons, lats)
 
