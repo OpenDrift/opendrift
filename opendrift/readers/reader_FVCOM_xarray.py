@@ -450,7 +450,7 @@ def open_fvcom_files_as_xarray(fname, load=False, **kwarg):
     """
     from glob import glob
     with Dataset(sorted(glob(fname))[0]) as f:
-        ds = xr.open_mfdataset(fname, decode_times=False, drop_variables=['siglay', 'siglev'], **kwarg)
+        ds = xr.open_mfdataset(fname, decode_times=False, drop_variables=['siglay', 'siglev'], data_vars='minimal', **kwarg)
         if 'siglay' in ds.dims:
             ds = _rename_sigma(ds, f, 'siglay')
         if 'siglev' in ds.dims:
