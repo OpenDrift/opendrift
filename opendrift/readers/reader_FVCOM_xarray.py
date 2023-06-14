@@ -448,7 +448,8 @@ def open_fvcom_files_as_xarray(fname, load=False, **kwarg):
     """
     Works around xarray limitation to load FVCOM grid data
     """
-    with Dataset(fname) as f:
+    from glob import glob
+    with Dataset(sorted(glob(fname))[0]) as f:
         ds = xr.open_mfdataset(fname, decode_times=False, drop_variables=['siglay', 'siglev'], **kwarg)
         if 'siglay' in ds.dims:
             ds = _rename_sigma(ds, f, 'siglay')
