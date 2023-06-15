@@ -44,8 +44,8 @@ class Reader(BaseReader, StructuredReader):
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
-            'u_eastward': 'x_sea_water_velocity',
-            'v_northward': 'y_sea_water_velocity',
+            #'u_eastward': 'x_sea_water_velocity',  # these are wrognly rotated below
+            #'v_northward': 'y_sea_water_velocity',
             'w': 'upward_sea_water_velocity',
             'temp': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
