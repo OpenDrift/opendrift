@@ -432,6 +432,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'Elements are deactivated if the move further west than this limit',
                 'level': self.CONFIG_LEVEL_ADVANCED
             },
+             'readers:max_number_of_fails': {
+                'type': 'int',
+                'default': 1,
+                'min': 0,
+                'max': 1e6,
+                'units': 'number',
+                'description':
+                'Readers are discarded if they fail (e.g. corrupted data, og hanging servers) move than this number of times',
+                'level': self.CONFIG_LEVEL_ADVANCED
+            },
         })
 
         # Add default element properties to config
@@ -1277,6 +1287,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     logger.exception(e)
                     logger.debug(traceback.format_exc())
                     logger.info('========================')
+
+                    reader.number_of_fails = reader.number_of_fails + 1
+                    max_fails = self.get_config('readers:max_number_of_fails')
+                    if reader.number_of_fails > max_fails:
+                        logger.warning(f'Reader {reader.name} is discarded after failing '
+                                       f'more times than allowed ({max_fails})')
+                        self.discard_reader(reader, reason=f'Failed more than {max_fails} times.')
+
                     self.timer_end('main loop:readers:' +
                                    reader_name.replace(':', '<colon>'))
                     if reader_name == reader_group[-1]:
