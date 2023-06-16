@@ -184,8 +184,12 @@ class Leeway(OpenDriftSimulation):
         # but so far we only use one for each sim
         # objtype = np.ones(number)*object_type
 
+        lon = np.atleast_1d(lon).ravel()
+        lat = np.atleast_1d(lat).ravel()
         if 'number' in kwargs and kwargs['number'] is not None:
             number = kwargs['number']
+        elif len(lon) > 1:
+            number = len(lon)
         else:
             number = self.get_config('seed:number')
 

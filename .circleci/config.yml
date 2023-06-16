@@ -1,16 +1,24 @@
 version: 2.1
 
-orbs:
-  docker-publish: circleci/docker@1.7.0
+# orbs:
+#   docker-publish: circleci/docker@1.7.0
 
 commands:
   run_tests:
+    parameters:
+      mpl:
+        description: "Enable plot comparison tests"
+        type: boolean
+        default: true
+
     steps:
       - run:
           name: Run tests
           command: |
+            [[ "<<parameters.mpl>>" == "true" ]] && export MPL="--mpl"
+
             source activate opendrift
-            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow --durations=50 --benchmark-disable -v --log-cli-level=debug
+            pytest --circleci-parallelize --junitxml=test-results/junit.xml --cov=opendrift --ignore=tests/benchmarks --ignore=tests/wps --run-slow $MPL --mpl-results-path=test-results/mpl_images --durations=50 --benchmark-disable -v --log-cli-level=debug
 
       - store_test_results:
           path: test-results
@@ -33,11 +41,10 @@ commands:
           name: Checksum environment
           command: |
             echo "python=${PYTHON_VERSION}" > envconfig
-            echo "numpy=${NUMPY_VERSION}" >> envconfig
             cat envconfig
 
       - restore_cache:
-          key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v20-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
       - run:
           name: Install requirements
@@ -45,15 +52,16 @@ commands:
           command: |
             if [ ! -e /opt/conda/envs/opendrift ]; then
               if [ -v PYTHON_VERSION ]; then
-                # pin python and numpy
-                conda create -c conda-forge -n opendrift -q -y "python==${PYTHON_VERSION}" "numpy==${NUMPY_VERSION}"
+                echo "Pinning python: ${PYTHON_VERSION}."
+                # pin python
+                mamba create -c conda-forge -n opendrift -q -y "python=${PYTHON_VERSION}"
 
-                echo "python ${PYTHON_VERSION}" > /opt/conda/envs/opendrift/conda-meta/pinned
-                echo "numpy ${NUMPY_VERSION}"  >> /opt/conda/envs/opendrift/conda-meta/pinned
+                echo "python ${PYTHON_VERSION}.*" > /opt/conda/envs/opendrift/conda-meta/pinned
+                cat /opt/conda/envs/opendrift/conda-meta/pinned
 
-                conda env update -n opendrift -q -f environment.yml
+                mamba env update -n opendrift -q -f environment.yml
               else
-                conda env create -q --file environment.yml
+                mamba env create -q --file environment.yml
               fi
 
               source activate opendrift
@@ -62,14 +70,14 @@ commands:
             fi
 
       - save_cache:
-          key: v16-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v20-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
             - "/opt/conda/envs"
       - run:
           name: List environment
           command: |
             source activate opendrift
-            conda list
+            mamba list
 
   install_cartopy_shapes:
     steps:
@@ -80,7 +88,7 @@ commands:
           name: Download cartopy shapes
           command: |
             source activate opendrift
-            python -c "import cartopy;list(map(cartopy.io.shapereader.gshhs, ('c', 'l', 'i', 'h', 'f')))"
+            python -c "import cartopy; list(map(cartopy.io.shapereader.gshhs, ('c', 'l', 'i', 'h', 'f')))"
             python -c "import cartopy; cartopy.io.shapereader.natural_earth(resolution='110m', category='cultural', name='admin_0_countries')"
 
       - save_cache:
@@ -91,90 +99,105 @@ commands:
 
 test-template: &test-template
   docker:
-    - image: continuumio/miniconda3
+    - image: condaforge/mambaforge
   resource_class: medium+
   steps:
     - checkout
 
     - install_conda_environment
 
-    - restore_cache:
-        key: v1-landmask
-
-    - run:
-        name: Generate landmask
-        command: |
-          source activate opendrift
-          python -c 'import opendrift_landmask_data as old; old.Landmask()'
-
     - install_cartopy_shapes
 
-    - save_cache:
-        key: v1-landmask
-        paths:
-          - "/tmp/landmask"
-
-    - run_tests
+    - run_tests:
+        mpl: true
 
 jobs:
-  python_latest:
+  build_package:
+    docker:
+      - image: condaforge/mambaforge
+    environment:
+      - PYTHON_VERSION=3.9
+
+    steps:
+      - checkout
+      - install_conda_environment
+
+      - run:
+          name: Install poetry
+          command: |
+            source activate opendrift
+            pip install poetry
+
+      - run:
+          name: Build package
+          command: |
+            source activate opendrift
+            poetry build -vv
+
+      - persist_to_workspace:
+          root: dist
+          paths:
+            - '*.whl'
+            - '*.tar.gz'
+
+  publish_package:
+    docker:
+      - image: condaforge/mambaforge
+    environment:
+      - PYTHON_VERSION=3.9
+
+    steps:
+      - checkout
+      - install_conda_environment
+
+      - run:
+          name: Install poetry
+          command: |
+            source activate opendrift
+            pip install poetry
+
+      - attach_workspace:
+          at: dist
+
+      - run:
+          name: Publish packages
+          command: |
+            if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
+              source activate opendrift
+              poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+            fi
+
+  python_310:
     <<: *test-template
     parallelism: 5
     environment:
       - COVERALLS_UPLOAD=1
+      - PYTHON_VERSION=3.10
 
-  python_38_numpy_119:
+  python_39:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.9
+
+  python_38:
     <<: *test-template
     parallelism: 5
     environment:
       - PYTHON_VERSION=3.8
-      - NUMPY_VERSION=1.19
-
-  python_37_numpy_117:
-    <<: *test-template
-    parallelism: 5
-    environment:
-      - PYTHON_VERSION=3.7
-      - NUMPY_VERSION=1.17
-
-  python_latest_roaring:
-    docker:
-      - image: continuumio/miniconda3
-    resource_class: medium+
-    parallelism: 5
-    steps:
-    - checkout
-
-    - install_conda_environment
-
-    - install_cartopy_shapes
-
-    - run:
-        name: Install roaring-landmask
-        command: |
-            source activate opendrift
-            pip install -v roaring_landmask
-
-    - run:
-        name: Remove Opendrift Landmask Data
-        command: |
-            source activate opendrift
-            conda remove --force -y opendrift-landmask-data
-
-    - run_tests
 
   docs-build-examples:
     docker:
-      - image: continuumio/miniconda3
+      - image: condaforge/mambaforge
     parallelism: 20
     steps:
       - checkout
       - run:
           name: Update packages
-          command: apt-get update
+          command: DEBIAN_FRONTEND=noninteractive apt-get -y update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential jq curl
+          command: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential jq curl
 
       - run:
           name: Get PR title
@@ -192,22 +215,10 @@ jobs:
       - install_cartopy_shapes
 
       - run:
-          name: Install roaring-landmask
-          command: |
-                source activate opendrift
-                pip install -v roaring_landmask
-
-      - run:
-          name: Remove Opendrift Landmask Data
-          command: |
-                source activate opendrift
-                conda remove --force -y opendrift-landmask-data
-
-      - run:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
       - run:
@@ -260,7 +271,7 @@ jobs:
             cd docs/
             make sharded-gallery SHARDS=${CIRCLE_NODE_TOTAL} SHARD=${CIRCLE_NODE_INDEX}
             ls -R source
-          no_output_timeout: 40m
+          no_output_timeout: 60m
 
       - store_test_results:
           path: docs/test-results
@@ -274,7 +285,7 @@ jobs:
 
   docs-build:
     docker:
-      - image: continuumio/miniconda3
+      - image: condaforge/mambaforge
     steps:
       - checkout
 
@@ -283,10 +294,10 @@ jobs:
 
       - run:
           name: Update packages
-          command: apt-get update
+          command: DEBIAN_FRONTEND=noninteractive apt-get -y update
       - run:
           name: Install packages
-          command: apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
+          command: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
 
       - run:
           name: Get PR title
@@ -311,7 +322,7 @@ jobs:
             echo "Build examples: ${BUILD_EXAMPLES}"
 
       - restore_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
 
       - install_conda_environment
 
@@ -321,11 +332,11 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            conda install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
       - save_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
@@ -389,7 +400,7 @@ jobs:
 
       - add_ssh_keys:
           fingerprints:
-            - "49:f4:a4:5c:2f:d4:6a:0f:26:21:a0:f2:d4:3c:71:ff"
+            - "c0:95:6e:db:93:97:28:a7:45:f4:d7:30:e3:fe:a6:8f"
       - run:
           name: Deploy docs to gh-pages branch
           command: gh-pages --dotfiles --message "[skip ci] Updates" --dist docs/build/html --repo git@github.com:OpenDrift/opendrift.github.io.git --branch master
@@ -397,12 +408,21 @@ jobs:
 workflows:
   version: 2.1
 
-  test:
+  test-and-package:
     jobs:
-      - python_latest
-      - python_38_numpy_119
-      - python_37_numpy_117
-      - python_latest_roaring
+      - python_310
+      - python_39
+      - python_38
+      - build_package
+      - publish_package:
+          requires:
+            - build_package
+            - python_39
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              only: master
 
   docs:
     jobs:
@@ -418,27 +438,3 @@ workflows:
           filters:
             branches:
              only: master
-
-  # This workflow will deploy images on merge to master only
-  build-and-publish-docker-image:
-    jobs:
-
-      - docker-publish/publish:
-          image: opendrift/opendrift
-          dockerfile: Dockerfile
-          tag: latest
-          filters:
-            branches:
-             only: master
-          after_build:
-            - run:
-                name: Publish Docker Containers with Python Version 3
-                command: |
-                   # Here we preview the Docker Tag
-                   pushd opendrift
-                   DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
-                   popd
-
-                   echo "Version for Docker tag is ${DOCKER_TAG}"
-                   docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
-

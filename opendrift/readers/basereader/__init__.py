@@ -33,10 +33,11 @@ from .unstructured import UnstructuredReader
 from .continuous import ContinuousReader
 from .variables import Variables
 from .consts import *
+from ..operators.ops import Combine, Filter
 
 from opendrift.readers.interpolation import ReaderBlock
 
-class BaseReader(Variables):
+class BaseReader(Variables, Combine, Filter):
     """
     An abstract reader. Implementors provide a method to read data and specify how it is interpolated.
 
@@ -88,11 +89,15 @@ class BaseReader(Variables):
                                  'northward_eulerian_current_velocity', 'surface_geostrophic_northward_sea_water_velocity',
                                  'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid',
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
-        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
+        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind',
+        'sea_surface_wave_stokes_drift_x_velocity': 'eastward_surface_stokes_drift',
+        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift'}
 
     def __init__(self):
         """Common constructor for all readers"""
         super().__init__()
+
+        self.number_of_fails = 0  # Readers may be quanrantined after a number of fails (config setting)
 
         self.always_valid = False  # Set to True if a single field should
                                    # be valid at all times
@@ -169,7 +174,7 @@ class BaseReader(Variables):
             self.activate_environment_mapping(m)
 
     def y_is_north(self):
-        if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
+        if (self.proj.crs.is_geographic and 'ob_tran' not in self.proj4) or '+proj=merc' in self.proj.srs:
             return True
         else:
             return False
@@ -178,17 +183,6 @@ class BaseReader(Variables):
         """Prepare reader for given simulation coverage in time and space."""
         logger.debug('Nothing more to prepare for ' + self.name)
         pass  # to be overriden by specific readers
-
-    def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
-        for vectorpair in vector_pairs_xy:
-            if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
-                if proj_to is None:
-                    proj_to = self.proj
-                logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
-                variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
-                    variables['x'], variables['y'],
-                    variables[vectorpair[0]], variables[vectorpair[1]],
-                    proj_from, proj_to)
 
     def index_of_closest_z(self, requested_z):
         """Return (internal) index of z closest to requested z.
@@ -257,6 +251,8 @@ class BaseReader(Variables):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
+            lon0 = lon0[0]
+            lat0 = lat0[0]
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
             latmax = np.maximum(latmax, lat0)
             latmin = np.minimum(latmin, lat0)
@@ -343,13 +339,12 @@ class BaseReader(Variables):
                 data[variable] = data[variable][0,:,:]
             if self.global_coverage():
                 mappable = ax.pcolormesh(rlon, rlat, data[variable], vmin=vmin, vmax=vmax,
-                                         transform=ccrs.PlateCarree(), shading='nearest')
+                                         transform=ccrs.PlateCarree())
             else:
                 p = sp.transform_points(ccrs.PlateCarree(), rlon, rlat)
                 mapx = p[:,:,0]
                 mapy = p[:,:,1]
-                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,
-                                         shading='nearest')
+                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax)
 
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
             cbar.set_label(variable)
@@ -402,7 +397,7 @@ class BaseReader(Variables):
             for var in variables:
                 data[var][i] = d[var][0]
 
-        return data 
+        return data
 
     def shift_start_time(self, start_time):
         """Shift the time coverage of reader to match given start_time"""

@@ -14,9 +14,9 @@ from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, 
 #%%
 # A very simple drift model is: current + wind_drift_factor*wind
 # where wind_drift_factor for surface drift is typically
-# 0.035 if Stokes drift included, and 0.02 in addition to Stokes drift.
+# 0.033 if Stokes drift included, and 0.02 in addition to Stokes drift.
 # This example illustrates how a best-fit wind_drift_factor
-# can be calculated from an observed trajectory.
+# can be calculated from an observed trajectory, using two different methods.
 
 #%%
 # First we simulate a synthetic drifter trajectory
@@ -40,8 +40,8 @@ ot.run(duration=timedelta(hours=12), time_step=600)
 drifter_lons = ot.history['lon'][0]
 drifter_lats = ot.history['lat'][0]
 drifter_times = ot.get_time_array()[0]
-trajectory_dict={'lon': drifter_lons, 'lat': drifter_lats,
-        'time': drifter_times, 'linestyle': 'b--', 'label': 'Synthetic drifter'}
+drifter={'lon': drifter_lons, 'lat': drifter_lats,
+        'time': drifter_times, 'linewidth': 2, 'color': 'b', 'label': 'Synthetic drifter'}
 
 o = OceanDrift(loglevel=50)
 o.add_readers_from_list([o.test_data_folder() +
@@ -59,7 +59,7 @@ o.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].st
 # New simulation, this time without diffusivity/noise
 o.run(duration=timedelta(hours=12), time_step=600)
 
-o.plot(fast=True, legend=True, trajectory_dict=trajectory_dict)
+o.plot(fast=True, legend=True, drifter=drifter)
 
 #%%
 # The mean retrieved wind_drift_factor is 0.036, slichtly higher than the value 0.033 used for the simulation.
@@ -78,7 +78,8 @@ plt.legend(loc='lower left')
 plt.show()
 
 #%%
-# A polar 2D histogram showing also the azimuth offset direction of the retrieced wind drift factor
+# A polar 2D histogram showing also the azimuth offset direction of the retrieved wind drift factor.
+# See Sutherland et al. (2020), https://doi.org/10.1175/JTECH-D-20-0013.1
 wmax = wind_drift_factor.max()
 wbins = np.arange(0, wmax+.005, .005)
 abins = np.linspace(-180, 180, 30)
@@ -113,7 +114,7 @@ wdf = np.linspace(0.0, 0.05, 100)
 o.seed_elements(lon=4, lat=60, time=ot.readers[list(ot.readers)[0]].start_time,
                 wind_drift_factor=wdf, number=len(wdf))
 o.run(duration=timedelta(hours=12), time_step=600)
-o.plot(linecolor='wind_drift_factor', trajectory_dict=trajectory_dict)
+o.plot(linecolor='wind_drift_factor', drifter=drifter)
 
 #%%
 # Plotting and finding the wind_drift_factor which maximises the skillscore
@@ -124,3 +125,11 @@ plt.xlabel('Wind drift factor  [fraction]')
 plt.ylabel('Liu-Weissberg skillscore')
 plt.title('Maximum skillscore %.3f for wdf=%.3f' % (skillscore[ind], wdf[ind]))
 plt.show()
+
+#%%
+# We see that using skillscore from the full trajectories gives a better estimate
+# than calculating the average of the wind_drift_factor from 
+# one position to the next (i.e. polar histogram above).
+# This is even more clear if increasing the diffusivity (i.e. noise) above from 10 m2/s to 200 m2/s:
+# The histogram method then gives 0.071, which is much to high (true is 0.033), and the histogram is noisy.
+# The skillscore method is still robust, and gives a `wind_drift_factor` of 0.036, only slightly too high.

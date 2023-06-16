@@ -47,11 +47,13 @@ def sdepth(H, Hc, C, stagger="rho", Vtransform=1):
 
     Typical usage::
 
-    >>> fid = Dataset(roms_file)
-    >>> H = fid.variables['h'][:, :]
-    >>> C = fid.variables['Cs_r'][:]
-    >>> Hc = fid.variables['hc'].getValue()
-    >>> z_rho = sdepth(H, Hc, C)
+    .. code::
+
+        fid = Dataset(roms_file)
+        H = fid.variables['h'][:, :]
+        C = fid.variables['Cs_r'][:]
+        Hc = fid.variables['hc'].getValue()
+        z_rho = sdepth(H, Hc, C)
 
     """
     H = np.asarray(H)
@@ -118,8 +120,10 @@ def zslice(F, S, z):
     C is 1D containing the s-coordinate stretching at rho-points
     returns F50, interpolated values at 50 meter with F50.shape = H.shape
 
-    >>> z_rho = sdepth(H, Hc, C)
-    >>> F50 = zslice(F, z_rho, -50.0)
+    .. code::
+
+       z_rho = sdepth(H, Hc, C)
+       F50 = zslice(F, z_rho, -50.0)
 
     """
 

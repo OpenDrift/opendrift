@@ -33,6 +33,9 @@ else:  # Using live data from Thredds instead of oscillating currents
         'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
 
 #%%
+# Set threshold for bottom resuspension
+o.set_config('vertical_mixing:resuspension_threshold', .5)
+
 # Adding some horizontal and vertical diffusion
 o.set_config('drift:current_uncertainty', 0.1)
 o.set_config('drift:wind_uncertainty', 1)

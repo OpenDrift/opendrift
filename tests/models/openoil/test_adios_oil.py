@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import pytest
 import numpy as np
 from opendrift.models.openoil import adios
@@ -10,6 +11,21 @@ def aasgard():
     assert f.name == 'AASGARD A 2003'
     return f
 
+def test_max_water_fraction():
+    from opendrift.models.openoil import OpenOil
+    oiltype='FENJA (PIL) 2015'
+    for wf, expected in zip([.5, .9], [.48, .84]):
+        o = OpenOil(loglevel=50)
+        o.max_water_fraction[oiltype] = wf
+        o.set_config('environment:constant:land_binary_mask', 0)
+        o.set_config('environment:constant:x_sea_water_velocity', 0)
+        o.set_config('environment:constant:y_sea_water_velocity', 0)
+        o.set_config('environment:constant:x_wind', 10)
+        o.set_config('environment:constant:y_wind', 10)
+        o.seed_elements(lon=0, lat=60, time=datetime.now(), number=1000, oiltype=oiltype)
+        o.run(duration=timedelta(hours=24))
+        wfa = o.history['water_fraction'].mean()
+        assert np.isclose(wfa, expected, atol=.01)
 
 def test_open_aasgard(aasgard):
     print(aasgard)

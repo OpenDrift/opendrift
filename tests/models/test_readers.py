@@ -33,6 +33,7 @@ from opendrift.readers import reader_lazy
 from opendrift.readers import reader_from_url
 from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.readers import reader_current_from_track
+from opendrift.errors import OutsideSpatialCoverageError
 
 
 o = OceanDrift(loglevel=20)
@@ -51,8 +52,7 @@ class TestReaders(unittest.TestCase):
 
     def test_adding_readers(self):
         o = OceanDrift()
-        landmask = reader_global_landmask.Reader(
-            extent=[-1.5, 7, 59, 64])
+        landmask = reader_global_landmask.Reader()
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader([r, landmask])
@@ -121,14 +121,6 @@ class TestReaders(unittest.TestCase):
         self.assertIsNone(readers[2])
         self.assertTrue(isinstance(readers[3],
                                    reader_netCDF_CF_generic.Reader))
-
-    #def test_reader_from_url_online(self):
-    #    readers = reader_from_url(['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be',
-    #        'https://thredds.met.no/thredds/dodsC/ecmwf/atmo/ec_atmo_0_1deg_20211108T000000Z_3h.nc',
-    #        'https://nrt.cmems-du.eu/thredds/dodsC/global-analysis-forecast-phy-001-024-hourly-merged-uv'])
-    #    self.assertTrue(isinstance(readers[0], reader_netCDF_CF_generic.Reader))
-    #    self.assertTrue(isinstance(readers[1], reader_netCDF_CF_generic.Reader))
-    #    self.assertTrue(isinstance(readers[2], reader_netCDF_CF_generic.Reader))
 
     def test_lazy_reader(self):
         o = OceanDrift(loglevel=20)
@@ -303,7 +295,7 @@ class TestReaders(unittest.TestCase):
         # Element outside reader domain
         self.assertEqual(len(r.covers_positions(5, 80)[0]), 0)
         x, y = r.lonlat2xy(5, 80)
-        self.assertRaises(ValueError, r.check_arguments,
+        self.assertRaises(OutsideSpatialCoverageError, r.check_arguments,
                           'y_sea_water_velocity', r.start_time, x, y, 0)
         # Element inside reader domain
         self.assertEqual(len(r.covers_positions(5, 60)[0]), 1)
@@ -463,7 +455,7 @@ class TestReaders(unittest.TestCase):
                               testlon, testlat, testz,
                               o.required_profiles)
         self.assertAlmostEqual(env['sea_water_temperature'][0], 4.251, 2)
-        self.assertAlmostEqual(env['sea_water_temperature'][1], 0.122, 3)
+        self.assertAlmostEqual(env['sea_water_temperature'][1], -0.148, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
         self.assertIsNone(np.testing.assert_array_almost_equal(
             missing, [False,False,False,False,False]))
@@ -472,7 +464,7 @@ class TestReaders(unittest.TestCase):
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][0,4], 10)
         #self.assertAlmostEqual(env_profiles['sea_water_temperature'][8,2], 10)
         self.assertAlmostEqual(env_profiles['sea_water_temperature'][7,2],
-                               2.159, 3)
+                               2.095, 3)
         # Get separate data
         env2, env_profiles2, missing2 = \
             o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',

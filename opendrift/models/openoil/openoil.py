@@ -47,8 +47,10 @@ When using the NOAA oil weathering model (``o = OpenOil(weathering_model='noaa')
 
 The droplet diameter may be given explicitly when seeding, e.g.:
 
-.. code::
+.. testcode::
 
+
+    o = OpenOil()
     o.seed_elements(4, 60, number=100, time=datetime.now(), diameter=1e-5)
 
 In this case, the diameter will not change during the simulation, which is useful e.g. for sensitivity tests. The same diameter will be used for all elements for this example, but an array of the same length as the number of elements may also be provided.
@@ -94,8 +96,9 @@ class Oil(Lagrangian3DArray):
             'viscosity',
             {
                 'dtype': np.float32,
-                'units': 'N s/m2 (Pa s)',
+                'units': 'm2/s',
                 'seed': False,  # Taken from NOAA database
+                'description': 'Kinematic viscosity of oil',
                 'default': 0.005
             }),
         (
@@ -279,6 +282,21 @@ class OpenOil(OceanDrift):
         'dispersed': 'magenta'
     }
 
+    duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
+                  'EKOFISK BLEND 2000', 'EKOFISK BLEND, STATOIL',
+                  'EKOFISK, CITGO', 'EKOFISK, EXXON', 'EKOFISK, PHILLIPS',
+                  'EKOFISK, STATOIL', 'ELDFISK', 'ELDFISK B',
+                  'GLITNE, STATOIL', 'GOLIAT BLEND, STATOIL',
+                  'GRANE BLEND, STATOIL', 'GUDRUN BLEND, STATOIL',
+                  'GULLFAKS A, STATOIL', 'GULLFAKS C, STATOIL',
+                  'GULLFAKS, SHELL OIL', 'GULLFAKS SOR',
+                  'GULLFAKS, STATOIL', 'HEIDRUN, STATOIL',
+                  'NJORD, STATOIL', 'NORNE, STATOIL',
+                  'OSEBERG BLEND, STATOIL', 'OSEBERG EXXON',
+                  'OSEBERG, PHILLIPS', 'OSEBERG, SHELL OIL',
+                  'SLEIPNER CONDENSATE, STATOIL',
+                  'STATFJORD BLEND, STATOIL', 'VARG, STATOIL']
+
     # Workaround as ADIOS oil library uses
     # max water fraction of 0.9 for all crude oils
     max_water_fraction = {
@@ -300,6 +318,7 @@ class OpenOil(OceanDrift):
             generic_oiltypes = [o for o in self.oiltypes if o[0:7] == 'GENERIC']
             other_oiltypes = [o for o in self.oiltypes if o[0:7] != 'GENERIC']
             self.oiltypes = sorted([o for o in generic_oiltypes]) + sorted([o for o in other_oiltypes])
+            self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
@@ -839,6 +858,8 @@ class OpenOil(OceanDrift):
                 Sprofiles[lower, range(Sprofiles.shape[1])] * \
                 (1-weight_upper)
 
+        T0 = T0 - 273.15 # convert to Celcius - needed for the calcs in this method
+
         rho_oil = self.elements.density
         rho_water = self.sea_water_density(T=T0, S=S0)
 
@@ -852,15 +873,15 @@ class OpenOil(OceanDrift):
 
         # terminal velocity for low Reynolds numbers
         kw = 2 * g * (1 - rhopr) / (9 * ny_w)
-        W = kw * r**2
+        W = kw * (r/2)**2 # r is diameter so divide by 2 for radius
 
         # check if we are in a high Reynolds number regime
-        Re = 2 * r * W / ny_w
+        Re = r * W / ny_w # r is diameter so no need to multiply by 2
         highRe = np.where(Re > 50)
 
         # Terminal velocity in high Reynolds numbers
         kw = (16 * g * (1 - rhopr) / 3)**0.5
-        W2 = kw * r**0.5
+        W2 = kw * (r/2)**0.5
 
         W[highRe] = W2[highRe]
         self.elements.terminal_velocity = W
@@ -1328,11 +1349,10 @@ class OpenOil(OceanDrift):
             plt.show()
 
     def get_oil_name(self):
-        if not hasattr(self, 'oil_name'):  # TODO
-            return 'unknown oiltype'
-        else:
-            # TODO line below is dangerous when importing old files
+        try:
             return self.get_config('seed:oil_type')
+        except:  # fallback if importing old files
+            return 'unknown oiltype'
 
     def cumulative_oil_entrainment_fraction(self):
         '''Returns the fraction of oil elements which has been entrained vs time'''
@@ -1356,7 +1376,7 @@ class OpenOil(OceanDrift):
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds() / 3600. for t in time_relative])
         kin_viscosity = self.history['viscosity']
-        dyn_viscosity = kin_viscosity * self.history['density']
+        dyn_viscosity = kin_viscosity * self.history['density'] * 1000  # unit of mPas
         dyn_viscosity_mean = dyn_viscosity.mean(axis=0)
         dyn_viscosity_std = dyn_viscosity.std(axis=0)
         density = self.history['density'].mean(axis=0)
@@ -1394,11 +1414,16 @@ class OpenOil(OceanDrift):
             plt.show()
 
     def set_oiltype(self, oiltype):
+        """
+        Sets the oil type by specifying the name, the first match will be chosen. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
+        """
+
+        self.set_config('seed:oil_type', oiltype)
         oiltype = adios.oil_name_alias.get(oiltype, oiltype)
         logger.info(f'setting oil_type to: {oiltype}')
 
         self.oil_name = oiltype
-        self.set_config('seed:oil_type', oiltype)
+
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.find_full_oil_from_name(self.oil_name)
             if not self.oiltype.valid():
@@ -1410,6 +1435,9 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_by_id(self, oiltypeid):
+        """
+        Sets the oil type by specifying the ADIOS ID. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list. OpenDrift provides a small set of extra oils.
+        """
         if self.oil_weathering_model == 'noaa':
             self.oiltype = adios.get_full_oil_from_id(oiltypeid)
             self.oil_name = self.oiltype.name
@@ -1422,8 +1450,15 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_by_json(self, json):
+        """
+        Sets the oil type by specifing a JSON dict. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+        """
         if self.oil_weathering_model == 'noaa':
-            self.oiltype = adios.oil.OpendriftOil(json)
+            o = { 'data': { 'attributes' : json } }
+            o['data']['_id'] = o['data']['attributes']['oil_id']
+            o['data']['attributes']['metadata']['location'] = 'NORWAY'
+
+            self.oiltype = adios.oil.OpendriftOil(o)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
                 logger.error(
@@ -1434,18 +1469,19 @@ class OpenOil(OceanDrift):
             raise ValueError("unsupported oil weathering model")
 
     def set_oiltype_from_file(self, path):
+        """
+        Sets the oil type by specifing a JSON file. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
+
+        >>> o = OpenOil()
+        >>> o.set_oiltype_from_file('opendrift/models/openoil/adios/extra_oils/AD03128.json')
+        """
         if self.oil_weathering_model == 'noaa':
             import json
             with open(path, 'r') as fd:
                 j = json.load(fd)
 
-            self.oiltype = adios.oil.OpendriftOil(j)
-            self.oil_name = self.oiltype.name
-            if not self.oiltype.valid():
-                logger.error(
-                    f"{self.oiltype} is not a valid oil for Opendrift simulations"
-                )
-                raise ValueError()
+            self.set_oiltype_by_json(j)
+
         else:
             raise ValueError("unsupported oil weathering model")
 

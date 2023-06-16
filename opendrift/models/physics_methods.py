@@ -44,7 +44,7 @@ def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
     else:
         timestep = time[1] - time[0]
         s = np.round(min_period.total_seconds()/(timestep).total_seconds()).astype(int)
-        ind = np.arange(0, len(time), s).astype(np.int)
+        ind = np.arange(0, len(time), s).astype(np.int32)
         print('Original timestep (%s) multiplied by %i: %s' % (timestep, s, timestep*s))
         ind2 = ind.copy()
         for i in range(1, s):
@@ -270,7 +270,7 @@ def verticaldiffusivity_Large1994(windspeed, depth, mixedlayerdepth=50, backgrou
     cd = 1.25e-3  # Kara et al. 2007
     windstress = windspeed*windspeed * cd * rhoa
 
-    K = MLD * stabilityfunction(depth/MLD) * 0.4 * G(depth/MLD) * windstress
+    K = MLD * stabilityfunction(depth/MLD) * 0.4 * G(depth/MLD) * windstress + (depth/MLD)*background_diffusivity
     K[depth>=MLD] = background_diffusivity
 
     return K
@@ -323,6 +323,31 @@ def gls_tke(windstress, depth, sea_water_density,
     return K
 
 
+def stokes_transport_monochromatic(mean_wave_period, significant_wave_height):
+    mean_wave_frequency = 2.*np.pi/mean_wave_period
+    return mean_wave_frequency * np.power(significant_wave_height, 2) / 16
+
+def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
+                                   significant_wave_height, mean_wave_period, z):
+
+    stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
+                                     stokes_v_surface**2)
+
+    k = stokes_surface_speed / (
+          2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
+    ke = k/3  # ke
+
+    stokes_speed = stokes_surface_speed*np.exp(2*ke*z)/(1-8*ke*z)
+
+    zeromask = stokes_surface_speed == 0
+    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_u[zeromask] = 0
+    stokes_v[zeromask] = 0
+
+    return stokes_u, stokes_v, stokes_speed
+
+
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
     """
@@ -333,12 +358,8 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
-    fm02 = fm02 = 1. / mean_wave_period
-
-    total_transport = (2.*np.pi/16.)*fm02*np.power(
-                       significant_wave_height, 2)
-
-    k = (stokes_surface_speed/(2*total_transport))
+    k = stokes_surface_speed / (
+            2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
 
     stokes_speed = stokes_surface_speed*np.exp(2*k*z)
 
@@ -393,6 +414,9 @@ class PhysicsMethods:
         S   = Salinity in promille of the seawater
         T   = Temperature of the seawater in degrees Celsius
         '''
+
+        if np.atleast_1d(T).max() > 100:
+            raise ValueError('Temperature should be in celcius, but is > 100')
 
         R4 = 4.8314E-04
         DR350 = 28.106331
@@ -627,9 +651,12 @@ class PhysicsMethods:
             return
 
         wdf = wind_drift_factor.copy()
+        wdf_air = wdf.copy()
         if surface_only is False:
             # linear decrease from surface down to wind_drift_depth
             wdf = wdf*(wind_drift_depth+self.elements.z)/wind_drift_depth
+            # Resetting wdf for elements in air
+            wdf[self.elements.z>0] = wdf_air[self.elements.z>0]
         wdf[~surface] = 0.0
         wdfmin = wdf[surface].min()
         wdfmax = wdf[surface].max()

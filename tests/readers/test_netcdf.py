@@ -29,8 +29,7 @@ from opendrift.models.oceandrift import OceanDrift
 class TestNetCDF(unittest.TestCase):
 
     def test_MFDataset(self):
-        reader_landmask = reader_global_landmask.Reader(
-            extent=[13.5, 14.6, 67.1, 67.7])
+        reader_landmask = reader_global_landmask.Reader()
 
         o = OceanDrift(loglevel=30)
         nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +

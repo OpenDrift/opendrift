@@ -1,8 +1,0 @@
-numpy>=1.15.4
-scipy>=1.2.0
-matplotlib
-netCDF4>=1.4.3
-pyproj>=2.2
-cartopy
-git+https://github.com/OpenDrift/OilLibrary
-git+https://github.com/OpenDrift/opendrift-landmask-data.git

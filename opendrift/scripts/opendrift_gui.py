@@ -13,6 +13,7 @@ import numpy as np
 from PIL import ImageTk, Image
 import tkinter as tk
 from tkinter import ttk
+from importlib import resources
 import opendrift
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
@@ -200,7 +201,8 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.start, text='Month').grid(row=20, column=1)
         tk.Label(self.start, text='Year').grid(row=20, column=2)
         tk.Label(self.start, text='Hour').grid(row=20, column=3)
-        tk.Label(self.start, text='Minutes [UTC]').grid(row=20, column=4)
+        tk.Label(self.start, text='Minutes').grid(row=20, column=4)
+        tk.Label(self.start, text='Timezone').grid(row=0, column=4)
         self.datevar = tk.StringVar()
         self.dates = range(1, 32)
         self.datevar.set(now.day)
@@ -235,6 +237,13 @@ class OpenDriftGUI(tk.Tk):
                                     *self.minutes)
         self.minute.grid(row=30, column=4)
 
+        self.timezonevar = tk.StringVar()
+        self.timezone = ['UTC', 'CET']
+        self.timezonevar.set('UTC')
+        self.timezone = tk.OptionMenu(self.start, self.timezonevar,
+                                    *self.timezone)
+        self.timezone.grid(row=10, column=4)
+
         self.datevar.trace('w', self.copy_position)
         self.monthvar.trace('w', self.copy_position)
         self.yearvar.trace('w', self.copy_position)
@@ -266,7 +275,7 @@ class OpenDriftGUI(tk.Tk):
         tk.Label(self.end, text='Month', bg='gray').grid(row=20, column=1)
         tk.Label(self.end, text='Year', bg='gray').grid(row=20, column=2)
         tk.Label(self.end, text='Hour', bg='gray').grid(row=20, column=3)
-        tk.Label(self.end, text='Minutes [UTC]', bg='gray').grid(row=20, column=4)
+        tk.Label(self.end, text='Minutes', bg='gray').grid(row=20, column=4)
         self.edatevar = tk.StringVar()
         self.edates = range(1, 32)
         self.edatevar.set(now.day)
@@ -354,7 +363,9 @@ class OpenDriftGUI(tk.Tk):
         ##############
         self.set_model(list(self.opendrift_models)[0])
 
-        forcingfiles = open(self.o.test_data_folder() + '../../opendrift/scripts/data_sources.txt').readlines()
+        with resources.open_text('opendrift.scripts', 'data_sources.txt') as fd:
+            forcingfiles = fd.readlines()
+
         print(forcingfiles)
         for i, ff in enumerate(forcingfiles):
             tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
@@ -371,7 +382,7 @@ class OpenDriftGUI(tk.Tk):
         except Exception as e:
             print(e)
             pass # Could not display logo
- 
+
         ##########
         # RUN
         ##########
@@ -425,6 +436,43 @@ class OpenDriftGUI(tk.Tk):
             print('='*30 + '\nPlot saved to file: '
                   + filename + '\n' + '='*30)
 
+        elif command == 'showanimationspecie':
+            self.o.animation(
+                color='specie',vmin=0,vmax=self.o.nspecies-1,
+                colorbar=False,
+                legend=[self.o.specie_num2name(i) for i in range(self.o.nspecies)]
+                )
+        elif command == 'saveanimationspecie':
+            filename = filename + '.mp4'
+            self.o.animation(filename=filename,
+                color='specie',vmin=0,vmax=self.o.nspecies-1,
+                                colorbar=False,
+                legend=[self.o.specie_num2name(i) for i in range(self.o.nspecies)]
+                )
+        elif command == 'saveconcfile':
+            self.o.guipp_saveconcfile(filename=homefolder+'/conc_radio.nc')
+        elif command == 'plotconc':
+            zlayer = [-1]
+            time   = None
+            specie = ['LMM']
+            self.o.guipp_plotandsaveconc(filename=homefolder+'/conc_radio.nc',
+                                         outfilename=homefolder+'/radio_plots/RadioConc',
+                                         zlayers=zlayer, time=time, specie=specie )
+        elif command == 'showanimationprofile':
+            self.o.guipp_showanimationprofile()
+        elif command == 'copy_netcdf':
+            import shutil
+            from tkinter import filedialog
+            import pathlib
+            folder_selected = filedialog.askdirectory(initialdir=pathlib.Path.home())
+            try:
+                shutil.copy(self.o.outfile_name, folder_selected)
+                print('Copied netCDF file to:\n' \
+                      f'{folder_selected}/{os.path.basename(self.o.outfile_name)}')
+            except Exception as e:
+                print('Could not copy file:')
+                print(e)
+
     def validate_config(self, value_if_allowed, prior_value, key):
         """From config menu selection."""
         print('Input: %s -> %s', (key, value_if_allowed))
@@ -449,7 +497,7 @@ class OpenDriftGUI(tk.Tk):
             return False
 
     def set_model(self, model, rebuild_gui=True):
-        
+
         # Creating simulation object (self.o) of chosen model class
         print('Setting model: ' + model)
         if model in self.extra_args:
@@ -508,7 +556,7 @@ class OpenDriftGUI(tk.Tk):
                 self.config_input[i] = tk.Entry(
                     tab, textvariable=self.config_input_var[i],
                     validate='key', validatecommand=vcmd,
-                    width=6, justify=tk.RIGHT)
+                    width=12, justify=tk.RIGHT)
                 self.config_input[i].insert(0, str(sc[key]['default']))
                 self.config_input[i].grid(row=i, column=2, rowspan=1)
                 tk.Label(tab, text='[%s]  min: %s, max: %s' % (
@@ -562,7 +610,7 @@ class OpenDriftGUI(tk.Tk):
                     if units == '1':
                         units = 'fraction'
                     varlabel = '%s [%s]' % (varlabel, units)
-        
+
             self.seed_input_label[i] = tk.Label(self.seed_frame,
                                                 text=varlabel + '\t')
             self.seed_input_label[i].grid(row=num, column=0)
@@ -584,7 +632,7 @@ class OpenDriftGUI(tk.Tk):
                 self.seed_input_var[i] = tk.StringVar()
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
-                    width=6, justify=tk.RIGHT)
+                    width=12, justify=tk.RIGHT)
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
@@ -662,11 +710,11 @@ class OpenDriftGUI(tk.Tk):
         adjusted_config = self.o._config
         self.set_model(self.modelname, rebuild_gui=False)
         self.o._config = adjusted_config
-    
+
         try:
             self.budgetbutton.destroy()
         except Exception as e:
-            print(e)
+            #print(e)
             pass
         month = int(self.months.index(self.monthvar.get()) + 1)
         start_time = datetime(int(self.yearvar.get()), month,
@@ -678,6 +726,16 @@ class OpenDriftGUI(tk.Tk):
                             int(self.edatevar.get()),
                             int(self.ehourvar.get()),
                             int(self.eminutevar.get()))
+
+        timezone = self.timezonevar.get()
+        if timezone != 'UTC':
+            import pytz
+            local = pytz.timezone(timezone)
+            local_start = local.localize(start_time, is_dst=None)
+            local_end = local.localize(end_time, is_dst=None)
+            start_time = local_start.astimezone(pytz.utc).replace(tzinfo=None)
+            end_time = local_end.astimezone(pytz.utc).replace(tzinfo=None)
+
         sys.stdout.flush()
         lon = float(self.lon.get())
         lat = float(self.lat.get())
@@ -707,8 +765,8 @@ class OpenDriftGUI(tk.Tk):
                     nothing
             self.o.set_config(se, val)
 
-        self.o.add_readers_from_file(self.o.test_data_folder() +
-            '../../opendrift/scripts/data_sources.txt')
+        with resources.path('opendrift.scripts', 'data_sources.txt') as f:
+            self.o.add_readers_from_file(f)
 
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
                          time=start_time)#, #cone=cone,
@@ -731,6 +789,15 @@ class OpenDriftGUI(tk.Tk):
         # Starting simulation run
         self.o.run(steps=duration, **extra_args)
         print(self.o)
+
+        try:
+            os.chmod(extra_args['outfile'], 0o666)
+        except:
+            pass
+
+        # Model-specific post processing
+        self.o.gui_postproc()
+
 
         self.results.destroy()
         self.results = tk.Frame(self.seed, bd=2,
@@ -756,12 +823,44 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: self.handle_result(
                         'showoilbudget')).grid(row=60, column=1)
 
+
+        if self.model.get() =='RadionuclideDrift':
+            tk.Button(self.results, text='Show animation specie',
+                      command=lambda: self.handle_result(
+                          'showanimationspecie')).grid(row=30, column=2)
+            tk.Button(self.results, text='Save animation specie',
+                      command=lambda: self.handle_result(
+                          'saveanimationspecie')).grid(row=40, column=2)
+            tk.Button(self.results, text='Animation profile',
+                      command=lambda: self.handle_result(
+                          'showanimationprofile')).grid(row=10, column=2)
+#             tk.Button(self.results, text='Save conc file',
+#                       command=lambda: self.handle_result(
+#                           'saveconcfile')).grid(row=20, column=2)
+            tk.Button(self.results, text='Plot conc',
+                      command=lambda: self.handle_result(
+                          'plotconc')).grid(row=20, column=2)
+
+
+
         if self.has_diana is True:
             diana_filename = self.dianadir + self.simulationname + '.nc'
             self.o.write_netcdf_density_map(diana_filename)
             tk.Button(self.results, text='Show in Diana',
                       command=lambda: os.system('diana &')
                       ).grid(row=80, column=1)
+
+            try:
+                os.chmod(diana_filename, 0o666)
+            except:
+                pass
+
+            tk.Button(self.results, text='Copy netCDF file',
+                      command=lambda: self.handle_result(
+                          'copy_netcdf')).grid(row=81, column=1)
+
+def main():
+    OpenDriftGUI().mainloop()
 
 if __name__ == '__main__':
     OpenDriftGUI().mainloop()

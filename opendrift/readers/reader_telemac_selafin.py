@@ -169,7 +169,7 @@ class Reader(BaseReader, UnstructuredReader):
         if find_spec("pyvista") is not None:
             import pyvista as pv
             cells = np.hstack(
-                ((np.ones(len(self.slf.ikle2), dtype=np.int) * 3)[:, None],
+                ((np.ones(len(self.slf.ikle2), dtype=np.int32) * 3)[:, None],
                  self.slf.ikle2))
             points = np.vstack((self.slf.meshx, self.slf.meshy,
                                 np.zeros(len(self.slf.meshx)))).T

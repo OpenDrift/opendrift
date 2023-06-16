@@ -49,7 +49,7 @@ o.animation(buffer=.01, fast=True, drifter={'time': driftertimes, 'lon': drifter
 
 #%%
 # Drifter track is shown in red, and simulated trajectories are shown in gray. Oil spill is displaced relative to drifter, but drifter current is assumed to be spatially homogeneous.
-o.plot(buffer=.01, fast=True, trajectory_dict={
+o.plot(buffer=.01, fast=True, drifter={
         'lon': drifterlons, 'lat': drifterlats,
-        'time': driftertimes, 'linestyle': 'r-'})
+        'time': driftertimes, 'linewidth': 2, 'color': 'r'})
 

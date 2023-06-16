@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
-from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, gls_tke
+from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, gls_tke, skillscore_liu_weissberg
 
 # Defining the oil element properties
 class Lagrangian3DArray(LagrangianArray):
@@ -188,6 +188,98 @@ class OceanDrift(OpenDriftSimulation):
 
         # Optional machine learning correction
         self.machine_learning_correction()
+
+    def wind_drift_factor_from_trajectory_lw(self, drifters, wind_drift_factors,
+                                             simulation_length, simulation_interval):
+        """Perform simulations and use skillscore to optimize wind_drift_factor
+
+        drifters: list of disctionaries with numpy arrays of 'lon' and 'lat'
+                    and list of datetimes
+        wind_drift_factors: the wind_drift_factors to use for simulations/optimalizations
+        """
+
+        output = []  # List with one dictionary per trajectory
+        for d in drifters:
+            time = np.array(d['time'])
+            ti = time[1::] - time[0:-1]
+            if ti.min() == ti.max():
+                trajectory_interval = ti[0]
+            else:
+                raise ValueError('Trajectory interval is not constant')
+            if 'tiv' not in locals():
+                tiv = trajectory_interval
+                index_interval = simulation_interval.total_seconds()/trajectory_interval.total_seconds()
+                if not index_interval.is_integer():
+                    raise ValueError('Simulation interval must be a multiple of trajectory time step')
+            else:
+                if trajectory_interval != tiv:
+                    raise ValueError('Trajectories do not have the same time step')
+            last_index = (time[-1]-time[0]-simulation_length).total_seconds()/trajectory_interval.total_seconds()
+            seed_indices = np.arange(0, last_index, index_interval).astype(int)
+            do = {'lon': d['lon'][seed_indices],
+                  'lat': d['lat'][seed_indices],
+                  'time': np.array(time[seed_indices]),
+                  'trajectory_start_index': seed_indices}
+            output.append(do)
+
+            if not 'last_seed_time' in locals():
+                last_seed_time = do['time'][-1]
+            else:
+                last_seed_time = np.maximum(do['time'][-1], last_seed_time)
+            # Seed for all starting positions in this trajectory
+            for lo,la,ti in zip(do['lon'], do['lat'], do['time']):
+                ow = np.ones(len(wind_drift_factors))
+                self.seed_elements(lon=lo*ow, lat=la*ow, time=ti,
+                                   wind_drift_factor=wind_drift_factors)
+
+        self.set_config('drift:max_age_seconds', simulation_length.total_seconds()+1)
+        self.run(end_time=last_seed_time+simulation_length)
+
+        index_of_first, index_of_last = \
+            self.index_of_activation_and_deactivation()
+        times_model = np.array(self.get_time_array()[0])
+
+        #import matplotlib.pyplot as plt
+        i = 0  # element number in simulation
+        for d, o in zip(drifters, output):
+            o['segments'] = {}
+            o['wind_drift_factor'] = np.ones(len(o['trajectory_start_index']))
+            o['skillscore'] = np.ones(len(o['trajectory_start_index']))
+            for segnum, tsi in enumerate(o['trajectory_start_index']):
+                o['segments'][segnum] = {'skillscore': ow}
+                lon_obs = d['lon'][tsi:tsi+int(index_interval)]
+                lat_obs = d['lat'][tsi:tsi+int(index_interval)]
+                #plt.plot(lon_obs, lat_obs, 'r')
+                for wnum, wdf in enumerate(wind_drift_factors):
+                    lon_model = self.history['lon'][i, index_of_first[i]:index_of_last[i]]
+                    lat_model = self.history['lat'][i, index_of_first[i]:index_of_last[i]]
+                    i = i + 1
+                    ss = skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model)
+                    o['segments'][segnum]['skillscore'][wnum] = ss
+                    #plt.plot(lon_model, lat_model, label='Skillscore: %s' % ss)
+
+                print(o['segments'][segnum]['skillscore'], 'SS')
+                o['wind_drift_factor'][segnum] = \
+                    wind_drift_factors[np.argmax(o['segments'][segnum]['skillscore'])]
+                o['skillscore'][segnum] = o['segments'][segnum]['skillscore'].max()
+                #plt.legend()
+                #plt.show()
+                #stop
+
+        #import xarray as xr
+        #da = xr.DataArray(
+        #    data=skillscore,
+        #    dims=["wind_drift_factor", "time"],
+        #    coords=dict(
+        #        wind_drift_factor=wind_drift_factors,
+        #        time=time
+        #    ),
+        #    attrs=dict(
+        #        description="Liu Weissberg skillscore",
+        #    ),
+        #)
+
+        return output
 
     def machine_learning_correction(self):
         if not hasattr(self, 'trained_model'):

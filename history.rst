@@ -1,6 +1,113 @@
 History
 =======
 
+2023-05-02 / Release v1.10.7
+----------------------------
+* CF projection info is now parsed with pyproj.CF.from_cf()
+* Fixed bug in rotate_variable_dict for rotated pole projection
+* netCDF generic reader now accepts Xarray Datasets in addition to filenames or URLs
+* ROMS reader now accepts also time variable named 'bulk_time' and unit of days. Added uwnd,uwind,vwnd,wvind,tair,wspd to mapping variables
+
+2023-03-29 / Release v1.10.6
+----------------------------
+* Added five new oils to OpenOil/ADIOS. Mapped NJORD 1997 to NJORD 2002.
+* Temporary hack to let reader_netCDF_CF_generic read Zarr datasets
+* Particles in air (z>0) are not stranded/deactivated when land_binary_mask==1
+* Updated Thredds URL to CMEMS wave model
+* Not dropping Vtransform in reader_ROMS_native when using MFDataset (wildcards). Thanks to Tianning Wu for spotting bug
+* GUI: Timezone CET can be chosen, and added button to copy netCDF outfile to selected folder
+
+2023-01-26 / Release v1.10.5
+----------------------------
+* Multiple improvements to the chemicaldrift model.
+* Fix issue where oil type alias for 'EKOFISK BLEND 2002' did not work.
+* Leeway: number of elements now equal to length of lon,lat input array (if number not given).
+* Leeway: ASCII output gives small numerical difference on different platforms, presumably because of numerical errors.
+* Fixing bug in get_environment, where unmasked arrays of nan did not lead to call for more readers.
+* Add trajan as dependency.
+
+2022-11-16 / Release v1.10.4
+----------------------------
+* Workaround in reader_netCDF_CF_generic to prevent wrong wind field from ECMWF model to be selected
+
+2022-11-16 / Release v1.10.3
+----------------------------
+* Fix paths in opendrift_gui.
+
+2022-11-16 / Release v1.10.2
+----------------------------
+* Optimizations to reading results files.
+* ROMS reader improvements.
+* ChemD: many improvements.
+* Bugfixes.
+
+2022-09-27 / Release v1.10.1
+----------------------------
+* Using cartopy shapes for full resolution again because of performance issues.
+* Unit of oil viscosity (which is kinematic viscosity) is now consistent.
+* When importing a subset in time, the number of actual active elements is now detected and used for initialization.
+
+2022-09-26 / Release v1.10.0
+----------------------------
+* OpenDrift and roaring-landmask is now available as conda packages in conda-forge.
+* Roaring landmask is now the only standard landmask provider. The `extent` and corners arguments
+  have been removed from the global_landmask reader. They have not been in use when roaring-landmask
+  was installed.
+* The land shapes included with roaring-landmask is used if full resolution is used during plotting. Otherwise the cartopy provider is used.
+* `Two bugs in OpenOil fixed by Giles Fearon <https://github.com/OpenDrift/opendrift/commit/78f2bd491ddc554d018e8527f97430211aafbba4>`__: in vertical mixing procedure, Temperature has wrong unit when calculating water density, and diameter was used instead of radius to calculate terminal velocity. This lead to moderate errors in vertical distribution of oil droplets: https://github.com/OpenDrift/opendrift/commit/457ed0ff263fb2cd51125cbc3df8c972e0b16fe7
+* Fixed offset error in plotting of background fields on animations, which arose due to recent updates of matplotlib.
+* Added fix (suggested by user lyingTree) for problem when seeding small number of elements within polygons.
+* `figsize` is new optional argument to plot and animation methods (default is 11 inches).
+* Possible to specify custom title for animation method.
+* Oil type is now retrieved from stored netCDF files from OpenOil simulations.
+* Fixed bug for readers with property `always_valid=True`
+* Added boolean option show_trajectories to `plot` method.
+* `reader_netCDF_CF_generic` does now only detect 1D-variables as x- and y-coordinates.
+* For animated drifters, trajectory is now shown only up to current time step.
+* Variables may now also be specified for `add_readers_from_list`.
+* Allowing more than one drifter-dictionary to be animated, if keyword `drifter` (previously named `trajectory_dict`)  is a list instead of dict.
+* New convenience method for structured readers to calculate ocean depth, area and volume within given coordinates.
+* Generic netCDF reader now raises an error of file/URL is (apparently) raw ROMS output.
+* ROMS native reader is now not rotating vectors with east/north in either variable or standard-name.
+* Updates to ROMS native reader: standard_name_mapping may be provided by user, and mask, coordinates and angle may all be read from eventual gridfile.
+* Added option to chose ensemble member in `reader_netCDF_CF_generic` (by user `mateuszmatu`).
+* An experimental drift model based on the Eulerian modeling scheme has been added.
+* It is now possible to combine readers using operators, e.g. to take the mean of two readers, or tune the intensity of a variable. See the `example_reader_operators.py` for an example.
+
+
+2022-03-18 / Release v1.9.0
+---------------------------
+* Now using Cartopy >= 0.20. Cartopy < 0.20 is longer supported.
+* Updated thredds URL to Barents2.5 ocean model
+* ROMS native reader now detects variables having standard_name attribute
+* Using more explicit exceptions internally, e.g. OutsideSpatialCoverageError, CouldNotInitializeReaderError etc.
+* Added 7 Norwegian oils
+* roaring_landmask (written in Rust) is now installed as default (faster landmask checking)
+
+
+2022-02-28 / Release v1.8.4
+---------------------------
+* Fixed discarding of irrelevant readers, which was not working properly. Readers are now discarded if they do not cover simuation temporal or spatial coverage, or do not contain relevant variables
+* Updating/renaming global CMEMS MERCATOR thredds URL. Removing obsoleted CMEMS reader
+* Config setting drift:horizontal_diffusivity is changed from ADVANCED to BASIC, so that it is configurable from e.g. Drifty
+* Fixed bug preventing export of final time step if the final time_step output is not completed
+* Fixed bug in ShipDrift model: beta2 was not updated in loop, giving minor directional error
+* Fixed bug in ShipDrift model: left and right directions were swapped
+
+2022-01-31 / Release v1.8.3
+---------------------------
+* Removing duplicate oils in OpenOil
+
+2022-01-31 / Release v1.8.2
+---------------------------
+* Re-inserted missing oil UTGARD CONDENSATE 2021, and added mapping from EKOFISK BLEND 2002 to 2000
+
+2022-01-27 / Release v1.8.1
+---------------------------
+* Fixed bug in ShipDrift: erroneous direction used for wave forcing when Stokes drift was provided as forcing.
+* New methods to calculate Liu-Weissberg and DARPA skillscores
+* Blit is now an input parameter to animation, defaulting to False, as blitting destroys zorder (background field is always overlaid landmask)
+
 2022-01-06 / Release v1.8.0
 ---------------------------
 * The oil-library has been replaced with the new ADIOS database. Oils are

@@ -148,8 +148,10 @@ class ShipDrift(OpenDriftSimulation):
             'description': 'If ships are oriented to the left or right of the downwind direction,'
                 'or whether this is unknown. Left/right means that wind will hit ship from backboard/steerboard'}})
 
-        self._set_config_default('drift:current_uncertainty', .05)
-        self._set_config_default('drift:wind_uncertainty', .5)
+        # Since the ShipDrift model is deterministic for given ship size,
+        # (in contrast to the Leeway model), we use a default diffusivity
+        # to yield some variability.
+        self._set_config_default('drift:horizontal_diffusivity', 100)
 
     def seed_elements(self, *args, **kwargs):
 
@@ -249,6 +251,7 @@ class ShipDrift(OpenDriftSimulation):
         ommax = 12.0
         dom = (ommax-ommin2)/(NSPEC-1)
         F_wave = np.zeros(self.num_elements_active())  # For each ship
+        beta2 = 0
         scale1 = np.sqrt(9.81/self.elements.length)
 
         tmp = np.power(2.0*np.pi/Tm, 4)
@@ -277,9 +280,10 @@ class ShipDrift(OpenDriftSimulation):
                 d2 = 4.0*omi*f2
 
             F_wave = F_wave + 0.5*(f1+f2)*dom*scale1*np.power(s[i,:], 2)
+            beta2 = beta2 + 0.5*(d1+d2)*dom*scale1*np.power(s[i,:], 2)
 
         F_wave = F_wave*rho_water*9.81*self.elements.length
-        beta2 = rho_water*np.sqrt(9.81*self.elements.length)
+        beta2 = beta2*rho_water*np.sqrt(9.81*self.elements.length)
 
         # Add calculated wave and wind drift
         longperiod = Tm > 8.55
@@ -288,23 +292,24 @@ class ShipDrift(OpenDriftSimulation):
         beta2[longperiod] = beta2[longperiod]*.60
         medperiod = ((Tm >= 5.7) & (Tm <= 8.55))
         F_wave[medperiod] = F_wave[medperiod]*(1.0 - 0.34*(Tm[medperiod]-5.7)/2.85)
-        beta2[medperiod] = beta2[medperiod]*(1.0 - 0.34*(Tm[medperiod]-5.7)/2.85)
+        beta2[medperiod] = beta2[medperiod]*(1.0 - 0.4*(Tm[medperiod]-5.7)/2.85)
 
         # Form drag (water resistance)
         beta1 = 0.5*rho_water*self.elements.water_drag_coeff*area_wet
 
         # Wave direction is taken as wind direction plus offset +/- 20 degrees
-        offset = self.winwav_angle*2*(self.elements.orientation - 0.5)
+        # Using minus, since angles are here defined counter-clockwise from x-axis
+        offset = -self.winwav_angle*2*(self.elements.orientation - 0.5)
         if (self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0 and
-            self.environment.sea_surface_wave_stokes_drift_x_velocity.max() == 0):
+            self.environment.sea_surface_wave_stokes_drift_y_velocity.max() == 0):
                 logger.info('Using wind direction as wave direction')
                 wave_dir = np.radians(offset) + np.arctan2(self.environment.y_wind,
                                                            self.environment.x_wind)
         else:
             logger.info('Using Stokes drift direction as wave direction')
             wave_dir = np.radians(offset) + np.arctan2(
-                self.environment.sea_surface_wave_stokes_drift_x_velocity,
-                self.environment.sea_surface_wave_stokes_drift_y_velocity)
+                self.environment.sea_surface_wave_stokes_drift_y_velocity,
+                self.environment.sea_surface_wave_stokes_drift_x_velocity)
         F_wave_x = F_wave*np.cos(wave_dir)
         F_wave_y = F_wave*np.sin(wave_dir)
         F_total = np.sqrt(np.power(F_wind_x + F_wave_x, 2) +

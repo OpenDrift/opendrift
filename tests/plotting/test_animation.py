@@ -16,6 +16,7 @@
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2019, Knut-Frode Dagestad, MET Norway
+# Copyright 2022, Gaute Hope, MET Norway
 
 import os
 import pytest
@@ -23,30 +24,8 @@ import pytest
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
-@pytest.mark.slow
-def test_fast_plot(show_plot, tmpdir):
-    o = OceanDrift(loglevel=30)
-    rn = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-    o.add_reader(rn)
-    o.seed_elements(lon=4.8, lat=60.0, number=10, radius=1000,
-                    time=rn.start_time)
-    o.run(steps=5)
-
-    o.plot(fast=True, filename=None if show_plot else tmpdir / 'test.png')
-
-@pytest.mark.slow
-def test_slow_plot(show_plot, tmpdir):
-    o = OceanDrift(loglevel=30)
-    rn = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-    o.add_reader(rn)
-    o.seed_elements(lon=4.8, lat=60.0, number=10, radius=1000,
-                    time=rn.start_time)
-    o.run(steps=5)
-    o.plot(fast=False, filename=None if show_plot else tmpdir / 'test.png')
-
 @pytest.mark.veryslow
-def test_plot(tmpdir):
-
+def test_comparison(tmpdir):
     anifile = os.path.join(tmpdir, 'anim.mp4')
     plotfile = os.path.join(tmpdir, 'plot.png')
     #anifile = None
