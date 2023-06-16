@@ -7,8 +7,21 @@ import pytest
 from . import *
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_timeseries
+from opendrift.readers import reader_failing
 from opendrift.models.oceandrift import OceanDrift
 
+
+def test_failing_reader():
+    """Check that reader is put in quanrantene after more fails than allowed"""
+    o = OceanDrift(loglevel=20)
+    r = reader_failing.Reader()
+    o.set_config('readers:max_number_of_fails', 1)
+    o.add_reader(r)
+    o.seed_elements(lon=4, lat=60, time=datetime.now())
+    o.run(steps=5)
+    assert hasattr(o, 'discarded_readers')
+    assert o.steps_calculation == 5
+    assert r.number_of_fails == 2
 
 def test_map_background():
     """Plotting map of reader coverage with background field"""

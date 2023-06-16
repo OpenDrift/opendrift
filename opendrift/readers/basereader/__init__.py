@@ -97,6 +97,8 @@ class BaseReader(Variables, Combine, Filter):
         """Common constructor for all readers"""
         super().__init__()
 
+        self.number_of_fails = 0  # Readers may be quanrantined after a number of fails (config setting)
+
         self.always_valid = False  # Set to True if a single field should
                                    # be valid at all times
 
