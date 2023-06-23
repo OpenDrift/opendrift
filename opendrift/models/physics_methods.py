@@ -322,13 +322,60 @@ def gls_tke(windstress, depth, sea_water_density,
 
     return K
 
+def plot_stokes_profile(profiles, view=['vertical', 'birdseye']):
+    '''Plot vertical profile of Stokes drift
+
+    Args:
+        list of dictionary with:
+            u, v: components of Stokes drift vector
+            z: depth in meters, 0 at surface and negative below (e.g. -5 = 5m depth)
+            kwargs: forwarded to plot method
+        view:
+            - 'vertical': magnitude versus depth
+            - 'birdseye': viewed from above
+            - or list of both above with one axis for each case (default)
+    '''
+
+    fig, axs = plt.subplots(1, len(view))
+    for vi, ax in zip(view, axs):
+        print(vi, ax)
+        for p in profiles:
+            if 'kwargs' in p:
+                kwargs = p['kwargs']
+            else:
+                kwargs=None
+            u = p['u']
+            v = p['v']
+            z = p['z']
+            if vi == 'vertical':
+                speed = np.sqrt(u**2 + v**2)
+                ax.plot(speed, -z, **kwargs)
+            elif vi == 'birdseye':
+                ax.plot(u, v, **kwargs)
+
+        if vi == 'vertical':
+            ax.invert_yaxis()
+            ax.set_xlabel('Speed  [m/s]')
+            ax.set_ylabel('Depth  [m]')
+        elif vi == 'birdseye':
+            ax.set_xlabel('u  [m/s]')
+            ax.set_ylabel('v  [m/s]')
+            ax.set_aspect('equal')
+            xlim = np.array(ax.get_xlim())
+            ylim = np.array(ax.get_ylim())
+            m = np.maximum(np.abs(xlim).max(), np.abs(ylim).max())
+            ax.set_xlim(-m, m)
+            ax.set_ylim(-m, m)
+        ax.legend()
+        
+    plt.show()
 
 def stokes_transport_monochromatic(mean_wave_period, significant_wave_height):
     mean_wave_frequency = 2.*np.pi/mean_wave_period
     return mean_wave_frequency * np.power(significant_wave_height, 2) / 16
 
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
-                                   significant_wave_height, mean_wave_period, z):
+                                 significant_wave_height, mean_wave_period, z):
 
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                      stokes_v_surface**2)

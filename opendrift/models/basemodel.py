@@ -1293,7 +1293,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     if reader.number_of_fails > max_fails:
                         logger.warning(f'Reader {reader.name} is discarded after failing '
                                        f'more times than allowed ({max_fails})')
-                        self.discard_reader(reader, reason=f'Failed more than {max_fails} times.')
+                        self.discard_reader(reader, reason=f'failed more than {max_fails} times')
 
                     self.timer_end('main loop:readers:' +
                                    reader_name.replace(':', '<colon>'))
