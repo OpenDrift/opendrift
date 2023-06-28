@@ -6,11 +6,18 @@ class T(ABC):
     """
 
     @abstractproperty
-    def jonswap(self):
+    def jonswap(self) -> 'JONSWAP':
         """
         Return a JONSWAP interpretation of the wave period.
         """
         pass
+
+    @property
+    def js(self):
+        """
+        Alias for `jonswap`.
+        """
+        return self.jonswap
 
 class JONSWAP:
     """
