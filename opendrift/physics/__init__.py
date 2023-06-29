@@ -1,1 +1,1 @@
-import waveperiod
+from . import waveperiod

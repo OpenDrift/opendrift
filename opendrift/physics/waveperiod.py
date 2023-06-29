@@ -1,39 +1,21 @@
 from abc import ABC, abstractmethod, abstractproperty
+from enum import Enum
+
+class Spectrum(Enum):
+    JONSWAP = 1
 
 class T(ABC):
     """
     Generic Wave Period.
     """
 
-    @abstractproperty
-    def jonswap(self) -> 'JONSWAP':
+    @abstractmethod
+    def tp(self, spectrum: Spectrum) -> float:
         """
-        Return a JONSWAP interpretation of the wave period.
+        Return a interpretation of the wave period in the given spectrum.
         """
-        pass
+        raise NotImplemented()
 
-    @property
-    def js(self):
-        """
-        Alias for `jonswap`.
-        """
-        return self.jonswap
-
-class JONSWAP:
-    """
-    """
-    _tp_: float
-
-    def __init__(self, tp):
-        self._tp_ = tp
-
-    @classmethod
-    def from_tp(cls, tp):
-        cls(tp)
-
-    @property
-    def tp(self):
-        return self.tp
 
 class Tp(T):
     _tp_: float
@@ -41,9 +23,12 @@ class Tp(T):
     def __init__(self, tp):
         self._tp_ = tp
 
-    @property
-    def jonswap(self):
-        return JONSWAP.from_tp(self._tp_)
+    def tp(self, spectrum: Spectrum):
+        match spectrum:
+            case Spectrum.JONSWAP:
+                return self._tp_
+
+        raise ValueError()
 
 class Tm0(T):
     _tm0_: float
@@ -51,6 +36,9 @@ class Tm0(T):
     def __init__(self, tm0):
         self._tm0_ = tm0
 
-    @property
-    def jonswap(self):
-        return JONSWAP.from_tp(1.1 * self._tm0_)
+    def tp(self, spectrum: Spectrum):
+        match spectrum:
+            case Spectrum.JONSWAP:
+                return self._tm0_ * 1.1
+
+        raise ValueError()
