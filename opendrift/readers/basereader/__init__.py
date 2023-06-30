@@ -65,6 +65,8 @@ class BaseReader(Variables, Combine, Filter):
         'wind_direction': 'wind_from_direction',
         'sea_water_x_velocity': 'x_sea_water_velocity',
         'sea_water_y_velocity': 'y_sea_water_velocity',
+        'baroclinic_x_sea_water_velocity': 'x_sea_water_velocity',
+        'baroclinic_y_sea_water_velocity': 'y_sea_water_velocity',
         'x_sea_ice_velocity': 'sea_ice_x_velocity',
         'y_sea_ice_velocity': 'sea_ice_y_velocity',
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
@@ -78,12 +80,14 @@ class BaseReader(Variables, Combine, Filter):
 
     xy2eastnorth_mapping = {
         'x_sea_water_velocity': ['eastward_sea_water_velocity', 'surface_eastward_sea_water_velocity',
+                                 'baroclinic_eastward_sea_water_velocity',
                                  'eastward_current_velocity', 'eastward_tidal_current',
                                  'eastward_ekman_current_velocity', 'eastward_geostrophic_current_velocity',
                                  'eastward_eulerian_current_velocity', 'surface_geostrophic_eastward_sea_water_velocity',
                                  'surface_geostrophic_eastward_sea_water_velocity_assuming_sea_level_for_geoid',
                                  'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
         'y_sea_water_velocity': ['northward_sea_water_velocity', 'surface_northward_sea_water_velocity',
+                                 'baroclinic_northward_sea_water_velocity',
                                  'northward_current_velocity', 'northward_tidal_current',
                                  'northward_ekman_current_velocity', 'northward_geostrophic_current_velocity',
                                  'northward_eulerian_current_velocity', 'surface_geostrophic_northward_sea_water_velocity',
