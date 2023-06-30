@@ -1114,6 +1114,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 rlatmax = np.max(corners[1])
                 if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=90' in reader.proj4:
                     rlatmax = 90
+                if hasattr(reader, 'projected') and reader.projected is False:
+                    rlatmax = 90
                 if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=-90' in reader.proj4:
                     rlatmin = -90
                 if rlatmin > self.simulation_extent[3]:
