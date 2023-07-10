@@ -1,10 +1,10 @@
 Installing OpenDrift
 =============================================
 
-Alternative 1: Using Miniconda and Git (recommended)
-++++++++++++++++++++++++++++++++++++++++++++++++++++
+Alternative 1: Using Mambaforge (alternative to Miniconda) and Git (recommended)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
+1. Install `mambaforge <https://mamba.readthedocs.io/en/latest/installation.html>`_ (`download <https://github.com/conda-forge/miniforge#mambaforge>`_)
 2. Clone OpenDrift:
 
 .. code-block:: bash
@@ -16,8 +16,7 @@ Alternative 1: Using Miniconda and Git (recommended)
 
 .. code-block:: bash
 
-  $ conda config --add channels conda-forge
-  $ conda env create -f environment.yml
+  $ mamba env create -f environment.yml
   $ conda activate opendrift
   $ pip install --no-deps -e .
 
@@ -27,18 +26,17 @@ Occasionally, new dependencies will be added to environment.yml. Then the local 
 
 .. code-block:: bash
 
-  $ conda env update -f environment.yml
+  $ mamba env update -f environment.yml
 
-Alternative 2: Using Miniconda
-++++++++++++++++++++++++++++++
+Alternative 2: Using Mambaforge (alternative to Miniconda)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-1. Install `miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_
+1. Install `mambaforge <https://mamba.readthedocs.io/en/latest/installation.html>`_ (`download <https://github.com/conda-forge/miniforge#mambaforge>`_)
 2. Set up a *Python 3* environment for opendrift and install opendrift
 
 .. code-block:: bash
 
-   $ conda config --add channels conda-forge
-   $ conda create -n opendrift python=3 opendrift
+   $ mamba create -n opendrift python=3 opendrift
    $ conda activate opendrift
 
 .. _source_install:
@@ -59,13 +57,13 @@ If you later want to edit the OpenDrift source code, or be able to update from r
 
 .. code-block:: bash
 
-   $ conda remove opendrift
+   $ mamba remove --force opendrift
 
 5. Install as editable:
 
 .. code-block:: bash
 
-   $ pip install -e --no-deps .
+   $ pip install --no-deps -e .
 
 Building and using the Docker image
 +++++++++++++++++++++++++++++++++++
@@ -95,5 +93,5 @@ and run it:
 
 .. code-block:: bash
 
-  $ docker run --it --rm opendrift
+  $ docker run -it --rm opendrift
 

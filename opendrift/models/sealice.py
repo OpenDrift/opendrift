@@ -48,13 +48,13 @@ class SeaLiceElement(Lagrangian3DArray):
         ('dead',  {'dtype': np.float32,
                      'units': '',
                      'default': 0.}),
-        ('eliminated',{'dtype': np.int8,
+        ('eliminated',{'dtype': np.int32,
                      'units': '',
                      'default': 0}),
         ('degree_days', {'dtype': np.float32,
                      'units': '',
                     'default': 0}), #range 40-170
-        ('safe_salinity_above', {'dtype': np.int8,
+        ('safe_salinity_above', {'dtype': np.int32,
                      'units': '',
                     'default': 0}),
         ('temperature_above', {'dtype': np.float32,
@@ -232,11 +232,11 @@ class SeaLice(OceanDrift):
         duration = self.get_config('general:duration')/ self.time_step.total_seconds()
         Mat = int(np.ceil(self.get_config(self.prefix+'maturity_date')*24*3600/ \
                     self.time_step.total_seconds())) # maturity age in timestep
-        t=np.arange(0,duration+1,dtype=np.int)
+        t=np.arange(0,duration+1,dtype=np.int32)
         self.juv=np.exp(-1*death_rate*t)
         self.juv[0]=1
         self.dead=1-self.juv
-        self.adult=np.zeros_like(t, dtype=np.float)
+        self.adult=np.zeros_like(t, dtype=np.float32)
         if Mat<duration:
             decayjuv=self.juv[Mat]*np.exp(-1*(maturation_rate+death_rate)*(t[t>=Mat]-Mat))
             self.juv[t>=Mat] =decayjuv
@@ -256,7 +256,7 @@ class SeaLice(OceanDrift):
         self.elements.nauplii[New_release]=self.elements.hatched[New_release]
         Free = ~New_release
         time_in_step=(self.elements.age_seconds[Free]/ \
-                    self.time_step.total_seconds()).astype(np.int)
+                    self.time_step.total_seconds()).astype(np.int32)
         self.elements.nauplii[Free]=self.elements.hatched[Free]* \
                                     self.juv[time_in_step]
         self.elements.copepodid[Free]=self.elements.hatched[Free]* \
@@ -289,7 +289,8 @@ class SeaLice(OceanDrift):
     def degree_days(self):
         """
         Calculate the degree days of a particles
-        >>> under development <<<
+
+        XXX: under development
         """
         logger.debug("accumulate degree_days **Experimental**")
         ### define active elements

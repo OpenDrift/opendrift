@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 import pytest
 from . import *
 from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
@@ -18,6 +19,14 @@ def test_set_convolve(test_data):
 
     assert x != x2
     np.testing.assert_array_almost_equal(x2, np.array([0.082982]))
+
+
+def test_reader_dataset(test_data):
+    ds = xr.open_dataset(test_data + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+    reader_norkyst = reader_netCDF_CF_generic.Reader(ds)
+    time = reader_norkyst.start_time
+    print(reader_norkyst)
+
 
 def test_lonlat2xy_sequential(test_data, benchmark):
     reader = reader_ROMS_native.Reader(test_data + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')

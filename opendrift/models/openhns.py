@@ -41,12 +41,24 @@ class HNS(Lagrangian3DArray):
                 'seed': False,
                 'default': 1
         }),
+         (   'mass_evaporated', {
+                'dtype': np.float32,
+                'units': 'kg',
+                'seed': False,
+                'default': 0
+        }),
+         (   'mass_dissolved', {
+                'dtype': np.float32,
+                'units': 'kg',
+                'seed': False,
+                'default': 0
+        }),
         (
             'viscosity',
             {
                 'dtype': np.float32,
                 'units': 'N s/m2 (Pa s)',
-                'seed': False,  # Taken from NOAA database
+                'seed': False,
                 'default': 0.005
             }),
         (
@@ -54,7 +66,7 @@ class HNS(Lagrangian3DArray):
             {
                 'dtype': np.float32,
                 'units': 'kg/m^3',
-                'seed': False,  # Taken from NOAA database
+                'seed': False,
                 'default': 880
             }),
         (
@@ -69,12 +81,12 @@ class HNS(Lagrangian3DArray):
                 'this fraction of the wind vector, in addition to '
                 'currents and Stokes drift',
                 'default':
-                0.03
+                0.02
             }),
         (
            'diameter',
             {
-                'dtype': np.float32,  # Particle diameter
+                'dtype': np.float32,  # Droplet diameter
                 'units': 'm',
                 'seed': False,
                 'default': 0.
@@ -173,7 +185,11 @@ class OpenHNS(OceanDrift):
 
     max_speed = 1.3  # m/s
 
-    hnstypes = ['chem1', 'chem2']
+    hns_types = {
+        'butyl': {'evaporation_rate': .03, 'dissolution_rate': .05},
+        'acetone': {'evaporation_rate': .16, 'dissolution_rate': .01},
+        'xylene': {'evaporation_rate': .25, 'dissolution_rate': .1}
+        }
 
     # Default colors for plotting
     status_colors = {
@@ -192,35 +208,13 @@ class OpenHNS(OceanDrift):
         super(OpenHNS, self).__init__(*args, **kwargs)
 
         self._add_config({
-            'seed:evaporation_rate': {
-                'type': 'float',
-                'default': .99,
-                'min': 0,
-                'max': 1e10,
-                'units': 's-1',
-                'description':
-                'The evaporation rate', 
-                'level': self.CONFIG_LEVEL_ESSENTIAL,
-                'description': 'Evaporation rate'
-            },
-           'seed:entrainment_rate': {
-                'type': 'float',
-                'default': 1,
-                'min': 0,
-                'max': 1e10,
-                'units': '1',
-                'description':
-                'The evaporation rate', 
-                'level': self.CONFIG_LEVEL_ESSENTIAL,
-                'description': 'Entrainment rate'
-            },
            'seed:hns_type': {
                 'type':
                 'enum',
                 'enum':
-                self.hnstypes,
+                list(self.hns_types),
                 'default':
-                self.hnstypes[0],
+                list(self.hns_types)[0],
                 'level':
                 self.CONFIG_LEVEL_ESSENTIAL,
                 'description':
@@ -233,18 +227,38 @@ class OpenHNS(OceanDrift):
         self._set_config_default('drift:current_uncertainty', 0.05)
         self._set_config_default('drift:wind_uncertainty', 0.5)
 
+    def seed_elements(self, hns_type=None, *args, **kwargs):
+        if hns_type is not None:
+            self.set_config('seed:hns_type', hns_type)
+        self.hns_type = self.hns_types[self.get_config('seed:hns_type')]
+        super(OpenHNS, self).seed_elements(*args, **kwargs)
+
     def evaporation(self):
-        print('Evaporating!')
         surface = np.where(self.elements.z == 0)[0]
         random_number = np.random.uniform(0, 1, len(surface))
-        evaporated = np.where(random_number > self.get_config('seed:evaporation_rate'))[0]
+        evaporated = np.where(random_number > 1-self.hns_type['evaporation_rate'])[0]
         logger.debug('Evaporating %i of %i elements at ocean surface' % (len(evaporated), len(surface)))
-        self.elements.wind_drift_factor[evaporated] = 1  # Shall follow wind 100%
-        self.elements.z[evaporated] = 10  # Moving evaporated elements to 10m height
+        self.elements.wind_drift_factor[surface[evaporated]] = 1  # Shall follow wind 100%
+        self.elements.z[surface[evaporated]] = 10  # Moving evaporated elements to 10m height
+        self.elements.mass_evaporated[surface[evaporated]] = self.elements.mass[surface[evaporated]]
+        self.elements.mass[surface[evaporated]] = 0
 
+    def dissolution(self):
+        surface = np.where(self.elements.z == 0)[0]
+        random_number = np.random.uniform(0, 1, len(surface))
+        dissolved = np.where(random_number > 1-self.hns_type['dissolution_rate'])[0]
+        logger.debug('Dissolving %i of %i elements at ocean surface' % (len(dissolved), len(surface)))
+        self.elements.wind_drift_factor[surface[dissolved]] = 0  # Submerged, no windage
+        self.elements.z[surface[dissolved]] = -10  # Moving dissolved elements to 10m depth
+        self.elements.mass_dissolved[surface[dissolved]] = self.elements.mass[surface[dissolved]]
+        self.elements.mass[surface[dissolved]] = 0
 
     def update(self):
 
         self.evaporation()
-        #self.advect_ocean_current()
+        self.dissolution()
+        self.update_terminal_velocity()
+        #self.vertical_mixing()
+        self.advect_ocean_current()
+        self.stokes_drift()
         self.advect_wind()

@@ -44,7 +44,7 @@ commands:
             cat envconfig
 
       - restore_cache:
-          key: v19-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v20-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
 
       - run:
           name: Install requirements
@@ -70,7 +70,7 @@ commands:
             fi
 
       - save_cache:
-          key: v19-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
+          key: v20-deps1-{{ checksum "environment.yml" }}-{{ checksum "envconfig" }}
           paths:
             - "/opt/conda/envs"
       - run:
@@ -162,8 +162,10 @@ jobs:
       - run:
           name: Publish packages
           command: |
-            source activate opendrift
-            poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+            if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
+              source activate opendrift
+              poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+            fi
 
   python_310:
     <<: *test-template
@@ -320,7 +322,7 @@ jobs:
             echo "Build examples: ${BUILD_EXAMPLES}"
 
       - restore_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
 
       - install_conda_environment
 
@@ -334,7 +336,7 @@ jobs:
             pip install sphinx-rtd-theme
 
       - save_cache:
-          key: v7-docs-deps1-{{ checksum "environment.yml" }}
+          key: v8-docs-deps1-{{ checksum "environment.yml" }}
           paths:
             - "/opt/conda/envs"
 
@@ -398,7 +400,7 @@ jobs:
 
       - add_ssh_keys:
           fingerprints:
-            - "49:f4:a4:5c:2f:d4:6a:0f:26:21:a0:f2:d4:3c:71:ff"
+            - "c0:95:6e:db:93:97:28:a7:45:f4:d7:30:e3:fe:a6:8f"
       - run:
           name: Deploy docs to gh-pages branch
           command: gh-pages --dotfiles --message "[skip ci] Updates" --dist docs/build/html --repo git@github.com:OpenDrift/opendrift.github.io.git --branch master
@@ -417,8 +419,10 @@ workflows:
             - build_package
             - python_39
           filters:
+            tags:
+              only: /^v.*/
             branches:
-             only: master
+              only: master
 
   docs:
     jobs:
@@ -434,27 +438,3 @@ workflows:
           filters:
             branches:
              only: master
-
-  # This workflow will deploy images on merge to master only
-  # build-and-publish-docker-image:
-  #   jobs:
-
-  #     - docker-publish/publish:
-  #         image: opendrift/opendrift
-  #         dockerfile: Dockerfile
-  #         tag: latest
-  #         filters:
-  #           branches:
-  #            only: master
-  #         after_build:
-  #           - run:
-  #               name: Publish Docker Containers with Python Version 3
-  #               command: |
-  #                  # Here we preview the Docker Tag
-  #                  pushd opendrift
-  #                  DOCKER_TAG=$(python -c 'import version; print(version.__version__)')
-  #                  popd
-
-  #                  echo "Version for Docker tag is ${DOCKER_TAG}"
-  #                  docker tag opendrift/opendrift:latest opendrift/opendrift:v${DOCKER_TAG}
-

@@ -65,6 +65,8 @@ class BaseReader(Variables, Combine, Filter):
         'wind_direction': 'wind_from_direction',
         'sea_water_x_velocity': 'x_sea_water_velocity',
         'sea_water_y_velocity': 'y_sea_water_velocity',
+        'baroclinic_x_sea_water_velocity': 'x_sea_water_velocity',
+        'baroclinic_y_sea_water_velocity': 'y_sea_water_velocity',
         'x_sea_ice_velocity': 'sea_ice_x_velocity',
         'y_sea_ice_velocity': 'sea_ice_y_velocity',
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
@@ -78,22 +80,28 @@ class BaseReader(Variables, Combine, Filter):
 
     xy2eastnorth_mapping = {
         'x_sea_water_velocity': ['eastward_sea_water_velocity', 'surface_eastward_sea_water_velocity',
+                                 'baroclinic_eastward_sea_water_velocity',
                                  'eastward_current_velocity', 'eastward_tidal_current',
                                  'eastward_ekman_current_velocity', 'eastward_geostrophic_current_velocity',
                                  'eastward_eulerian_current_velocity', 'surface_geostrophic_eastward_sea_water_velocity',
                                  'surface_geostrophic_eastward_sea_water_velocity_assuming_sea_level_for_geoid',
                                  'surface_eastward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
         'y_sea_water_velocity': ['northward_sea_water_velocity', 'surface_northward_sea_water_velocity',
+                                 'baroclinic_northward_sea_water_velocity',
                                  'northward_current_velocity', 'northward_tidal_current',
                                  'northward_ekman_current_velocity', 'northward_geostrophic_current_velocity',
                                  'northward_eulerian_current_velocity', 'surface_geostrophic_northward_sea_water_velocity',
                                  'surface_geostrophic_northward_sea_water_velocity_assuming_sea_level_for_geoid',
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
-        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind'}
+        'x_wind': 'eastward_wind', 'y_wind': 'northward_wind',
+        'sea_surface_wave_stokes_drift_x_velocity': 'eastward_surface_stokes_drift',
+        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift'}
 
     def __init__(self):
         """Common constructor for all readers"""
         super().__init__()
+
+        self.number_of_fails = 0  # Readers may be quanrantined after a number of fails (config setting)
 
         self.always_valid = False  # Set to True if a single field should
                                    # be valid at all times
@@ -170,7 +178,7 @@ class BaseReader(Variables, Combine, Filter):
             self.activate_environment_mapping(m)
 
     def y_is_north(self):
-        if self.proj.crs.is_geographic or '+proj=merc' in self.proj.srs:
+        if (self.proj.crs.is_geographic and 'ob_tran' not in self.proj4) or '+proj=merc' in self.proj.srs:
             return True
         else:
             return False
@@ -179,17 +187,6 @@ class BaseReader(Variables, Combine, Filter):
         """Prepare reader for given simulation coverage in time and space."""
         logger.debug('Nothing more to prepare for ' + self.name)
         pass  # to be overriden by specific readers
-
-    def rotate_variable_dict(self, variables, proj_from='+proj=latlong', proj_to=None):
-        for vectorpair in vector_pairs_xy:
-            if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
-                if proj_to is None:
-                    proj_to = self.proj
-                logger.debug('Rotating vector from east/north to xy orientation: ' + str(vectorpair))
-                variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
-                    variables['x'], variables['y'],
-                    variables[vectorpair[0]], variables[vectorpair[1]],
-                    proj_from, proj_to)
 
     def index_of_closest_z(self, requested_z):
         """Return (internal) index of z closest to requested z.

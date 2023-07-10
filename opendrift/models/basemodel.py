@@ -21,31 +21,28 @@ import types
 import traceback
 import inspect
 import logging
-
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 from collections import OrderedDict
 from abc import ABCMeta, abstractmethod, abstractproperty
+
 import geojson
 import xarray as xr
-
 import numpy as np
 import scipy
 import pyproj
-try:
-    import matplotlib
-    matplotlib.rcParams['legend.numpoints'] = 1
-    matplotlib.rcParams['legend.scatterpoints'] = 1
-    import matplotlib.pyplot as plt
-    from matplotlib import animation
-    from matplotlib.patches import Polygon
-    from matplotlib.path import Path
-    import cartopy
-    import cartopy.crs as ccrs
-    import cartopy.feature as cfeature
-except ImportError:
-    print('matplotlib and/or cartopy is not available, can not make plots')
+import matplotlib
+matplotlib.rcParams['legend.numpoints'] = 1
+matplotlib.rcParams['legend.scatterpoints'] = 1
+matplotlib.rcParams['figure.autolayout'] = True
+import matplotlib.pyplot as plt
+from matplotlib import animation
+from matplotlib.patches import Polygon
+from matplotlib.path import Path
+#import cartopy
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 import opendrift
 from opendrift.timer import Timeable
@@ -435,6 +432,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 'Elements are deactivated if the move further west than this limit',
                 'level': self.CONFIG_LEVEL_ADVANCED
             },
+             'readers:max_number_of_fails': {
+                'type': 'int',
+                'default': 1,
+                'min': 0,
+                'max': 1e6,
+                'units': 'number',
+                'description':
+                'Readers are discarded if they fail (e.g. corrupted data, og hanging servers) move than this number of times',
+                'level': self.CONFIG_LEVEL_ADVANCED
+            },
         })
 
         # Add default element properties to config
@@ -789,9 +796,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                      None)
             self.environment.land_binary_mask = en.land_binary_mask
 
-        if i == 'stranding':  # Deactivate elements on land
-            self.deactivate_elements(self.environment.land_binary_mask == 1,
-                                     reason='stranded')
+        if i == 'stranding':  # Deactivate elements on land, but not in air
+            self.deactivate_elements((self.environment.land_binary_mask == 1) &
+                                     (self.elements.z <= 0), reason='stranded')
         elif i == 'previous':  # Go back to previous position (in water)
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
@@ -997,7 +1004,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if var not in self.priority_list
         ]
 
-    def get_reader_groups(self, variables=None):
+    def get_reader_groups(self, variables=None, time=None):
         """Find which groups of variables are provided by the same readers.
 
         This function loops through 'priority_list' (see above) and groups
@@ -1106,6 +1113,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 rlatmin = np.min(corners[1])
                 rlatmax = np.max(corners[1])
                 if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=90' in reader.proj4:
+                    rlatmax = 90
+                if hasattr(reader, 'projected') and reader.projected is False:
                     rlatmax = 90
                 if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=-90' in reader.proj4:
                     rlatmin = -90
@@ -1217,11 +1226,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             if co is not None:
                 env[variable] = np.ma.ones(env[variable].shape) * co
 
-        for i, variable_group in enumerate(variable_groups):
+        for variable_group, reader_group in zip(variable_groups, reader_groups):
             logger.debug('----------------------------------------')
             logger.debug('Variable group %s' % (str(variable_group)))
             logger.debug('----------------------------------------')
-            reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
             # For each reader:
             for reader_name in reader_group:
@@ -1230,10 +1238,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 self.timer_start('main loop:readers:' +
                                  reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
-                if reader.is_lazy:
-                    logger.warning('Reader is lazy, should not happen')
-                    import sys
-                    sys.exit('Should not happen')
                 if not reader.covers_time(time):
                     logger.debug('\tOutside time coverage of reader.')
                     if reader_name == reader_group[-1]:
@@ -1285,6 +1289,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                     logger.exception(e)
                     logger.debug(traceback.format_exc())
                     logger.info('========================')
+
+                    reader.number_of_fails = reader.number_of_fails + 1
+                    max_fails = self.get_config('readers:max_number_of_fails')
+                    if reader.number_of_fails > max_fails:
+                        logger.warning(f'Reader {reader.name} is discarded after failing '
+                                       f'more times than allowed ({max_fails})')
+                        self.discard_reader(reader, reason=f'failed more than {max_fails} times')
+
                     self.timer_end('main loop:readers:' +
                                    reader_name.replace(':', '<colon>'))
                     if reader_name == reader_group[-1]:
@@ -1336,34 +1348,33 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                                         -2, missingbottom]
 
                 # Detect elements with missing data, for present reader group
-                if hasattr(env_tmp[variable_group[0]], 'mask'):
-                    try:
-                        del combined_mask
-                    except:
-                        pass
-                    for var in variable_group:
-                        tmp_var = np.ma.masked_invalid(env_tmp[var])
-                        # Changed 13 Oct 2016, but uncertain of effect
-                        # TODO: to be checked
-                        #tmp_var = env_tmp[var]
-                        if 'combined_mask' not in locals():
-                            combined_mask = np.ma.getmask(tmp_var)
-                        else:
-                            combined_mask = \
-                                np.ma.mask_or(combined_mask,
-                                              np.ma.getmask(tmp_var),
-                                              shrink=False)
-                    try:
-                        if len(missing_indices) != len(combined_mask):
-                            # TODO: mask mismatch due to 2 added points
-                            raise ValueError('Mismatch of masks')
-                        missing_indices = missing_indices[combined_mask]
-                    except Exception as ex:  # Not sure what is happening here
-                        logger.info(
-                            'Problems setting mask on missing_indices!')
-                        logger.exception(ex)
-                else:
-                    missing_indices = []  # temporary workaround
+                if not hasattr(env_tmp[variable_group[0]], 'mask'):
+                    env_tmp[variable_group[0]] = np.ma.masked_invalid(env_tmp[variable_group[0]])
+                try:
+                    del combined_mask
+                except:
+                    pass
+                for var in variable_group:
+                    tmp_var = np.ma.masked_invalid(env_tmp[var])
+                    # Changed 13 Oct 2016, but uncertain of effect
+                    # TODO: to be checked
+                    #tmp_var = env_tmp[var]
+                    if 'combined_mask' not in locals():
+                        combined_mask = np.ma.getmask(tmp_var)
+                    else:
+                        combined_mask = \
+                            np.ma.mask_or(combined_mask,
+                                          np.ma.getmask(tmp_var),
+                                          shrink=False)
+                try:
+                    if len(missing_indices) != len(combined_mask):
+                        # TODO: mask mismatch due to 2 added points
+                        raise ValueError('Mismatch of masks')
+                    missing_indices = missing_indices[combined_mask]
+                except Exception as ex:  # Not sure what is happening here
+                    logger.info(
+                        'Problems setting mask on missing_indices!')
+                    logger.exception(ex)
                 if (type(missing_indices)
                         == np.int64) or (type(missing_indices) == np.int32):
                     missing_indices = []
@@ -2000,6 +2011,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             'radius': [float(radius[0]), float(radius[-1])],
             'number': number
         }
+        # convert array to string in case of array input to seed cone
+        for key in properties.keys():
+            if isinstance(properties[key],np.ndarray):
+                properties[key] = np.array2string(properties[key])
+                
         f = geojson.Feature(geometry=geo, properties=properties)
         self.seed_geojson.append(f)
 
@@ -3309,7 +3325,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         gl.top_labels = None
 
         fig.canvas.draw()
-        fig.set_tight_layout(True)
+        fig.set_layout_engine('tight')
 
         if not hasattr(self, 'ds'):
             try:
@@ -3401,9 +3417,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
 
         markersizebymass = False
         if isinstance(markersize, str):
-            if markersize == 'mass':
+            if markersize.startswith('mass'):
                 markersizebymass = True
-                markersize = 20
+                if markersize[len('mass'):] == '':
+                    # default initial size if not specified
+                    markersize = 100
+                else:
+                    markersize = int(markersize[len('mass'):])
 
         start_time = datetime.now()
         if cmap is None:
@@ -3503,11 +3523,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                           y_deactive[index_of_last_deactivated < i]])
 
                 if markersizebymass:
-                    points.set_sizes(
-                        100 * (self.history['mass'][:, i] /
-                               (self.history['mass'][:, i] +
-                                self.history['mass_degraded'][:, i] +
-                                self.history['mass_volatilized'][:, i])))
+                    if 'chemicaldrift' in self.__module__:
+                        points.set_sizes(
+                            markersize * (self.history['mass'][:, i] /
+                                          (self.history['mass'][:, i] +
+                                           self.history['mass_degraded'][:, i] +
+                                           self.history['mass_volatilized'][:, i])))
+                    elif 'openoil' in self.__module__:
+                        points.set_sizes(
+                            markersize * (self.history['mass_oil'][:, i] /
+                                          (self.history['mass_oil'][:, i] +
+                                           self.history['mass_biodegraded'][:, i] +
+                                           self.history['mass_dispersed'][:, i] +
+                                           self.history['mass_evaporated'][:, i])))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
@@ -3770,7 +3798,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
             plt.legend()
 
         fig.canvas.draw()
-        fig.set_tight_layout(True)
+        fig.set_layout_engine('tight')
         if colorbar is True:
             if color is not False:
                 if isinstance(color, str) or clabel is not None:
@@ -4079,6 +4107,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
              show_trajectories=True,
              show_initial=True,
              density_pixelsize_m=1000,
+             lalpha=None,
              bgalpha=1,
              clabel=None,
              surface_color=None,
@@ -4174,11 +4203,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         markercolor = self.plot_comparison_colors[0]
 
         # The more elements, the more transparent we make the lines
-        min_alpha = 0.1
-        max_elements = 5000.0
-        alpha = min_alpha**(2 * (self.num_elements_total() - 1) /
-                            (max_elements - 1))
-        alpha = np.max((min_alpha, alpha))
+        if lalpha is None:
+            min_alpha = 0.1
+            max_elements = 5000.0
+            alpha = min_alpha**(2 * (self.num_elements_total() - 1) /
+                                (max_elements - 1))
+            alpha = np.max((min_alpha, alpha))
+        else:
+            alpha = lalpha  #  provided transparency of trajectories
+        print(alpha, 'ALPHA')
         if legend is False:
             legend = None
         if self.history is not None and linewidth != 0 and show_trajectories is True:
@@ -4495,7 +4528,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
         #plt.gca().tick_params(labelsize=14)
 
         #fig.canvas.draw()
-        #fig.set_tight_layout(True)
         if filename is not None:
             plt.savefig(filename)
             logger.info('Time to make plot: ' +
@@ -5246,8 +5278,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable):
                 outStr += '  %s (%s)\n' % (dr, reason)
         if hasattr(self, 'time'):
             outStr += '\nTime:\n'
-            outStr += '\tStart: %s\n' % (self.start_time)
-            outStr += '\tPresent: %s\n' % (self.time)
+            outStr += '\tStart: %s UTC\n' % (self.start_time)
+            outStr += '\tPresent: %s UTC\n' % (self.time)
             if hasattr(self, 'time_step'):
                 outStr += '\tCalculation steps: %i * %s - total time: %s\n' % (
                     self.steps_calculation, self.time_step,

@@ -132,7 +132,7 @@ class Linear2DInterpolator():
             if i > 10:
                 logger.warning('Still NaN-values after 10 iterations, exiting!')
                 return interp
-            logger.debug('NaN values for %i elements, expanding data %i' %
+            logger.debug('Linear2DInterpolator informational: NaN values for %i elements, expanding data %i' %
                           (len(missing), i))
             expand_numpy_array(array2d)
             interp[missing] = map_coordinates(

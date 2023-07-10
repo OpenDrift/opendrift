@@ -3,14 +3,14 @@ Opendrift module
 
 .. currentmodule:: opendrift
 
+.. doctest::
+
+    >>> import opendrift
+
 """
 import logging; logger = logging.getLogger(__name__)
-import unittest
 import importlib
-import platform
 import numpy as np
-import time
-from datetime import timedelta
 from .version import __version__
 
 # For automated access to available drift classes, e.g. for GUI
@@ -78,7 +78,7 @@ def open(filename, times=None, elements=None, load_history=True):
     logger.info('Returning ' + str(type(o)) + ' object')
     return o
 
-def open_xarray(filename, chunks={'trajectory': 50000, 'time': 1000}):
+def open_xarray(filename, chunks={'trajectory': 50000, 'time': 1000}, elements=None):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
     import os
@@ -113,7 +113,7 @@ def open_xarray(filename, chunks={'trajectory': 50000, 'time': 1000}):
         from opendrift.models import oceandrift
         cls = oceandrift.OceanDrift
     o = cls()
-    o.io_import_file_xarray(filename, chunks=chunks)
+    o.io_import_file_xarray(filename, chunks=chunks, elements=elements)
 
     logger.info('Returning ' + str(type(o)) + ' object')
     return o

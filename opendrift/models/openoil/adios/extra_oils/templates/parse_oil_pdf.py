@@ -7,11 +7,11 @@ import importlib
 import traceback
 import tkinter as tk
 from tkinter import ttk
-import adios_db.scripting as ads
-from adios_db.models.oil.physical_properties import DynamicViscosityPoint
-
 
 def parse_weathering_table(df, oil):
+    import adios_db.scripting as ads
+    from adios_db.models.oil.physical_properties import DynamicViscosityPoint
+
     max_water_cont = None
     viscosity_of_max_water_cont = None
     try:
@@ -56,6 +56,35 @@ def parse_weathering_table(df, oil):
 
     print(oil, 'Finished oil!')
 
+def parse_cuts_table(df, oil):
+    print('PARSING CUTS')
+    print(df)
+    cd = df.to_numpy()
+    print(cd, cd.shape)
+    temperatures = cd[:,0]
+    volumes = cd[:,1]
+    print('PARSED CUTS')
+
+class ScrollableFrame(tk.Frame):
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        canvas = tk.Canvas(self)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = tk.Frame(canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        container.pack()
+        canvas.pack(side="left", fill="x", expand=0)
+        scrollbar.pack(side="right", fill="y")
+
 class ParseOilPDF(tk.Tk):
 
     def __init__(self):
@@ -77,34 +106,29 @@ class ParseOilPDF(tk.Tk):
 
         # Make tabs
         self.n = ttk.Notebook(self.master)
-        self.n.grid()
+        self.n.pack()
         self.tabs = ttk.Frame(self.n)
-        self.oil = ttk.Frame(self.n)
+        self.oil_main = ttk.Frame(self.n)
+        self.oil = ScrollableFrame(self.oil_main)
         self.n.add(self.tabs, text='Tables')
-        self.n.add(self.oil, text='Oil')
+        self.n.add(self.oil_main, text='Oil')
 
-        mf = tk.Frame(self, bg='cyan', width=1200, height=150, padx=3, pady=3)
-        cf = tk.Frame(self, bg='gray2', width=1200, height=900, padx=3, pady=3)
+        mf = tk.Frame(self.tabs, bg='cyan', width=1500, height=150, padx=3, pady=3)
+        cf = tk.Frame(self.tabs, bg='yellow', width=1500, height=1500, padx=3, pady=3)
 
-        # layout all of the main containers
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        mf.pack()
+        cf.pack(fill=tk.BOTH, expand=1)
 
-        mf.grid(row=0, sticky="nsew")
-        cf.grid(row=1, sticky="nsew")
+        properties = ScrollableFrame(cf)
+        cuts = ScrollableFrame(cf)
+        weathering = ScrollableFrame(cf)
 
-        # create the center widgets
-        cf.grid_rowconfigure(0, weight=1)
-        cf.grid_columnconfigure(1, weight=1) 
-
-        height = 600
-        properties = tk.Frame(cf, bg='gray', padx=3, pady=3)
-        cuts = tk.Frame(cf, bg='red', padx=3, pady=3)
-        weathering = tk.Frame(cf, bg='blue', padx=3, pady=3)
-
-        properties.grid(row=0, column=0, sticky='nsew')
-        cuts.grid(row=0, column=1, sticky='nsew')
-        weathering.grid(row=0, column=2, columnspan=4, sticky='nsew')
+        tk.Label(properties.scrollable_frame, bg='red', text="Oil properties",
+                 font=('Courier', 18, 'bold')).pack()
+        tk.Label(cuts.scrollable_frame, bg='red', text="Cuts",
+                  font=('Courier', 18, 'bold')).pack()
+        tk.Label(weathering.scrollable_frame, bg='red', text="Weathering tables",
+                  font=('Courier', 18, 'bold')).pack()
 
         self.tables = {}
         self.dataframes = {}
@@ -147,11 +171,20 @@ class ParseOilPDF(tk.Tk):
                 width=150
 
             self.dataframes[table] = df
-            self.tables[table] = tk.Text(parent, bg=color, padx=3, pady=3, width=width)
+            txt = str(df).split('\n')
+            width = len(txt[0])
+            for tx in txt:
+                print(tx, len(tx), 'JOLA')
+            color='yellow'
+            self.tables[table] = tk.Text(parent.scrollable_frame, bg=color, width=width)
             tableno = tableno + 1
             self.tables[table].insert(tk.END, df)
-            self.tables[table].grid(row=tableno, column=0, sticky='ns')
+            self.tables[table].pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
             self.tables[table].bind('<Button-1>', lambda event,s=table:self.clicktable(s))
+
+        properties.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        cuts.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+        weathering.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
     def clicktable(self, table):
         if table in self.selected_tables:  # Remove/unselect
@@ -179,16 +212,29 @@ class ParseOilPDF(tk.Tk):
             except Exception as e:
                 print(e)
                 print(traceback.format_exc())
+            try:
+                parse_cuts_table(df, oil)
+            except Exception as e:
+                print(e)
+                print(traceback.format_exc())
 
         oil.to_file('test.json')
         v = oil.validate()
         print(v, 'VALIDATE')
         import os
         os.system('cat test.json')
+        with open('test.json', 'r') as file:
+            oil_json = file.read()#.replace('\n', '')
+        for widget in self.oil.scrollable_frame.winfo_children():  # Clear oil tab
+            widget.destroy()
+        tk.Label(self.oil, text=oil_json,
+                 font=('Courier', 10, 'normal')).pack()
 
 if __name__ == '__main__':
-    ParseOilPDF().mainloop()
 
+    import adios_db.scripting as ads
+
+    ParseOilPDF().mainloop()
 
 
 ########################################################
@@ -244,7 +290,7 @@ if __name__ == '__main__':
 #        'authors': 'authors',
 #        'region': 'region',
 #        }
-#    
+#
 #    #print('# Metadata')
 #    for i, (key, value) in enumerate(metadata.items()):
 #        outfile.write('%s%s%s\n' % (key, sep, value))
@@ -387,7 +433,7 @@ if __name__ == '__main__':
 #    if dstring in results:
 #        logfile.write(dstring, np.array2string(rd.astype(np.float32), separator='\t').replace('\n', '\t') + '\n')
 #
-#    
+#
 ##try:
 ##    r = np.empty(12)
 ##    for i in range(4):

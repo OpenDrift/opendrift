@@ -53,7 +53,8 @@ class ReaderDomain(Timeable):
 
         x = self.xmin + (self.xmax - self.xmin) / 2
         y = self.ymin + (self.ymax - self.ymin) / 2
-        return self.xy2lonlat(x, y)
+        lo, la = self.xy2lonlat(x, y)
+        return(lo[0], la[0])
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
@@ -541,11 +542,12 @@ class Variables(ReaderDomain):
                     time_step_seconds = 3600  # 1 hour if not given
                 else:
                     time_step_seconds = time_coverage.total_seconds()
+            time_step_seconds = abs(time_step_seconds)
             self.buffer = int(
                 np.ceil(max_speed * time_step_seconds / pixelsize)) + 2
             logger.debug('Setting buffer size %i for reader %s, assuming '
                          'a maximum average speed of %g m/s and time span of %s' %
-                         (self.buffer, self.name, max_speed, timedelta(seconds=time_step_seconds)))
+                         (self.buffer, self.name, max_speed,timedelta(seconds=time_step_seconds)))
 
     def __check_env_coordinates__(self, env):
         """
@@ -563,6 +565,7 @@ class Variables(ReaderDomain):
 
         # Convert any masked arrays to NumPy arrays
         if isinstance(variable, np.ma.MaskedArray):
+            variable = variable.astype(np.float32)
             variable = variable.filled(np.nan)
 
         # Mask values outside valid_min, valid_max (self.standard_names)
@@ -721,7 +724,7 @@ class Variables(ReaderDomain):
 
         # Rotating vectors fields
         if rotate_to_proj is not None:
-            if self.proj.crs.is_geographic:
+            if self.proj.crs.is_geographic and 'ob_tran' not in self.proj4:
                 logger.debug('Reader projection is latlon - '
                              'rotation of vectors is not needed.')
             else:

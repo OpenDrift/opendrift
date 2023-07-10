@@ -14,7 +14,7 @@ def test_set_oil_type_json():
 def test_set_oil_type_file():
     o = OpenOil(loglevel=50)
 
-    with resources.as_file(resources.files('opendrift.models.openoil.adios.extra_oils').joinpath('AD03128.json')) as f:
+    with resources.path('opendrift.models.openoil.adios.extra_oils', 'AD03128.json') as f:
         o.set_oiltype_from_file(f)
 
     assert o.oiltype.name == 'VEGA CONDENSATE 2015'

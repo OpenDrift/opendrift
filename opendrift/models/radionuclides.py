@@ -703,7 +703,7 @@ class RadionuclideDrift(OceanDrift):
 
         specie_in  = self.elements.specie.copy()    # for storage of the out speciation
         specie_out = self.elements.specie.copy()    # for storage of the out speciation
-        deltat = self.time_step.seconds             # length of a time step
+        deltat = self.time_step.total_seconds()     # length of a time step
         phaseshift = np.array(self.num_elements_active()*[False])  # Denotes which trajectory that shall be transformed
 
         p = 1. - np.exp(-self.elements.transfer_rates1D*deltat)  # Probability for transformation
@@ -1105,7 +1105,7 @@ class RadionuclideDrift(OceanDrift):
             if deltat==None:
                 ndt = 1
             else:
-                ndt = int( deltat / (mdt.seconds/3600.) )
+                ndt = int( deltat / (mdt.total_seconds()/3600.) )
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
@@ -1479,7 +1479,7 @@ class RadionuclideDrift(OceanDrift):
             zlayers=[-1]
         
         
-        logger.info('Plotting concentration for {} at layer {} at time {}'.format(specie, zlayers, time))
+        logger.info('Plotting concentration for {} at layer {} at time {}'.format(specie, zlayers, time))
         
         homefolder = expanduser("~")
         outdir = homefolder+'/radio_plots'
