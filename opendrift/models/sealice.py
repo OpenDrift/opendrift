@@ -322,7 +322,7 @@ class SeaLice(OceanDrift):
         calculate the photon flux in the water according to exponential decay from the sea surface
         """
         self.elements.solar_angle=np.deg2rad(hour_angle(self.time,np.mean(self.elements.lon)))
-        solar_coeff= np.sqrt(self.tau/(2*np.pi)*np.exp(-self.tau/2*self.elements.solar_angle**2))
+        solar_coeff= np.sqrt(self.tau/(2*np.pi))*np.exp(-self.tau/2*self.elements.solar_angle**2)
         self.elements.light = solar_coeff* \
                         self.environment.surface_net_downward_radiative_flux* \
                         self.nu*0.00836* \
