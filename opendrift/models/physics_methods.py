@@ -374,6 +374,10 @@ def stokes_transport_monochromatic(mean_wave_period, significant_wave_height):
     mean_wave_frequency = 2.*np.pi/mean_wave_period
     return mean_wave_frequency * np.power(significant_wave_height, 2) / 16
 
+def stokes_drift_profile_monochromatic(stokes_u_surface, stokes_v_surface,
+                                       stokes_transport, z):
+    pass
+
 def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
                                  significant_wave_height, mean_wave_period, z):
 

@@ -47,7 +47,7 @@ class ShipObject(LagrangianArray):
                          'units': 'm',
                          'min': 1,
                          'max': 100,
-            'description': 'Total height of ship',
+            'description': 'Total height of ship (above and below waterline)',
             'level': OpenDriftSimulation.CONFIG_LEVEL_ESSENTIAL,
                          'default': 8}),
         ('draft', {'dtype': np.float32,  # wet part of ship [m]
