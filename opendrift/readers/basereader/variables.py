@@ -449,9 +449,9 @@ def wind_from_speed_and_direction(env):
     #    east_wind, north_wind,
     #    None, self.proj)
 
-def current_speed_from_components(env):
-    env['current_speed'] = np.sqrt(
-        env['x_sea_water_velocity']**2 + env['y_sea_water_velocity']**2)
+def magnitude_from_components(env, in_name, out_name):
+    env[out_name[0]] = np.sqrt(
+        env[in_name[0]]**2 + env[in_name[1]]**2)
 
 ################################################################
 
@@ -473,12 +473,6 @@ class Variables(ReaderDomain):
 
         # Deriving environment variables from other available variables
         self.environment_mappings = {
-            'currentspeed': {
-                'input': ['x_sea_water_velocity', 'y_sea_water_velocity'],
-                'output': ['current_speed'],
-                'method': current_speed_from_components,
-                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
-                'active': True},
             'wind_from_speed_and_direction': {
                 'input': ['wind_speed', 'wind_from_direction'],
                 'output': ['x_wind', 'y_wind'],
@@ -497,6 +491,16 @@ class Variables(ReaderDomain):
                 'method': land_binary_mask_from_ocean_depth,
                 'active': False}
             }
+
+        # Add automatically mappings from xcomp,ycomp -> magnitude,direction
+        for vector_pair in vector_pairs_xy:
+            if len(vector_pair) > 2:
+                self.environment_mappings[vector_pair[2]] = {
+                    'input': [vector_pair[0], vector_pair[1]],
+                    'output': [vector_pair[2]],
+                    'method': magnitude_from_components,
+                    'active': True
+                    }
 
         super().__init__()
 
@@ -522,8 +526,7 @@ class Variables(ReaderDomain):
                     all(item in self.variables for item in em['input']):
                 for v in em['output']:
                     logger.debug('Calculating variable mapping: %s -> %s' % (em['input'], v))
-                    method = lambda env: em['method'](env)
-                    method(env)
+                    em['method'](env, em['input'], em['output'])
 
     def set_buffer_size(self, max_speed, time_coverage=None):
         '''
