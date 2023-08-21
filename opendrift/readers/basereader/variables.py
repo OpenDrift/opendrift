@@ -449,6 +449,10 @@ def wind_from_speed_and_direction(env):
     #    east_wind, north_wind,
     #    None, self.proj)
 
+def current_speed_from_components(env):
+    env['current_speed'] = np.sqrt(
+        env['x_sea_water_velocity']**2 + env['y_sea_water_velocity']**2)
+
 ################################################################
 
 class Variables(ReaderDomain):
@@ -469,6 +473,12 @@ class Variables(ReaderDomain):
 
         # Deriving environment variables from other available variables
         self.environment_mappings = {
+            'currentspeed': {
+                'input': ['x_sea_water_velocity', 'y_sea_water_velocity'],
+                'output': ['current_speed'],
+                'method': current_speed_from_components,
+                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+                'active': True},
             'wind_from_speed_and_direction': {
                 'input': ['wind_speed', 'wind_from_direction'],
                 'output': ['x_wind', 'y_wind'],
@@ -731,11 +741,11 @@ class Variables(ReaderDomain):
                 vector_pairs = []
                 for var in variables:
                     for vector_pair in vector_pairs_xy:
-                        if var in vector_pair:
-                            counterpart = list(set(vector_pair) -
+                        if var in vector_pair[0:2]:
+                            counterpart = list(set(vector_pair[0:2]) -
                                                set([var]))[0]
                             if counterpart in variables:
-                                vector_pairs.append(vector_pair)
+                                vector_pairs.append(vector_pair[0:2])
                             else:
                                 logger.warning(
                                     'Missing component of vector pair, cannot rotate:'
