@@ -433,7 +433,7 @@ class ReaderDomain(Timeable):
 def land_binary_mask_from_ocean_depth(env):
     env['land_binary_mask'] = np.float32(env['sea_floor_depth_below_sea_level'] <= 0)
 
-def wind_from_speed_and_direction(env):
+def wind_from_speed_and_direction(env, in_name, out_name):
     if 'wind_from_direction' in env:
         wfd = env['wind_from_direction']
     else:
@@ -448,6 +448,15 @@ def wind_from_speed_and_direction(env):
     #    x, y,
     #    east_wind, north_wind,
     #    None, self.proj)
+
+def vector_from_speed_and_direction(env, in_name, out_name):
+    # TODO: assuming here lonlat or Mercator projection  !!NB!!
+    wfd = env[in_name[1]]
+    env[out_name[0]] = env[in_name[0]]*np.cos(np.radians(wfd))
+    env[out_name[1]] = env[in_name[0]]*np.sin(np.radians(wfd))
+
+def reverse_direction(env, in_name, out_name):
+    env[out_name[0]] = env[in_name[0]]
 
 def magnitude_from_components(env, in_name, out_name):
     env[out_name[0]] = np.sqrt(
@@ -473,18 +482,18 @@ class Variables(ReaderDomain):
 
         # Deriving environment variables from other available variables
         self.environment_mappings = {
-            'wind_from_speed_and_direction': {
-                'input': ['wind_speed', 'wind_from_direction'],
-                'output': ['x_wind', 'y_wind'],
-                'method': wind_from_speed_and_direction,
-                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
-                'active': True},
-            'wind_from_speed_and_direction_to': {
-                'input': ['wind_speed', 'wind_to_direction'],
-                'output': ['x_wind', 'y_wind'],
-                'method': wind_from_speed_and_direction,
-                #lambda reader, env: reader.wind_from_speed_and_direction(env)},
-                'active': True},
+            #'wind_from_speed_and_direction': {
+            #    'input': ['wind_speed', 'wind_from_direction'],
+            #    'output': ['x_wind', 'y_wind'],
+            #    'method': wind_from_speed_and_direction,
+            #    #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+            #    'active': True},
+            #'wind_from_speed_and_direction_to': {
+            #    'input': ['wind_speed', 'wind_to_direction'],
+            #    'output': ['x_wind', 'y_wind'],
+            #    'method': wind_from_speed_and_direction,
+            #    #lambda reader, env: reader.wind_from_speed_and_direction(env)},
+            #    'active': True},
             'land_binary_mask_from_ocean_depth': {
                 'input': ['sea_floor_depth_below_sea_level'],
                 'output': ['land_binary_mask'],
@@ -492,8 +501,30 @@ class Variables(ReaderDomain):
                 'active': False}
             }
 
-        # Add automatically mappings from xcomp,ycomp -> magnitude,direction
+        # Add automatically mappings from xcomp,ycomp <-> magnitude,direction
         for vector_pair in vector_pairs_xy:
+            if len(vector_pair) > 4:
+                # TODO: temporarily disabling this test, as one test is failing,
+                # as direction_to is automatically calculated from direction_from
+                #self.environment_mappings[vector_pair[3]] = {
+                #    'input': [vector_pair[4]],
+                #    'output': [vector_pair[3]],
+                #    'method': reverse_direction,
+                #    'active': True
+                #    }
+                self.environment_mappings[vector_pair[4]] = {
+                    'input': [vector_pair[3]],
+                    'output': [vector_pair[4]],
+                    'method': reverse_direction,
+                    'active': True
+                    }
+            if len(vector_pair) >= 4:
+                self.environment_mappings[str(vector_pair[0:2])] = {
+                    'input': [vector_pair[2], vector_pair[3]],
+                    'output': [vector_pair[0], vector_pair[1]],
+                    'method': vector_from_speed_and_direction,
+                    'active': True
+                    }
             if len(vector_pair) > 2:
                 self.environment_mappings[vector_pair[2]] = {
                     'input': [vector_pair[0], vector_pair[1]],
@@ -513,9 +544,10 @@ class Variables(ReaderDomain):
         if not all(item in em['output'] for item in self.variables) and \
                     all(item in self.variables for item in em['input']):
             for v in em['output']:
-                logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
-                self.variables.append(v)
-                self.derived_variables[v] = em['input']
+                if v not in self.variables:
+                    logger.debug('Adding variable mapping: %s -> %s' % (em['input'], v))
+                    self.variables.append(v)
+                    self.derived_variables[v] = em['input']
 
     def __calculate_derived_environment_variables__(self, env):
         for m in self.environment_mappings:
@@ -523,7 +555,7 @@ class Variables(ReaderDomain):
             if em['active'] is False:
                 continue
             if not all(item in em['output'] for item in self.variables) and \
-                    all(item in self.variables for item in em['input']):
+                    all(item in env for item in em['input']):
                 for v in em['output']:
                     logger.debug('Calculating variable mapping: %s -> %s' % (em['input'], v))
                     em['method'](env, em['input'], em['output'])

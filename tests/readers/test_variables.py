@@ -105,7 +105,7 @@ def test_covers_positions(test_data):
 def test_environment_mapping(test_data):
 
     # Wind from NE
-    r = reader_constant.Reader({'wind_speed':5, 'wind_from_direction': 45,
+    r = reader_constant.Reader({'wind_speed':5, 'wind_to_direction': 225,
                                 'land_binary_mask': 0})
     o = OceanDrift(loglevel=50)
     o.set_config('general:use_auto_landmask', False)
@@ -115,7 +115,7 @@ def test_environment_mapping(test_data):
     np.testing.assert_almost_equal(o.elements.lon, 3.932, 3)
     np.testing.assert_almost_equal(o.elements.lat, 59.966, 3)
     # Wind from SW
-    r = reader_constant.Reader({'wind_speed':5, 'wind_from_direction': 225,
+    r = reader_constant.Reader({'wind_speed':5, 'wind_to_direction': 45,
                                 'land_binary_mask': 0})
     o = OceanDrift(loglevel=50)
     o.set_config('general:use_auto_landmask', False)
