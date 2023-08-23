@@ -83,12 +83,12 @@ class Reader(BaseReader, ContinuousReader):
 
             if z <= 0:
                 print('Calculating Stokes drift at depth of %s m' % -z)
-                from opendrift.models.physics_methods import stokes_drift_profile_breivik
+                from opendrift.models.physics_methods import stokes_drift_profile_monochromatic
 
                 wave_peak_period = ts[
                     'sea_surface_wave_mean_period_from_variance_spectral_density_inverse_frequency_moment']
                     #'sea_surface_wave_period_at_variance_spectral_density_maximum']
-                self.stokes_u, self.stokes_v, S = stokes_drift_profile_breivik(
+                self.stokes_u, self.stokes_v, S = stokes_drift_profile_monochromatic(
                     ts['sea_surface_wave_stokes_drift_x_velocity'],
                     ts['sea_surface_wave_stokes_drift_y_velocity'],
                     ts['sea_surface_wave_significant_height'],

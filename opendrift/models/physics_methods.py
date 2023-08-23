@@ -17,6 +17,7 @@
 import logging; logger = logging.getLogger(__name__)
 from datetime import timedelta
 import numpy as np
+import scipy as sp
 from math import sqrt
 import matplotlib.pyplot as plt
 import pyproj
@@ -357,6 +358,7 @@ def plot_stokes_profile(profiles, view=['vertical', 'birdseye']):
             ax.invert_yaxis()
             ax.set_xlabel('Speed  [m/s]')
             ax.set_ylabel('Depth  [m]')
+            ax.set_ylim(ax.get_ylim()[0], 0)
         elif vi == 'birdseye':
             ax.set_xlabel('u  [m/s]')
             ax.set_ylabel('v  [m/s]')
@@ -375,18 +377,42 @@ def stokes_transport_monochromatic(mean_wave_period, significant_wave_height):
     return mean_wave_frequency * np.power(significant_wave_height, 2) / 16
 
 def stokes_drift_profile_monochromatic(stokes_u_surface, stokes_v_surface,
-                                       stokes_transport, z):
-    pass
+                                       significant_wave_height, mean_wave_period, z):
+    """
+    Vertical Stokes drift profile assuming a single monochromatic wave
+    Breivik, Ø., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
+    J. Phys. Oceanogr. 44, 2433–2445.  doi:10.1175/JPO-D-14-0020.1.
+    """
+    stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
+                                   stokes_v_surface**2)
 
-def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
-                                 significant_wave_height, mean_wave_period, z):
+    km = stokes_surface_speed / (
+            2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
+
+    stokes_speed = stokes_surface_speed*np.exp(2*km*z)
+
+    zeromask = stokes_surface_speed == 0
+    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_u[zeromask] = 0
+    stokes_v[zeromask] = 0
+
+    return stokes_u, stokes_v, stokes_speed
+
+def stokes_drift_profile_exponential(stokes_u_surface, stokes_v_surface,
+                                     significant_wave_height, mean_wave_period, z):
+
+    """
+    Breivik, Ø., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
+    J. Phys. Oceanogr. 44, 2433–2445.  doi:10.1175/JPO-D-14-0020.1.
+    """
 
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                      stokes_v_surface**2)
 
-    k = stokes_surface_speed / (
+    km = stokes_surface_speed / (
           2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
-    ke = k/3  # ke
+    ke = km/3
 
     stokes_speed = stokes_surface_speed*np.exp(2*ke*z)/(1-8*ke*z)
 
@@ -398,21 +424,21 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
 
     return stokes_u, stokes_v, stokes_speed
 
-
-def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
-                                 significant_wave_height, mean_wave_period, z):
+def stokes_drift_profile_phillips(stokes_u_surface, stokes_v_surface,
+                                  significant_wave_height, mean_wave_period, z):
     """
     Calculate vertical Stokes drift profile from
-    Breivik et al. 2016, A Stokes drift approximation
-    based on the Phillips spectrum, Ocean Mod. 100
+    Breivik et al. 2016, A Stokes drift approximation based on the Phillips spectrum, Ocean Mod. 100
     """
+
+    alpha = 0.0083
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
-    k = stokes_surface_speed / (
+    km = stokes_surface_speed / (
             2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
 
-    stokes_speed = stokes_surface_speed*np.exp(2*k*z)
+    stokes_speed = stokes_surface_speed*np.exp(2*km*z)*1.5
 
     zeromask = stokes_surface_speed == 0
     stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
@@ -421,6 +447,7 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     stokes_v[zeromask] = 0
 
     return stokes_u, stokes_v, stokes_speed
+
 
 
 def ftle(X, Y, delta, duration):
@@ -768,7 +795,7 @@ class PhysicsMethods:
             logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
             wave_period = 8
 
-        stokes_u, stokes_v, s = stokes_drift_profile_breivik(
+        stokes_u, stokes_v, s = stokes_drift_profile_monochromatic(
             self.environment.sea_surface_wave_stokes_drift_x_velocity,
             self.environment.sea_surface_wave_stokes_drift_y_velocity,
             wave_height, wave_period, self.elements.z)
