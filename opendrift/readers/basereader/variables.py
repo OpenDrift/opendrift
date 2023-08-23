@@ -503,7 +503,7 @@ class Variables(ReaderDomain):
 
         # Add automatically mappings from xcomp,ycomp <-> magnitude,direction
         for vector_pair in vector_pairs_xy:
-            if len(vector_pair) > 4:
+            #if len(vector_pair) > 4:
                 # TODO: temporarily disabling this test, as one test is failing,
                 # as direction_to is automatically calculated from direction_from
                 #self.environment_mappings[vector_pair[3]] = {
@@ -512,12 +512,12 @@ class Variables(ReaderDomain):
                 #    'method': reverse_direction,
                 #    'active': True
                 #    }
-                self.environment_mappings[vector_pair[4]] = {
-                    'input': [vector_pair[3]],
-                    'output': [vector_pair[4]],
-                    'method': reverse_direction,
-                    'active': True
-                    }
+                #self.environment_mappings[vector_pair[4]] = {
+                #    'input': [vector_pair[3]],
+                #    'output': [vector_pair[4]],
+                #    'method': reverse_direction,
+                #    'active': True
+                #    }
             if len(vector_pair) >= 4:
                 self.environment_mappings[str(vector_pair[0:2])] = {
                     'input': [vector_pair[2], vector_pair[3]],
