@@ -336,6 +336,12 @@ class ChemicalDrift(OceanDrift):
             'chemical:compound': {'type': 'enum',
                 'enum': ['Naphthalene','Phenanthrene','Fluoranthene',
                          'Benzo-a-anthracene','Benzo-a-pyrene','Dibenzo-ah-anthracene',
+                         'C1-Naphthalene','Acenaphthene','Acenaphthylene','Fluorene',
+                         'Dibenzothiophene','C2-Naphthalene','Anthracene','C3-Naphthalene','C1-Dibenzothiophene',
+                         'Pyrene','C1-Phenanthrene','C2-Dibenzothiophene',
+                         'C2-Phenanthrene','Benzo-b-fluoranthene','Chrysene',
+                         'C3-Dibenzothiophene','C3-Phenanthrene',
+                         'Benzo-k-fluoranthene','Benzo-ghi-perylene','Indeno-123cd-pyrene',
                          'Copper','Cadmium','Chromium','Lead','Vanadium','Zinc','Nickel',None],
                 'default': None,
                 'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
@@ -2677,7 +2683,7 @@ class ChemicalDrift(OceanDrift):
         if self.get_config('chemical:compound') is None:
             raise ValueError("Chemical compound not defined")
 
-        if  self.get_config('chemical:compound') == "Naphthalene":
+        if  self.get_config('chemical:compound') in ["Naphthalene",'C1-Naphthalene','Acenaphthene','Acenaphthylene','Fluorene']:
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2708,7 +2714,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 25300)
 
-        elif self.get_config('chemical:compound') == "Phenanthrene":
+        elif self.get_config('chemical:compound') in ["Phenanthrene",'Dibenzothiophene','C2-Naphthalene','Anthracene','C3-Naphthalene','C1-Dibenzothiophene']:
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2739,7 +2745,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 34800)
 
-        elif self.get_config('chemical:compound') == "Fluoranthene":
+        elif self.get_config('chemical:compound') in ["Fluoranthene",'Pyrene','C1-Phenanthrene','C2-Dibenzothiophene']:
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2770,7 +2776,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 30315)
 
-        elif self.get_config('chemical:compound') == "Benzo-a-anthracene":
+        elif self.get_config('chemical:compound') in ["Benzo-a-anthracene",'C2-Phenanthrene','Benzo-b-fluoranthene','Chrysene']:
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2801,7 +2807,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 46200)
 
-        elif self.get_config('chemical:compound') == "Benzo-a-pyrene":
+        elif self.get_config('chemical:compound') in ["Benzo-a-pyrene",'C3-Dibenzothiophene','C3-Phenanthrene']:
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
@@ -2832,7 +2838,7 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)
 
-        elif self.get_config('chemical:compound') == "Dibenzo-ah-anthracene":
+        elif self.get_config('chemical:compound') in ["Dibenzo-ah-anthracene",'Benzo-k-fluoranthene','Benzo-ghi-perylene','Indeno-123cd-pyrene']:
 
             #partitioning
             self.set_config('chemical:transfer_setup','organics')
