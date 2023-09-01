@@ -17,6 +17,7 @@
 import logging; logger = logging.getLogger(__name__)
 from datetime import timedelta
 import numpy as np
+import scipy as sp
 from math import sqrt
 import matplotlib.pyplot as plt
 import pyproj
@@ -322,7 +323,7 @@ def gls_tke(windstress, depth, sea_water_density,
 
     return K
 
-def plot_stokes_profile(profiles, view=['vertical', 'birdseye']):
+def plot_stokes_profile(profiles, view=['vertical', 'birdseye', 'u', 'v'], filename=None):
     '''Plot vertical profile of Stokes drift
 
     Args:
@@ -336,9 +337,12 @@ def plot_stokes_profile(profiles, view=['vertical', 'birdseye']):
             - or list of both above with one axis for each case (default)
     '''
 
-    fig, axs = plt.subplots(1, len(view))
+    if len(view)>2:
+        fig, axs = plt.subplots(2, 2, figsize=(12,12))
+        axs = axs.ravel()
+    else:
+        fig, axs = plt.subplots(1, len(view))
     for vi, ax in zip(view, axs):
-        print(vi, ax)
         for p in profiles:
             if 'kwargs' in p:
                 kwargs = p['kwargs']
@@ -352,11 +356,16 @@ def plot_stokes_profile(profiles, view=['vertical', 'birdseye']):
                 ax.plot(speed, -z, **kwargs)
             elif vi == 'birdseye':
                 ax.plot(u, v, **kwargs)
+            elif vi == 'u':
+                ax.plot(u, -z, **kwargs)
+            elif vi == 'v':
+                ax.plot(v, -z, **kwargs)
 
         if vi == 'vertical':
             ax.invert_yaxis()
             ax.set_xlabel('Speed  [m/s]')
             ax.set_ylabel('Depth  [m]')
+            ax.set_ylim(ax.get_ylim()[0], 0)
         elif vi == 'birdseye':
             ax.set_xlabel('u  [m/s]')
             ax.set_ylabel('v  [m/s]')
@@ -366,27 +375,64 @@ def plot_stokes_profile(profiles, view=['vertical', 'birdseye']):
             m = np.maximum(np.abs(xlim).max(), np.abs(ylim).max())
             ax.set_xlim(-m, m)
             ax.set_ylim(-m, m)
+        if vi == 'u':
+            ax.invert_yaxis()
+            ax.set_xlabel('U-component  [m/s]')
+            ax.set_ylabel('Depth  [m]')
+            ax.set_ylim(ax.get_ylim()[0], 0)
+        if vi == 'v':
+            ax.invert_yaxis()
+            ax.set_xlabel('V-component  [m/s]')
+            ax.set_ylabel('Depth  [m]')
+            ax.set_ylim(ax.get_ylim()[0], 0)
         ax.legend()
         
-    plt.show()
+    if filename is None:
+        plt.show()
+    else:
+        plt.savefig(filename)
 
 def stokes_transport_monochromatic(mean_wave_period, significant_wave_height):
     mean_wave_frequency = 2.*np.pi/mean_wave_period
     return mean_wave_frequency * np.power(significant_wave_height, 2) / 16
 
 def stokes_drift_profile_monochromatic(stokes_u_surface, stokes_v_surface,
-                                       stokes_transport, z):
-    pass
+                                       significant_wave_height, mean_wave_period, z):
+    """
+    Vertical Stokes drift profile assuming a single monochromatic wave
+    Breivik, Ø., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
+    J. Phys. Oceanogr. 44, 2433–2445.  doi:10.1175/JPO-D-14-0020.1.
+    """
+    stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
+                                   stokes_v_surface**2)
 
-def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
-                                 significant_wave_height, mean_wave_period, z):
+    km = stokes_surface_speed / (
+            2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
+
+    stokes_speed = stokes_surface_speed*np.exp(2*km*z)
+
+    zeromask = stokes_surface_speed == 0
+    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_u[zeromask] = 0
+    stokes_v[zeromask] = 0
+
+    return stokes_u, stokes_v, stokes_speed
+
+def stokes_drift_profile_exponential(stokes_u_surface, stokes_v_surface,
+                                     significant_wave_height, mean_wave_period, z):
+
+    """
+    Breivik, Ø., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
+    J. Phys. Oceanogr. 44, 2433–2445.  doi:10.1175/JPO-D-14-0020.1.
+    """
 
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                      stokes_v_surface**2)
 
-    k = stokes_surface_speed / (
+    km = stokes_surface_speed / (
           2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
-    ke = k/3  # ke
+    ke = km/3
 
     stokes_speed = stokes_surface_speed*np.exp(2*ke*z)/(1-8*ke*z)
 
@@ -398,21 +444,23 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
 
     return stokes_u, stokes_v, stokes_speed
 
-
-def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
-                                 significant_wave_height, mean_wave_period, z):
+def stokes_drift_profile_phillips(stokes_u_surface, stokes_v_surface,
+                                  significant_wave_height, mean_wave_period, z):
     """
     Calculate vertical Stokes drift profile from
-    Breivik et al. 2016, A Stokes drift approximation
-    based on the Phillips spectrum, Ocean Mod. 100
+    Breivik et al. 2016, A Stokes drift approximation based on the Phillips spectrum, Ocean Mod. 100
     """
+
+    alpha = 0.0083
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
 
-    k = stokes_surface_speed / (
+    beta = 1
+    km = stokes_surface_speed * (1-2*beta/3)/ (
             2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
 
-    stokes_speed = stokes_surface_speed*np.exp(2*k*z)
+    stokes_speed = stokes_surface_speed*(np.exp(2*km*z) -
+        beta*np.sqrt(2*np.pi*km*np.abs(z))*sp.special.erfc(np.sqrt(2*km*np.abs(z))))
 
     zeromask = stokes_surface_speed == 0
     stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
@@ -420,6 +468,52 @@ def stokes_drift_profile_breivik(stokes_u_surface, stokes_v_surface,
     stokes_u[zeromask] = 0
     stokes_v[zeromask] = 0
 
+    return stokes_u, stokes_v, stokes_speed
+
+def stokes_drift_profile_windsea_swell(stokes_u_surface, stokes_v_surface,
+                                       swell_mean_direction_to, swell_mean_period, swell_height,
+                                       wind_sea_mean_direction_to, wind_sea_mean_period, wind_sea_height, z):
+    """
+    Calculate vertical Stokes drift profile from
+    Breivik, Ø., and K. H. Christensen, 2020: A Combined Stokes Drift Profile under Swell and Wind Sea.
+        J. Phys. Oceanogr., 50, 2819–2833, https://doi.org/10.1175/JPO-D-20-0087.1.
+    """
+
+    # NB / TODO: assuming here that u is east and v is north
+
+    # Calculate swell Stokes component
+    th_ws_N = np.cos(np.radians(wind_sea_mean_direction_to))  # unit vector
+    th_ws_E = np.sin(np.radians(wind_sea_mean_direction_to))  # unit vector
+    th_sw_N = np.cos(np.radians(swell_mean_direction_to))     # unit vector
+    th_sw_E = np.sin(np.radians(swell_mean_direction_to))     # unit vector
+    stokes_swell_surface_speed = (stokes_u_surface*th_ws_N - stokes_v_surface*th_ws_E) / \
+        (th_sw_E*th_ws_N - th_sw_N*th_ws_E)
+    stokes_swell_surface_u = stokes_swell_surface_speed*th_sw_E
+    stokes_swell_surface_v = stokes_swell_surface_speed*th_sw_N
+
+    stokes_swell_u, stokes_swell_v, stokes_swell_speed = stokes_drift_profile_monochromatic(
+        stokes_swell_surface_u, stokes_swell_surface_v, 
+        swell_height, swell_mean_period, z)
+
+    # Calculate wind Stokes component, with constraint that
+    # wind and swell Stokes at surface sums to total
+    stokes_wind_surface_u = stokes_u_surface - stokes_swell_surface_u
+    stokes_wind_surface_v = stokes_v_surface - stokes_swell_surface_v
+
+    stokes_wind_u, stokes_wind_v, stokes_wind_speed = stokes_drift_profile_phillips(
+        stokes_wind_surface_u, stokes_wind_surface_v, wind_sea_height, wind_sea_mean_period, z)
+
+    stokes_u = stokes_swell_u + stokes_wind_u
+    stokes_v = stokes_swell_v + stokes_wind_v
+    stokes_speed = np.sqrt(stokes_u**2+stokes_v**2)
+
+    #stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
+    #                               stokes_v_surface**2)
+    #zeromask = stokes_u == 0
+    #stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    #stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    #stokes_u[zeromask] = 0
+    #stokes_v[zeromask] = 0
     return stokes_u, stokes_v, stokes_speed
 
 
@@ -768,10 +862,25 @@ class PhysicsMethods:
             logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
             wave_period = 8
 
-        stokes_u, stokes_v, s = stokes_drift_profile_breivik(
-            self.environment.sea_surface_wave_stokes_drift_x_velocity,
-            self.environment.sea_surface_wave_stokes_drift_y_velocity,
-            wave_height, wave_period, self.elements.z)
+        stokes_profile = self.get_config('drift:stokes_drift_profile')
+        if stokes_profile == 'Phillips':
+            stokes_u, stokes_v, s = stokes_drift_profile_monochromatic(  # TODO: replace with Phillips
+                self.environment.sea_surface_wave_stokes_drift_x_velocity,
+                self.environment.sea_surface_wave_stokes_drift_y_velocity,
+                wave_height, wave_period, self.elements.z)
+        elif stokes_profile == 'windsea_swell':
+            stokes_u, stokes_v, s = stokes_drift_profile_windsea_swell(
+                self.environment.sea_surface_wave_stokes_drift_x_velocity,
+                self.environment.sea_surface_wave_stokes_drift_y_velocity,
+                swell_mean_direction_to = self.environment.sea_surface_swell_wave_to_direction,
+                swell_mean_period = self.environment.sea_surface_swell_wave_peak_period_from_variance_spectral_density,
+                swell_height = self.environment.sea_surface_swell_wave_significant_height,
+                wind_sea_mean_direction_to = self.environment.sea_surface_wind_wave_to_direction,
+                wind_sea_mean_period = self.environment.sea_surface_wind_wave_mean_period,
+                wind_sea_height = self.environment.sea_surface_wind_wave_significant_height,
+                z=self.elements.z)
+        else:
+            raise ValueError('Stokes profile not implemented')
 
         self.update_positions(stokes_u*factor, stokes_v*factor)
         if s.min() == s.max():
