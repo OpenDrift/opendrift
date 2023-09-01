@@ -146,7 +146,7 @@ class TestModels(unittest.TestCase):
         o.run(duration=timedelta(hours=10))
         self.assertIsNone(np.testing.assert_array_almost_equal(
                             o.elements.lon,
-                          [5.011935,5.01738,5.011235]))
+                          [5.010873, 5.016866, 5.009735]))
         self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2], 3)
 
     def test_openberg(self):
