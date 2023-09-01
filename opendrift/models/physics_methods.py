@@ -400,8 +400,8 @@ def stokes_drift_profile_monochromatic(stokes_u_surface, stokes_v_surface,
                                        significant_wave_height, mean_wave_period, z):
     """
     Vertical Stokes drift profile assuming a single monochromatic wave
-    Breivik, Ø., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
-    J. Phys. Oceanogr. 44, 2433–2445.  doi:10.1175/JPO-D-14-0020.1.
+    Breivik, O., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
+    J. Phys. Oceanogr. 44, 2433-2445.  doi:10.1175/JPO-D-14-0020.1.
     """
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
                                    stokes_v_surface**2)
@@ -423,8 +423,8 @@ def stokes_drift_profile_exponential(stokes_u_surface, stokes_v_surface,
                                      significant_wave_height, mean_wave_period, z):
 
     """
-    Breivik, Ø., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
-    J. Phys. Oceanogr. 44, 2433–2445.  doi:10.1175/JPO-D-14-0020.1.
+    Breivik, O., Janssen, P., Bidlot, J., 2014. Approximate stokes drift profiles in deep water.
+    J. Phys. Oceanogr. 44, 2433-2445.  doi:10.1175/JPO-D-14-0020.1.
     """
 
     stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
@@ -475,8 +475,8 @@ def stokes_drift_profile_windsea_swell(stokes_u_surface, stokes_v_surface,
                                        wind_sea_mean_direction_to, wind_sea_mean_period, wind_sea_height, z):
     """
     Calculate vertical Stokes drift profile from
-    Breivik, Ø., and K. H. Christensen, 2020: A Combined Stokes Drift Profile under Swell and Wind Sea.
-        J. Phys. Oceanogr., 50, 2819–2833, https://doi.org/10.1175/JPO-D-20-0087.1.
+    Breivik, O., and K. H. Christensen, 2020: A Combined Stokes Drift Profile under Swell and Wind Sea.
+        J. Phys. Oceanogr., 50, 2819-2833, https://doi.org/10.1175/JPO-D-20-0087.1.
     """
 
     # NB / TODO: assuming here that u is east and v is north
@@ -507,13 +507,6 @@ def stokes_drift_profile_windsea_swell(stokes_u_surface, stokes_v_surface,
     stokes_v = stokes_swell_v + stokes_wind_v
     stokes_speed = np.sqrt(stokes_u**2+stokes_v**2)
 
-    #stokes_surface_speed = np.sqrt(stokes_u_surface**2 +
-    #                               stokes_v_surface**2)
-    #zeromask = stokes_u == 0
-    #stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
-    #stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
-    #stokes_u[zeromask] = 0
-    #stokes_v[zeromask] = 0
     return stokes_u, stokes_v, stokes_speed
 
 
@@ -863,8 +856,18 @@ class PhysicsMethods:
             wave_period = 8
 
         stokes_profile = self.get_config('drift:stokes_drift_profile')
+        if stokes_profile == 'monochromatic':
+            stokes_u, stokes_v, s = stokes_drift_profile_monochromatic(
+                self.environment.sea_surface_wave_stokes_drift_x_velocity,
+                self.environment.sea_surface_wave_stokes_drift_y_velocity,
+                wave_height, wave_period, self.elements.z)
+        if stokes_profile == 'exponential':
+            stokes_u, stokes_v, s = stokes_drift_profile_exponential(
+                self.environment.sea_surface_wave_stokes_drift_x_velocity,
+                self.environment.sea_surface_wave_stokes_drift_y_velocity,
+                wave_height, wave_period, self.elements.z)
         if stokes_profile == 'Phillips':
-            stokes_u, stokes_v, s = stokes_drift_profile_monochromatic(  # TODO: replace with Phillips
+            stokes_u, stokes_v, s = stokes_drift_profile_phillips(
                 self.environment.sea_surface_wave_stokes_drift_x_velocity,
                 self.environment.sea_surface_wave_stokes_drift_y_velocity,
                 wave_height, wave_period, self.elements.z)
@@ -879,8 +882,6 @@ class PhysicsMethods:
                 wind_sea_mean_period = self.environment.sea_surface_wind_wave_mean_period,
                 wind_sea_height = self.environment.sea_surface_wind_wave_significant_height,
                 z=self.elements.z)
-        else:
-            raise ValueError('Stokes profile not implemented')
 
         self.update_positions(stokes_u*factor, stokes_v*factor)
         if s.min() == s.max():
