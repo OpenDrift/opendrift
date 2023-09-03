@@ -229,7 +229,7 @@ class SeaLice(OceanDrift):
         logger.debug("Building global population model")
         death_rate=self.get_config(self.prefix+'death_rate')* self.time_step.total_seconds()
         maturation_rate=self.get_config(self.prefix+'maturation_rate')* self.time_step.total_seconds()
-        duration = self.get_config('general:duration')/ self.time_step.total_seconds()
+        duration = self.expected_steps_calculation #self.get_config('general:duration')/ self.time_step.total_seconds()
         Mat = int(np.ceil(self.get_config(self.prefix+'maturity_date')*24*3600/ \
                     self.time_step.total_seconds())) # maturity age in timestep
         t=np.arange(0,duration+1,dtype=np.int32)
@@ -385,6 +385,6 @@ class SeaLice(OceanDrift):
         self.SI_pop()
         self.degree_days()
         self.advect_ocean_current()        
-        self.vertical_mixing()
+        # self.vertical_mixing()
         self.Lice_vertical_migration()
         self.depth_test()
