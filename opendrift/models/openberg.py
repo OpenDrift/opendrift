@@ -65,6 +65,7 @@ import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements.elements import LagrangianArray
 from opendrift.readers.basereader import BaseReader
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 # Defining the iceberg element properties
 class IcebergObj(LagrangianArray):
@@ -123,15 +124,15 @@ class OpenBerg(OpenDriftSimulation):
         self._add_config({
             'seed:wind_drift_factor': {'type': 'float', 'min': 0, 'max': 1,
                 'default': 0.018, 'units': 'fraction',
-                'level': self.CONFIG_LEVEL_ADVANCED,
+                'level': CONFIG_LEVEL_ADVANCED,
                 'description': 'Icebergs are moved with this fraction of the wind speed, in addition to ocean current forcing'},
             'seed:water_line_length': {'type': 'float', 'min': 0.1, 'max': 99999,
                 'default': 90.5, 'units': 'meters',
-                'level': self.CONFIG_LEVEL_ADVANCED,
+                'level': CONFIG_LEVEL_ADVANCED,
                 'description': 'Length of iceberg.'},
             'seed:keel_depth': {'type': 'float', 'min': 0.1, 'max': 1000,
                 'default': 60, 'units': 'meters',
-                'level': self.CONFIG_LEVEL_ADVANCED,
+                'level': CONFIG_LEVEL_ADVANCED,
                 'description': 'Length of iceberg keel (part belor sea surface).'},
             })
 

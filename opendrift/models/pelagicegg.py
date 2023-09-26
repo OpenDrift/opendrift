@@ -18,7 +18,7 @@ import numpy as np
 import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
-#from opendrift.elements import LagrangianArray
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
 # Defining the oil element properties

@@ -19,6 +19,7 @@ import datetime
 import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import Lagrangian3DArray, OceanDrift
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
 class LarvalFishElement(Lagrangian3DArray):
@@ -91,7 +92,7 @@ class LarvalFish(OceanDrift):
                 {'type': 'float', 'default': 0.15,
                  'min': 0.0, 'max': 1.0, 'units': 'fraction',
                  'description': 'Fraction of timestep swimming',
-                 'level': self.CONFIG_LEVEL_ADVANCED},
+                 'level': CONFIG_LEVEL_ADVANCED},
             })
 
         self._set_config_default('drift:vertical_mixing', True)
@@ -189,7 +190,7 @@ class LarvalFish(OceanDrift):
              + 0.0112 * temperature * np.log(weight) ** 3
 
         # Growth rate(g) converted to milligram weight (gr_mg) per timestep:
-        g = (np.log(GR / 100. + 1)) * self.time_step.total_seconds()/86400  
+        g = (np.log(GR / 100. + 1)) * self.time_step.total_seconds()/86400
         return weight * (np.exp(g) - 1.)
 
     def update_fish_larvae(self):
@@ -220,7 +221,7 @@ class LarvalFish(OceanDrift):
         avg_weight_after = self.elements.weight[larvae].mean()
         logger.debug('Growing %s larve from average size %s to %s' %
               (len(larvae), avg_weight_before, avg_weight_after))
-    
+
         # Increasing length of larvae, according to Folkvord (2005)
         w = self.elements.weight[larvae]
         self.elements.length[larvae] = np.exp(2.296 + 0.277 * np.log(w) - 0.005128 *np.log10(w)**2)

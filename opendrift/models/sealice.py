@@ -18,7 +18,8 @@ from datetime import timedelta, datetime
 import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import Lagrangian3DArray, OceanDrift
-from opendrift.models.physics_methods import hour_angle, solar_elevation
+from opendrift.models.physics_methods import hour_angle
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 class SeaLiceElement(Lagrangian3DArray):
     """
@@ -107,59 +108,59 @@ class SeaLice(OceanDrift):
             'general:duration':{'type':'float', 'default':0.,
                                 'min': None, 'max': None, 'units': 'seconds',
                                 'description': 'Experiment time in seconds',
-                                'level': self.CONFIG_LEVEL_ESSENTIAL},
+                                'level': CONFIG_LEVEL_ESSENTIAL},
             'lice:seeding_time_step':{'type':'float', 'default':None,
                                 'min': None, 'max': None, 'units': 'seconds',
                                 'description': 'Time between particle release',
-                                'level': self.CONFIG_LEVEL_ESSENTIAL},
+                                'level': CONFIG_LEVEL_ESSENTIAL},
             'lice:death_rate':{'type':'float', 'default':0.01/3600,
                                 'min': 0., 'max': None, 'units': 's-1',
                                 'description': 'Rate of Larvae death per seconds',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:maturation_rate':{'type':'float', 'default':0.1/3600,
                                 'min': 0., 'max': None, 'units': 's-1',
                                 'description': 'Rate of Nauplii maturation in Copepodids',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:maturity_date':{'type':'float', 'default':3.63,
                                 'min': 0., 'max': None, 'units': 'days',
                                 'description': 'Days to start maturing into Copepodids',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:sinking_velocity':{'type':'float', 'default':0.00025,
                                 'min': 0., 'max': 0.01, 'units': 'm.s-1',
                                 'description': 'Larvae sinking velocity',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:vertical_migration_speed':{'type':'float', 'default':0.00075,
                                 'min': 0., 'max': 0.01, 'units': 'm.s-1',
                                 'description': 'Larvae vertical speed',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:freezing_salinity':{'type':'float', 'default':27.,
                                 'min': 0., 'max': 35., 'units': 'PSU',
                                 'description': 'Salinity immobilising larvae',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:avoided_salinity':{'type':'float', 'default':32.,
                                 'min': 0., 'max': 50., 'units': 'PSU',
                                 'description': 'Salinity actively avoided',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:nu':{'type':'float', 'default':500.,
                                 'min': 100, 'max': 1000, 'units': 'nm',
                                 'description': 'Wavelength used to calculate irradiance',
-                                'level': self.CONFIG_LEVEL_ADVANCED},
+                                'level': CONFIG_LEVEL_ADVANCED},
             'lice:k_water':{'type':'float', 'default':0.2,
                                 'min': -10., 'max': 0., 'units': '',
                                 'description': 'coefficient of exponential decay of light in water',
-                                'level': self.CONFIG_LEVEL_ADVANCED},
+                                'level': CONFIG_LEVEL_ADVANCED},
             'lice:Nauplii_light_trigger':{'type':'float', 'default':2.E-5,
                                 'min': 0., 'max': 1., 'units': 'µmol photon  s−1 m−2',
                                 'description': 'light detection threshold of Nauplii',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:Copepodid_light_trigger':{'type':'float', 'default':0.392,
                                 'min': 0.0, 'max': 1.0, 'units': 'µmol photon  s−1 m−2',
                                 'description': 'light detection threshold of copepodids',
-                                'level': self.CONFIG_LEVEL_BASIC},
+                                'level': CONFIG_LEVEL_BASIC},
             'lice:twilight':{'type':'float', 'default':15,
                                 'min': 0., 'max': 90., 'units': 'degrees',
                                 'description': 'angle below the horizon for twilight',
-                                'level': self.CONFIG_LEVEL_ADVANCED},
+                                'level': CONFIG_LEVEL_ADVANCED},
             })
 
     def prepare_run(self):
@@ -384,7 +385,7 @@ class SeaLice(OceanDrift):
     def update(self):
         self.SI_pop()
         self.degree_days()
-        self.advect_ocean_current()        
+        self.advect_ocean_current()
         self.vertical_mixing()
         self.Lice_vertical_migration()
         self.depth_test()

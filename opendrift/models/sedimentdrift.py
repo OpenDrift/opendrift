@@ -23,6 +23,7 @@ import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.oceandrift import Lagrangian3DArray
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 class SedimentElement(Lagrangian3DArray):
     variables = Lagrangian3DArray.add_variables([
@@ -72,7 +73,7 @@ class SedimentDrift(OceanDrift):
                 'units': 'm/s',
                 'description':
                 'Sedimented particles will be resuspended if bottom current shear exceeds this value.',
-                'level': self.CONFIG_LEVEL_ESSENTIAL
+                'level': CONFIG_LEVEL_ESSENTIAL
             }})
 
         # By default, sediments do not strand towards coastline

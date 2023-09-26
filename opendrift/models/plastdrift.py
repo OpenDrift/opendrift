@@ -17,13 +17,14 @@
 import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
 class PlastElement(Lagrangian3DArray):
     variables = Lagrangian3DArray.add_variables([
         ('terminal_velocity', {'dtype': np.float32,
                                'units': 'm/s',
-                               'level': OceanDrift.CONFIG_LEVEL_ESSENTIAL,
+                               'level': CONFIG_LEVEL_ESSENTIAL,
             'description': 'Positive value means rising particles (positive buoyancy)',
                                'default': 0.01})])
 
@@ -65,7 +66,7 @@ class PlastDrift(OceanDrift):
             # TODO: this option should be moved to OceanDrift
             'vertical_mixing:mixingmodel': {'type': 'enum',
                 'enum': ['randomwalk', 'analytical'], 'default': 'analytical',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description':
+                'level': CONFIG_LEVEL_ADVANCED, 'description':
                     'Scheme to be used for vertical turbulent mixing'},
             })
 

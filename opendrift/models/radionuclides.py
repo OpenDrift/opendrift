@@ -18,6 +18,7 @@ import numpy as np
 import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 import pyproj
 
 # Defining the radionuclide element properties
@@ -110,102 +111,102 @@ class RadionuclideDrift(OceanDrift):
         self._add_config({
             'radionuclide:transfer_setup': {'type': 'enum',
                 'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom'], 'default': '137Cs_rev',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': ''},
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'radionuclide:slowly_fraction': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:irreversible_fraction': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:dissolved_diameter': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
                 'min': .45e-6, 'max': 63.e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Mean particle diameter. Determines the settling velocity.'},
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Mean particle diameter. Determines the settling velocity.'},
             'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
             'radionuclide:particlesize_distribution': {'type':'enum',
                 'enum': ['normal','lognormal'], 'default':'normal',
-                'level':self.CONFIG_LEVEL_ADVANCED, 
+                'level':CONFIG_LEVEL_ADVANCED,
                 'description':'Distribution of particle diameter around a mean value at seeding, NB: not at sorption!'},
             'seed:LMM_fraction': {'type': 'float','default': .1,
                 'min': 0, 'max': 1, 'units': '1',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as LMM species'},
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as LMM species'},
             'seed:particle_fraction': {'type': 'float','default': 0.9,
                 'min': 0, 'max': 1, 'units': '1',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as particle species'},
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as particle species'},
             'seed:total_release': {'type': 'float','default': 100.e9,
                 'min': 0, 'max': 1e36, 'units': 'Bq',
-                'level': self.CONFIG_LEVEL_ESSENTIAL, 'description': 'Total release (Bq)'},
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Total release (Bq)'},
             # Species
             'radionuclide:species:LMM': {'type': 'bool', 'default': True,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': 'Toggle LMM species'},
+                'level': CONFIG_LEVEL_BASIC, 'description': 'Toggle LMM species'},
             'radionuclide:species:LMMcation': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:LMManion': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Colloid': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Humic_colloid': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Polymer': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Particle_reversible': {'type': 'bool', 'default': True,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Particle_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Particle_irreversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:species:Sediment_reversible': {'type': 'bool', 'default': True,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Sediment_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:species:Sediment_irreversible': {'type': 'bool', 'default': False,
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Transformations
             'radionuclide:transformations:Kd': {'type': 'float', 'default': 2.0,
                 'min': 0, 'max': 1e9, 'units': 'm3/kg',
-                'level': self.CONFIG_LEVEL_BASIC, 'description': ''},
+                'level': CONFIG_LEVEL_BASIC, 'description': ''},
             'radionuclide:transformations:Dc': {'type': 'float', 'default': 1.16e-5,
                 'min': 0, 'max': 1e6, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:transformations:slow_coeff': {'type': 'float', 'default': 1.2e-7,
                 'min': 0, 'max': 1e6, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             # Sediment
             'radionuclide:sediment:sedmixdepth': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:sediment_density': {'type': 'float', 'default': 2600,
                 'min': 0, 'max': 10000, 'units': 'kg/m3',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:effective_fraction': {'type': 'float', 'default': 0.9,
                 'min': 0, 'max': 1, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:corr_factor': {'type': 'float', 'default': 0.1,
                 'min': 0, 'max': 10, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:porosity': {'type': 'float', 'default': 0.6,
                 'min': 0, 'max': 1, 'units': '',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:layer_thick': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:desorption_depth': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:desorption_depth_uncert': {'type': 'float', 'default': .5,
                 'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:resuspension_depth': {'type': 'float', 'default': 1,
                 'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:resuspension_depth_uncert': {'type': 'float', 'default': .5,
                 'min': 0, 'max': 100, 'units': 'm',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:sediment:resuspension_critvel': {'type': 'float', 'default': .01,
                 'min': 0, 'max': 1, 'units': 'm/s',
-                'level': self.CONFIG_LEVEL_ADVANCED, 'description': ''},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             })
 
 
@@ -325,8 +326,8 @@ class RadionuclideDrift(OceanDrift):
             init_specie = np.ones(num_elements,dtype=int)
             init_specie[:] = kwargs['specie']
             kwargs['specie'] = init_specie[:]
-            
-                
+
+
 
 
         else:
@@ -387,7 +388,7 @@ class RadionuclideDrift(OceanDrift):
             if self.get_config('radionuclide:species:Particle_irreversible'):
                 init_diam[init_specie==self.num_pirrev] = \
                         np.random.lognormal(mu, std, size=sum(init_specie==self.num_pirrev) ) * diameter
-    
+
 
         init_diam[(init_specie==self.num_prev) & (init_diam<0.45e-6)] = 0.45e-6
         init_diam[(init_specie==self.num_prev) & (init_diam>63.5e-6)] = 63.5e-6
@@ -397,9 +398,9 @@ class RadionuclideDrift(OceanDrift):
         if self.get_config('radionuclide:species:Particle_irreversible'):
             init_diam[(init_specie==self.num_pirrev) & (init_diam<0.45e-6)] = 0.45e-6
             init_diam[(init_specie==self.num_pirrev) & (init_diam>63.5e-6)] = 63.5e-6
-        
+
         logger.info('Min: {:.2e}, Max: {:.2e}, Numer of particles seeded: {}, at {} distribution'.format(
-            np.min(init_diam[init_diam>0.]), np.max(init_diam[init_diam>0.]), sum(init_diam>0.), 
+            np.min(init_diam[init_diam>0.]), np.max(init_diam[init_diam>0.]), sum(init_diam>0.),
              self.get_config('radionuclide:particlesize_distribution')))
 
         kwargs['diameter'] = init_diam
@@ -656,7 +657,7 @@ class RadionuclideDrift(OceanDrift):
         # terminal velocity for low Reynolds numbers
         W = (1.0/my_w)*(1.0/18.0)*g*partsize**2 * dr
 
-        self.elements.terminal_velocity = W * self.elements.moving 
+        self.elements.terminal_velocity = W * self.elements.moving
 
 
     def update_transfer_rates(self):
@@ -1023,7 +1024,7 @@ class RadionuclideDrift(OceanDrift):
             activity_unit='Bq'  # default unit for radionuclides
 
         activity_per_element = self.get_config('seed:total_release') / self.num_elements_total()
-        
+
 
         z = self.get_property('z')[0]
         if not zlevels==None:
@@ -1400,7 +1401,7 @@ class RadionuclideDrift(OceanDrift):
 
     def gui_postproc(self):
         from os.path import expanduser
-        
+
         logger.info('Postprocessing radionuclides')
 
         logger.info('Final speciation:')
@@ -1409,30 +1410,30 @@ class RadionuclideDrift(OceanDrift):
 
         homefolder = expanduser("~")
         filename = homefolder+'/conc_radio.nc'
-        
-        
+
+
         self.guipp_saveconcfile(filename)
-        
+
         zlayer   = [-1,-2]
-        self.guipp_plotandsaveconc(filename=filename, 
-                                         outfilename=homefolder+'/radio_plots/RadioConc', 
+        self.guipp_plotandsaveconc(filename=filename,
+                                         outfilename=homefolder+'/radio_plots/RadioConc',
                                          zlayers=zlayer,
                                          specie= ['Total', 'LMM', 'Particle reversible'],
                                          )
-        
-        
-        
+
+
+
 
 
     def guipp_saveconcfile(self,filename='none'):
 
-        
+
         for readerName in self.readers:
             reader = self.readers[readerName]
             if 'sea_floor_depth_below_sea_level' in reader.variables:
                 break
-        
-        
+
+
         self.conc_lon  = reader.get_variables('longitude',
                                        x=[reader.xmin,reader.xmax],
                                        y=[reader.ymin,reader.ymax])['longitude'][:]
@@ -1445,7 +1446,7 @@ class RadionuclideDrift(OceanDrift):
                                        x=[reader.xmin,reader.xmax],
                                        y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
 
-        
+
         self.write_netcdf_radionuclide_density_map(filename, pixelsize_m=200.,
                                         zlevels=[-25, -2.],
                                         activity_unit='Bq',
@@ -1461,7 +1462,7 @@ class RadionuclideDrift(OceanDrift):
             legend_loc =3,
 #            markersize=10
             )
-    
+
 
 
 
@@ -1474,13 +1475,13 @@ class RadionuclideDrift(OceanDrift):
         import matplotlib.pyplot as plt
         from os.path import expanduser
 
-        
+
         if zlayers==None:
             zlayers=[-1]
-        
-        
+
+
         logger.info('Plotting concentration for {} at layer {} at time {}'.format(specie, zlayers, time))
-        
+
         homefolder = expanduser("~")
         outdir = homefolder+'/radio_plots'
         vcmin  = 0
@@ -1494,8 +1495,8 @@ class RadionuclideDrift(OceanDrift):
         if specie==None:
             specie_arr = ['Total', 'LMM', 'Particle reversible', 'Sediment reversible']
         else:
-            specie_arr = specie 
-        
+            specie_arr = specie
+
         for readerName in self.readers:
             reader = self.readers[readerName]
             if 'sea_floor_depth_below_sea_level' in reader.variables:
@@ -1505,8 +1506,8 @@ class RadionuclideDrift(OceanDrift):
                                        x=[reader.xmin,reader.xmax],
                                        y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
 
-        
-        
+
+
         logger.info (' READ DATA FILE: {}'.format(filename))
         nc=netCDF4.Dataset(filename,'r')
         time       = nc.variables['time'][:]
@@ -1520,8 +1521,8 @@ class RadionuclideDrift(OceanDrift):
         topo       = nc.variables['topo'][:]
         #nc.close()
 
-        
-        
+
+
         Nspecies = len(specie[:])
         logger.info ('Nspecies: {}'.format(Nspecies))
         if Nspecies>1:
@@ -1542,17 +1543,17 @@ class RadionuclideDrift(OceanDrift):
 #             figsize=[10,8]
 #         elif Ndepths==3:
 #             figsize=[13,8]
-        
-        
+
+
         ntime=len(time)
         time = netCDF4.num2date(time,units=t_units,only_use_cftime_datetimes=False,only_use_python_datetimes=True)
-        
-        
+
+
         for sp in specie_arr:
-        
+
             fig, ax, crs, x, y, index_of_first, index_of_last = \
                 self.set_up_map()
-            
+
             cb=False
 
             if not sp=='Total':
@@ -1561,11 +1562,11 @@ class RadionuclideDrift(OceanDrift):
                     logger.debug('{} {}'.format(sp, spi))
                 except Exception:
                     logger.debug(sp)
-                    break 
-                
-            
+                    break
+
+
             for date_idx in np.arange(0,len(time)):
-     
+
                 idx1=date_idx
                 t1 = time[idx1]
 
@@ -1582,7 +1583,7 @@ class RadionuclideDrift(OceanDrift):
                                       )
                     c1 = ax.contour(lon,lat,tmp,
                                    [1.e-6,1.e-5,1.e-4,1.e-3,1.e-2,1.e-1,1.e0,1.e1,1.e2,1.e3,1.e4],
-                                        colors='darkgrey',linewidths=.6,zorder=4, 
+                                        colors='darkgrey',linewidths=.6,zorder=4,
                                          transform=proj_pp)
                     if not cb:
                         plt.colorbar(pcm,extend='both',label=cblabel)
@@ -1590,13 +1591,13 @@ class RadionuclideDrift(OceanDrift):
                     title=sp+' concentration, layer '+str(depth[zlayer])+' '+t1.strftime('%Y%m%d %H:%M')
                     fig.suptitle(title)
                     title = title.replace(' ','').replace('\n','_').replace(':','')
-                    
+
                     if outfilename:
                         ofn = outfilename+'_'+sp.replace(' ','')+'L'+str(depth[zlayer])+'_'+t1.strftime('%Y%m%dT%H%M')+'.png'
                     else:
                         ofn = outdir+'/'+title+'_'+'.png'
                     plt.savefig(ofn, dpi=300,bbox_inches='tight')
-                    
+
                     # remove contour lines and shading
                     for level in c1.collections:
                         level.remove()

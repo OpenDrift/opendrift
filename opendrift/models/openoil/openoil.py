@@ -69,7 +69,7 @@ Alternatively, the user can specify normal or lognormal initial subsea droplet s
     o.set_config('seed:droplet_size_distribution','lognormal')
     o.set_config('seed:droplet_diameter_mu',0.001)  # 1 mm
     o.set_config('seed:droplet_diameter_sigma',0.0008) # 0.8 mm
-    
+
 Note that these config settings must be adjusted before the seeding call.
 After each wave breaking event, a new droplet diameter will be chosen based on the config setting for droplet size distribution.
 """
@@ -87,6 +87,7 @@ from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from . import noaa_oil_weathering as noaa
 from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
+from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
 # Defining the oil element properties
@@ -344,7 +345,7 @@ class OpenOil(OceanDrift):
                 'units': 'm3 per hour',
                 'description':
                 'The amount (volume) of oil released per hour (or total amount if release is instantaneous)',
-                'level': self.CONFIG_LEVEL_ESSENTIAL
+                'level': CONFIG_LEVEL_ESSENTIAL
             },
             'seed:droplet_size_distribution': {
                 'type':
@@ -353,7 +354,7 @@ class OpenOil(OceanDrift):
                 'default':
                 'uniform',
                 'level':
-                self.CONFIG_LEVEL_ADVANCED,
+                CONFIG_LEVEL_ADVANCED,
                 'description':
                 'Droplet size distribution used for subsea release.'
             },
@@ -365,7 +366,7 @@ class OpenOil(OceanDrift):
                 'units': 'meters',
                 'description':
                 'The mean diameter of oil droplet for a subsea release, used in normal/lognormal distributions.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'seed:droplet_diameter_sigma': {
                 'type': 'float',
@@ -375,7 +376,7 @@ class OpenOil(OceanDrift):
                 'units': 'meters',
                 'description':
                 'The standard deviation in diameter of oil droplet for a subsea release, used in normal/lognormal distributions.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'seed:droplet_diameter_min_subsea': {
                 'type': 'float',
@@ -385,7 +386,7 @@ class OpenOil(OceanDrift):
                 'units': 'meters',
                 'description':
                 'The minimum diameter of oil droplet for a subsea release, used in unifrom distribution.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'seed:droplet_diameter_max_subsea': {
                 'type': 'float',
@@ -395,40 +396,40 @@ class OpenOil(OceanDrift):
                 'units': 'meters',
                 'description':
                 'The maximum diameter of oil droplet for a subsea release, used in uniform distribution.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'processes:dispersion': {
                 'type': 'bool',
                 'default': True,
                 'description':
                 'Oil is removed from simulation (dispersed), if entrained as very small droplets.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'processes:evaporation': {
                 'type': 'bool',
                 'default': True,
                 'description': 'Surface oil is evaporated.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'processes:emulsification': {
                 'type': 'bool',
                 'default': True,
                 'description':
                 'Surface oil is emulsified, i.e. water droplets are mixed into oil due to wave mixing, with resulting increas of viscosity.',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'processes:biodegradation': {
                 'type': 'bool',
                 'default': False,
                 'description': 'Oil mass is biodegraded (eaten by bacteria).',
-                'level': self.CONFIG_LEVEL_BASIC
+                'level': CONFIG_LEVEL_BASIC
             },
             'processes:update_oilfilm_thickness': {
                 'type': 'bool',
                 'default': False,
                 'description':
                 'Oil film thickness is calculated at each time step. The alternative is that oil film thickness is kept constant with value provided at seeding.',
-                'level': self.CONFIG_LEVEL_ADVANCED
+                'level': CONFIG_LEVEL_ADVANCED
             },
             'wave_entrainment:droplet_size_distribution': {
                 'type':
@@ -437,7 +438,7 @@ class OpenOil(OceanDrift):
                 'default':
                 'Johansen et al. (2015)',
                 'level':
-                self.CONFIG_LEVEL_ADVANCED,
+                CONFIG_LEVEL_ADVANCED,
                 'description':
                 'Algorithm to be used for calculating oil droplet size spectrum after entrainment by breaking waves.'
             },
@@ -448,7 +449,7 @@ class OpenOil(OceanDrift):
                 'default':
                 'Li et al. (2017)',
                 'level':
-                self.CONFIG_LEVEL_ADVANCED,
+                CONFIG_LEVEL_ADVANCED,
                 'description':
                 'Algorithm to be used for calculating the entrainment rate of oil due to wave breaking.'
             },
@@ -460,7 +461,7 @@ class OpenOil(OceanDrift):
                 'default':
                 self.oiltypes[0],
                 'level':
-                self.CONFIG_LEVEL_ESSENTIAL,
+                CONFIG_LEVEL_ESSENTIAL,
                 'description':
                 'Oil type to be used for the simulation, from the NOAA ADIOS database.'
             },
@@ -1615,9 +1616,9 @@ class OpenOil(OceanDrift):
                             'mu = %s and sigma = %s m for elements seeded below sea surface.' %
                             (sub_mu, sub_sigma))
                 # From numpy.random.lognormal:
-                # "Note that the mean and standard deviation are not the values for the 
+                # "Note that the mean and standard deviation are not the values for the
                 # distribution itself, but of the underlying normal distribution it is derived from."
-                # So we need to compute the input to the function from the mean and 
+                # So we need to compute the input to the function from the mean and
                 # standard deviation of the data we want to generate (assumed as input)
                 sub_sigma2 = sub_sigma**2
                 sub_sigma2_lognormal = np.log(sub_sigma2/sub_mu**2 + 1)
