@@ -54,8 +54,8 @@ def test_simulation_matches_forw_backward():
 
     leeb.run(steps=2, time_step=-10*3600, time_step_output=-10*3600)
 
-    maskf = leef.readers['global_landmask']
-    maskb = leeb.readers['global_landmask']
+    maskf = leef.env.readers['global_landmask']
+    maskb = leeb.env.readers['global_landmask']
     assert maskf.xmin == maskb.xmin
     assert maskf.ymin == maskb.ymin
     assert maskf.xmax == maskb.xmax

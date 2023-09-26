@@ -1,5 +1,5 @@
 import logging
-from typing import OrderedDict, Dict, List
+from typing import OrderedDict, Dict
 import copy
 import traceback
 import numpy as np
@@ -14,6 +14,7 @@ from opendrift.config import Configurable
 
 logger = logging.getLogger(__name__)
 
+
 class Environment(Timeable, Configurable):
     fallback_values: Dict
     readers: OrderedDict
@@ -25,7 +26,7 @@ class Environment(Timeable, Configurable):
 
     proj_latlon = pyproj.Proj('+proj=latlong')
 
-    def __init__(self, required_variables):
+    def __init__(self, required_variables, _config):
         super().__init__()
 
         self.fallback_values = {}
@@ -33,6 +34,7 @@ class Environment(Timeable, Configurable):
         self.priority_list = OrderedDict()
 
         self.required_variables = required_variables
+        self._config = _config
 
         # Find variables which require profiles
         self.required_profiles = [
@@ -48,18 +50,25 @@ class Environment(Timeable, Configurable):
             and self.required_variables[var]['important'] is False
         ]
 
-    def finalize(self, target: Configurable):
+    def finalize(self, simulation: Configurable, simulation_extent):
         """
         Prepare environment for simulation.
         """
-        env = copy.deepcopy(self)
-        env.fallback_values = target.get_fallback_values()
-        env.__generate_constant_readers__(target)
-        env.__add_auto_landmask__(target)
-        env.__assert_no_missing_variables__()
-        env._config = target._config
+        self.fallback_values = simulation.get_fallback_values()
+        self.__generate_constant_readers__(simulation)
+        self.__add_auto_landmask__(simulation)
+        self.__assert_no_missing_variables__()
+        self.prepare_readers(simulation_extent, simulation.start_time,
+                             simulation.expected_end_time,
+                             simulation.max_speed)
 
-        return env
+    def prepare_readers(self, extent, start_time, end_time, max_speed):
+        for reader in self.readers.values():
+            logger.debug('\tPreparing %s' % reader.name)
+            reader.prepare(extent=extent,
+                           start_time=start_time,
+                           end_time=end_time,
+                           max_speed=max_speed)
 
     def __generate_constant_readers__(self, config: Configurable):
         # Make constant readers if config environment:constant:<var> is
@@ -81,8 +90,7 @@ class Environment(Timeable, Configurable):
         # If landmask is requested, it shall not be obtained from other readers
         if config.get_config('general:use_auto_landmask') is True:
             if 'land_binary_mask' in self.priority_list:
-                if 'global_landmask' in self.priority_list[
-                        'land_binary_mask']:
+                if 'global_landmask' in self.priority_list['land_binary_mask']:
                     self.priority_list['land_binary_mask'] = [
                         'global_landmask'
                     ]
@@ -132,14 +140,17 @@ class Environment(Timeable, Configurable):
                                  'following required variables: ' +
                                  str(has_no_fallback))
 
-
     def add_readers_from_file(self, filename, timeout=10, lazy=True):
         fp = open(filename, 'r')
         sources = fp.readlines()
         sources = [line.strip() for line in sources if line[0] != '#']
         self.add_readers_from_list(sources, timeout, lazy=lazy)
 
-    def add_readers_from_list(self, urls, timeout=10, lazy=True, variables=None):
+    def add_readers_from_list(self,
+                              urls,
+                              timeout=10,
+                              lazy=True,
+                              variables=None):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
 
         if isinstance(urls, str):
@@ -151,7 +162,8 @@ class Environment(Timeable, Configurable):
             return
 
         readers = [reader_from_url(u, timeout) for u in urls]
-        self.add_reader([r for r in readers if r is not None], variables=variables)
+        self.add_reader([r for r in readers if r is not None],
+                        variables=variables)
 
     def add_reader(self, readers, variables=None, first=False):
         """Add one or more readers providing variables used by this model.
@@ -312,34 +324,45 @@ class Environment(Timeable, Configurable):
         if reader.is_lazy:
             return False
         if reader.start_time is not None and reader.always_valid is False:
-            if hasattr(self, 'expected_end_time') and reader.start_time > self.expected_end_time:
+            if hasattr(self, 'expected_end_time'
+                       ) and reader.start_time > self.expected_end_time:
                 self.discard_reader(reader, 'starts after simulation end')
                 return True
-            if hasattr(self, 'start_time') and reader.end_time < self.start_time:
+            if hasattr(self,
+                       'start_time') and reader.end_time < self.start_time:
                 self.discard_reader(reader, 'ends before simuation start')
                 return True
             if hasattr(self, 'time') and reader.end_time < self.time:
-                self.discard_reader(reader, 'ends before simuation is finished')
+                self.discard_reader(reader,
+                                    'ends before simuation is finished')
                 return True
         if len(set(self.required_variables) & set(reader.variables)) == 0:
-            self.discard_reader(reader, reason='does not contain any relevant variables')
+            self.discard_reader(
+                reader, reason='does not contain any relevant variables')
             return True
         if not hasattr(reader, 'checked_for_overlap'):
             if not reader.global_coverage():
                 if not hasattr(self, 'simulation_extent'):
-                    logger.warning('Simulation has no simulation_extent, cannot check reader coverage')
+                    logger.warning(
+                        'Simulation has no simulation_extent, cannot check reader coverage'
+                    )
                     return False
                 # TODO
                 # need a better coverage/overlap check below
-                corners = reader.xy2lonlat([reader.xmin, reader.xmin, reader.xmax, reader.xmax],
-                                           [reader.ymax, reader.ymin, reader.ymax, reader.ymin])
+                corners = reader.xy2lonlat(
+                    [reader.xmin, reader.xmin, reader.xmax, reader.xmax],
+                    [reader.ymax, reader.ymin, reader.ymax, reader.ymin])
                 rlonmin = np.min(corners[0])
                 rlonmax = np.max(corners[0])
                 rlatmin = np.min(corners[1])
                 rlatmax = np.max(corners[1])
-                if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=90' in reader.proj4:
+                if hasattr(
+                        reader, 'proj4'
+                ) and 'stere' in reader.proj4 and 'lat_0=90' in reader.proj4:
                     rlatmax = 90
-                if hasattr(reader, 'proj4') and 'stere' in reader.proj4 and 'lat_0=-90' in reader.proj4:
+                if hasattr(
+                        reader, 'proj4'
+                ) and 'stere' in reader.proj4 and 'lat_0=-90' in reader.proj4:
                     rlatmin = -90
                 if rlatmin > self.simulation_extent[3]:
                     self.discard_reader(reader, reason='too far north')
@@ -381,6 +404,7 @@ class Environment(Timeable, Configurable):
             var for var in self.required_variables
             if var not in self.priority_list
         ]
+
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 
@@ -441,8 +465,8 @@ class Environment(Timeable, Configurable):
                         if self.discard_reader_if_not_relevant(reader):
                             reader = None
                     if reader is not None:
-                        if (reader.covers_time(self.time) and
-                                len(reader.covers_positions(lon, lat)[0]) > 0):
+                        if (reader.covers_time(self.time) and len(
+                                reader.covers_positions(lon, lat)[0]) > 0):
                             missing_variables = list(
                                 set(missing_variables) - set(reader.variables))
                             if len(missing_variables) == 0:
@@ -665,8 +689,8 @@ class Environment(Timeable, Configurable):
                             num_missing_profiles,
                         ))
                     num_missing_individual = np.sum(
-                        num_masked_values_per_element > 0
-                    ) - num_missing_profiles
+                        num_masked_values_per_element >
+                        0) - num_missing_profiles
                     if num_missing_individual > 0:
                         logger.debug(
                             '        ...plus %s individual points in other profiles'
@@ -797,5 +821,3 @@ class Environment(Timeable, Configurable):
         self.timer_end('main loop:readers')
 
         return env.view(np.recarray), env_profiles, missing
-
-
