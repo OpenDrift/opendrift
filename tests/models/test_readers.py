@@ -56,24 +56,24 @@ class TestReaders(unittest.TestCase):
         r = reader_ROMS_native.Reader(o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader([r, landmask])
-        self.assertEqual(o.priority_list['land_binary_mask'],
+        self.assertEqual(o.env.priority_list['land_binary_mask'],
                          ['roms native', 'global_landmask'])
-        self.assertEqual(o.priority_list['x_sea_water_velocity'],
+        self.assertEqual(o.env.priority_list['x_sea_water_velocity'],
                          ['roms native'])
         # Switch order
         o = OceanDrift()
         o.add_reader([landmask, r])
-        self.assertEqual(o.priority_list['land_binary_mask'],
+        self.assertEqual(o.env.priority_list['land_binary_mask'],
                          ['global_landmask', 'roms native'])
-        self.assertEqual(o.priority_list['x_sea_water_velocity'],
+        self.assertEqual(o.env.priority_list['x_sea_water_velocity'],
                          ['roms native'])
 
         # Test add_readers_from_list
         o = OceanDrift()
         o.add_readers_from_list(reader_list, lazy=False)
-        self.assertEqual(o.priority_list['x_sea_water_velocity'],
+        self.assertEqual(o.env.priority_list['x_sea_water_velocity'],
                          ['roms native'])
-        self.assertEqual(o.priority_list['x_wind'],
+        self.assertEqual(o.env.priority_list['x_wind'],
                          [o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc'])
 
@@ -165,13 +165,13 @@ class TestReaders(unittest.TestCase):
 
         o.add_readers_from_list(reader_list, lazy=True)
 
-        self.assertEqual(len(o._lazy_readers()), 4)
+        self.assertEqual(len(o.env._lazy_readers()), 4)
         o.seed_elements(lon=14, lat=67.85,
                         time=datetime(2016, 2, 2, 12))
         o.run(steps=5)
         print(o)  # Debug, this fails for old libraries
-        self.assertEqual(len(o._lazy_readers()), 2)
-        self.assertEqual(len(o.discarded_readers), 1)
+        self.assertEqual(len(o.env._lazy_readers()), 2)
+        self.assertEqual(len(o.env.discarded_readers), 1)
 
     def test_ROMS_native_stranding(self):
         o = OceanDrift(loglevel=0)

@@ -15,11 +15,13 @@ def test_failing_reader():
     """Check that reader is put in quanrantene after more fails than allowed"""
     o = OceanDrift(loglevel=20)
     r = reader_failing.Reader()
+    assert len(o.env.discarded_readers) == 0
     o.set_config('readers:max_number_of_fails', 1)
     o.add_reader(r)
     o.seed_elements(lon=4, lat=60, time=datetime.now())
     o.run(steps=5)
-    assert hasattr(o, 'discarded_readers')
+    print(o.env.discarded_readers)
+    assert len(o.env.discarded_readers) > 1
     assert o.steps_calculation == 5
     assert r.number_of_fails == 2
 

@@ -1,6 +1,5 @@
 import logging
 from typing import OrderedDict, Dict, List
-import copy
 import traceback
 import numpy as np
 import pyproj
@@ -9,6 +8,7 @@ from opendrift.timer import Timeable
 from opendrift.readers.basereader import BaseReader
 from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.errors import NotCoveredError
+from opendrift.models import physics_methods as pm
 
 from opendrift.config import Configurable
 
@@ -23,6 +23,8 @@ class Environment(Timeable, Configurable):
     required_profiles_z_range: List[float]  # [min_depth, max_depth]
     max_speed: float
 
+    discarded_readers: Dict
+
     proj_latlon = pyproj.Proj('+proj=latlong')
 
     def __init__(self, required_variables, required_profiles_z_range, max_speed, _config):
@@ -31,6 +33,7 @@ class Environment(Timeable, Configurable):
         self.fallback_values = {}
         self.readers = OrderedDict()
         self.priority_list = OrderedDict()
+        self.discarded_readers = {}
 
         self.required_variables = required_variables
         self.required_profiles_z_range = required_profiles_z_range
@@ -386,10 +389,7 @@ class Environment(Timeable, Configurable):
         readername = reader.name
         logger.debug('Discarding reader (%s): %s' % (reason, readername))
         del self.readers[readername]
-        if not hasattr(self, 'discarded_readers'):
-            self.discarded_readers = {readername: reason}
-        else:
-            self.discarded_readers[readername] = reason
+        self.discarded_readers[readername] = reason
 
         # Remove from priority list
         for var in self.priority_list.copy():
@@ -425,6 +425,8 @@ class Environment(Timeable, Configurable):
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon)) * np.nan, dtype=dtype)
+
+        num_elements_active = len(lon)
 
         if not hasattr(self, 'fallback_values'):
             self.set_fallback_values(refresh=False)
@@ -728,14 +730,14 @@ class Environment(Timeable, Configurable):
                     logger.debug('Calculating parameterised stokes drift')
                     env['sea_surface_wave_stokes_drift_x_velocity'], \
                     env['sea_surface_wave_stokes_drift_y_velocity'] = \
-                        self.wave_stokes_drift_parameterised((env['x_wind'], env['y_wind']),
+                        pm.wave_stokes_drift_parameterised((env['x_wind'], env['y_wind']),
                             self.get_config('drift:tabularised_stokes_drift_fetch'))
 
                 if (env['sea_surface_wave_significant_height'].max() == 0):
                     logger.debug(
                         'Calculating parameterised significant wave height')
                     env['sea_surface_wave_significant_height'] = \
-                        self.wave_significant_height_parameterised((env['x_wind'], env['y_wind']),
+                        pm.wave_significant_height_parameterised((env['x_wind'], env['y_wind']),
                         self.get_config('drift:tabularised_stokes_drift_fetch'))
 
         #############################
@@ -748,25 +750,25 @@ class Environment(Timeable, Configurable):
             if std > 0:
                 logger.debug('Adding uncertainty for current: %s m/s' % std)
                 env['x_sea_water_velocity'] += np.random.normal(
-                    0, std, self.num_elements_active())
+                    0, std, num_elements_active)
                 env['y_sea_water_velocity'] += np.random.normal(
-                    0, std, self.num_elements_active())
+                    0, std, num_elements_active)
             std = self.get_config('drift:current_uncertainty_uniform')
             if std > 0:
                 logger.debug('Adding uncertainty for current: %s m/s' % std)
                 env['x_sea_water_velocity'] += np.random.uniform(
-                    -std, std, self.num_elements_active())
+                    -std, std, num_elements_active)
                 env['y_sea_water_velocity'] += np.random.uniform(
-                    -std, std, self.num_elements_active())
+                    -std, std, num_elements_active)
         # Wind
         if 'x_wind' in variables and 'y_wind' in variables:
             std = self.get_config('drift:wind_uncertainty')
             if std > 0:
                 logger.debug('Adding uncertainty for wind: %s m/s' % std)
                 env['x_wind'] += np.random.normal(0, std,
-                                                  self.num_elements_active())
+                                                  num_elements_active)
                 env['y_wind'] += np.random.normal(0, std,
-                                                  self.num_elements_active())
+                                                  num_elements_active)
 
         #####################
         # Diagnostic output
@@ -831,3 +833,7 @@ class HasEnvironment:
 
     def add_reader(self, readers, variables=None, first=False):
         self.env.add_reader(readers, variables, first)
+
+    def add_readers_from_list(self, *args, **kwargs):
+        '''Make readers from a list of URLs or paths to netCDF datasets'''
+        self.env.add_readers_from_list(*args, **kwargs)

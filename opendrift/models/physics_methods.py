@@ -1106,7 +1106,7 @@ class PhysicsMethods:
                     self.environment.sea_floor_depth_below_sea_level
         if 'sea_floor_depth' not in locals():
             env, env_profiles, missing = \
-                self.get_environment(['sea_floor_depth_below_sea_level'],
+                self.env.get_environment(['sea_floor_depth_below_sea_level'],
                                      time=self.time, lon=self.elements.lon,
                                      lat=self.elements.lat,
                                      z=0*self.elements.lon, profiles=None)

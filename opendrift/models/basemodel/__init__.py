@@ -4394,10 +4394,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
                 outStr += '  ' + variable + '\n'
             for i, reader in enumerate(readerGroup):
                 outStr += '     ' + str(i + 1) + ') ' + reader + '\n'
-        if len(self.missing_variables()) > 0:
+        if len(self.env.missing_variables()) > 0:
             outStr += '  -----\n'
             outStr += 'Readers not added for the following variables:\n'
-            for variable in sorted(self.missing_variables()):
+            for variable in sorted(self.env.missing_variables()):
                 outStr += '  ' + variable + '\n'
 
         lazy_readers = [
@@ -4407,10 +4407,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             outStr += '---\nLazy readers:\n'
             for lr in lazy_readers:
                 outStr += '  ' + lr + '\n'
-        if hasattr(self, 'discarded_readers'):
-            outStr += '\nDiscarded readers:\n'
-            for dr, reason in self.discarded_readers.items():
-                outStr += '  %s (%s)\n' % (dr, reason)
+
+        outStr += '\nDiscarded readers:\n'
+        for dr, reason in self.env.discarded_readers.items():
+            outStr += '  %s (%s)\n' % (dr, reason)
+
         if hasattr(self, 'time'):
             outStr += '\nTime:\n'
             outStr += '\tStart: %s UTC\n' % (self.start_time)
