@@ -21,7 +21,7 @@ def test_failing_reader():
     o.seed_elements(lon=4, lat=60, time=datetime.now())
     o.run(steps=5)
     print(o.env.discarded_readers)
-    assert len(o.env.discarded_readers) > 1
+    assert len(o.env.discarded_readers) == 1
     assert o.steps_calculation == 5
     assert r.number_of_fails == 2
 

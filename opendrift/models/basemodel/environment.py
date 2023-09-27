@@ -483,11 +483,11 @@ class Environment(Timeable, Configurable):
             if co is not None:
                 env[variable] = np.ma.ones(env[variable].shape) * co
 
-        for i, variable_group in enumerate(variable_groups):
+        for variable_group, reader_group in zip(variable_groups,
+                                                reader_groups):
             logger.debug('----------------------------------------')
             logger.debug('Variable group %s' % (str(variable_group)))
             logger.debug('----------------------------------------')
-            reader_group = reader_groups[i]
             missing_indices = np.array(range(len(lon)))
             # For each reader:
             for reader_name in reader_group:
@@ -496,10 +496,6 @@ class Environment(Timeable, Configurable):
                 self.timer_start('main loop:readers:' +
                                  reader_name.replace(':', '<colon>'))
                 reader = self.readers[reader_name]
-                if reader.is_lazy:
-                    logger.warning('Reader is lazy, should not happen')
-                    import sys
-                    sys.exit('Should not happen')
                 if not reader.covers_time(time):
                     logger.debug('\tOutside time coverage of reader.')
                     if reader_name == reader_group[-1]:
@@ -551,6 +547,17 @@ class Environment(Timeable, Configurable):
                     logger.exception(e)
                     logger.debug(traceback.format_exc())
                     logger.info('========================')
+
+                    reader.number_of_fails = reader.number_of_fails + 1
+                    max_fails = self.get_config('readers:max_number_of_fails')
+                    if reader.number_of_fails > max_fails:
+                        logger.warning(
+                            f'Reader {reader.name} is discarded after failing '
+                            f'more times than allowed ({max_fails})')
+                        self.discard_reader(
+                            reader,
+                            reason=f'failed more than {max_fails} times')
+
                     self.timer_end('main loop:readers:' +
                                    reader_name.replace(':', '<colon>'))
                     if reader_name == reader_group[-1]:
@@ -602,34 +609,33 @@ class Environment(Timeable, Configurable):
                                         -2, missingbottom]
 
                 # Detect elements with missing data, for present reader group
-                if hasattr(env_tmp[variable_group[0]], 'mask'):
-                    try:
-                        del combined_mask
-                    except:
-                        pass
-                    for var in variable_group:
-                        tmp_var = np.ma.masked_invalid(env_tmp[var])
-                        # Changed 13 Oct 2016, but uncertain of effect
-                        # TODO: to be checked
-                        #tmp_var = env_tmp[var]
-                        if 'combined_mask' not in locals():
-                            combined_mask = np.ma.getmask(tmp_var)
-                        else:
-                            combined_mask = \
-                                np.ma.mask_or(combined_mask,
-                                              np.ma.getmask(tmp_var),
-                                              shrink=False)
-                    try:
-                        if len(missing_indices) != len(combined_mask):
-                            # TODO: mask mismatch due to 2 added points
-                            raise ValueError('Mismatch of masks')
-                        missing_indices = missing_indices[combined_mask]
-                    except Exception as ex:  # Not sure what is happening here
-                        logger.info(
-                            'Problems setting mask on missing_indices!')
-                        logger.exception(ex)
-                else:
-                    missing_indices = []  # temporary workaround
+                if not hasattr(env_tmp[variable_group[0]], 'mask'):
+                    env_tmp[variable_group[0]] = np.ma.masked_invalid(
+                        env_tmp[variable_group[0]])
+                try:
+                    del combined_mask
+                except:
+                    pass
+                for var in variable_group:
+                    tmp_var = np.ma.masked_invalid(env_tmp[var])
+                    # Changed 13 Oct 2016, but uncertain of effect
+                    # TODO: to be checked
+                    #tmp_var = env_tmp[var]
+                    if 'combined_mask' not in locals():
+                        combined_mask = np.ma.getmask(tmp_var)
+                    else:
+                        combined_mask = \
+                            np.ma.mask_or(combined_mask,
+                                          np.ma.getmask(tmp_var),
+                                          shrink=False)
+                try:
+                    if len(missing_indices) != len(combined_mask):
+                        # TODO: mask mismatch due to 2 added points
+                        raise ValueError('Mismatch of masks')
+                    missing_indices = missing_indices[combined_mask]
+                except Exception as ex:  # Not sure what is happening here
+                    logger.info('Problems setting mask on missing_indices!')
+                    logger.exception(ex)
                 if (type(missing_indices)
                         == np.int64) or (type(missing_indices) == np.int32):
                     missing_indices = []
@@ -677,7 +683,7 @@ class Environment(Timeable, Configurable):
                         '      Using fallback value %s for %s for all profiles'
                         % (self.fallback_values[var], var))
                     env_profiles[var] = self.fallback_values[var]*\
-                        np.ma.ones((len(env_profiles['z']), len(lon)))
+                        np.ma.ones((len(env_profiles['z']), num_elements_active))
                 else:
                     mask = env_profiles[var].mask
                     num_masked_values_per_element = np.sum(mask == True)

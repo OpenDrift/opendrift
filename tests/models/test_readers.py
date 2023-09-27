@@ -441,7 +441,7 @@ class TestReaders(unittest.TestCase):
         # by both readers, and two points covered by none of the readers
         testlon = np.array((14.0, 20.0, 20.1, 4, 5))
         testlat = np.array((70.1, 76.0, 76.1, 60, 60))
-        testz = np.random.uniform(0, 0, len(testlon))
+        testz = np.zeros(testlat.shape)
         self.assertIsNone(np.testing.assert_array_almost_equal(
             [0], reader_nordic.covers_positions(testlon, testlat, testz)[0]))
         self.assertIsNone(np.testing.assert_array_almost_equal(
@@ -450,7 +450,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(testlon, testlat, z=testz, time=reader_nordic.start_time)
         o.set_config('environment:fallback:land_binary_mask', 0)
         env, env_profiles, missing = \
-            o.get_environment(list(o.required_variables),
+            o.env.get_environment(list(o.required_variables),
                               reader_nordic.start_time,
                               testlon, testlat, testz,
                               o.required_profiles)
@@ -467,7 +467,7 @@ class TestReaders(unittest.TestCase):
                                2.095, 3)
         # Get separate data
         env2, env_profiles2, missing2 = \
-            o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
+            o.env.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
                                'sea_water_temperature'],
                               reader_nordic.start_time,
                               testlon, testlat, testz,
@@ -477,7 +477,7 @@ class TestReaders(unittest.TestCase):
             set(['z', 'sea_water_temperature']))
         # Get separate data, without profile
         env3, env_profiles3, missing3 = \
-            o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
+            o.env.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
                                'sea_water_temperature'],
                               reader_nordic.start_time,
                               testlon, testlat, testz,
@@ -485,7 +485,7 @@ class TestReaders(unittest.TestCase):
         self.assertTrue(env_profiles3 is None)
         # Get separate data
         env4, env_profiles4, missing4 = \
-            o.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
+            o.env.get_environment(['x_sea_water_velocity', 'y_sea_water_velocity',
                                'sea_water_temperature'],
                               reader_nordic.start_time,
                               testlon, testlat, testz,
