@@ -362,13 +362,13 @@ class ChemicalDrift(OceanDrift):
         logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
         self.SPM_vertical_levels_given = False
-        for key, value in self.readers.items():
+        for key, value in self.env.readers.items():
             if 'spm' in value.variables:
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.SPM_vertical_levels_given = True
 
         self.DOC_vertical_levels_given = False
-        for key, value in self.readers.items():
+        for key, value in self.env.readers.items():
             if 'doc' in value.variables:
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.DOC_vertical_levels_given = True
@@ -1930,14 +1930,14 @@ class ChemicalDrift(OceanDrift):
         from netCDF4 import Dataset, date2num #, stringtochar
 
         if landmask_shapefile is not None:
-            if 'shape' in self.readers.keys():
+            if 'shape' in self.env.readers.keys():
                 # removing previously stored landmask
-                del self.readers['shape']
+                del self.env.readers['shape']
             # Adding new landmask
             from opendrift.readers import reader_shape
             custom_landmask = reader_shape.Reader.from_shpfiles(landmask_shapefile)
             self.add_reader(custom_landmask)
-        elif 'global_landmask' not in self.readers.keys():
+        elif 'global_landmask' not in self.env.readers.keys():
             from opendrift.readers import reader_global_landmask
             global_landmask = reader_global_landmask.Reader()
             self.add_reader(global_landmask)
@@ -2024,9 +2024,9 @@ class ChemicalDrift(OceanDrift):
 
         landmask = np.zeros_like(H[0,0,0,:,:])
         if landmask_shapefile is not None:
-            landmask = self.readers['shape'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
         else:
-            landmask = self.readers['global_landmask'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
         Landmask=np.zeros_like(H)
         for zi in range(len(z_array)-1):
             for sp in range(self.nspecies):

@@ -22,7 +22,7 @@ import traceback
 import inspect
 import logging
 
-from opendrift.models.basemodel.environment import Environment
+from opendrift.models.basemodel.environment import Environment, HasEnvironment
 
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ from opendrift.models.physics_methods import PhysicsMethods
 from opendrift.config import Configurable, CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
-class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
+class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
@@ -114,7 +114,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     }
 
     max_speed = 1  # Assumed max average speed of any element
-    required_profiles_z_range = None  # [min_depth, max_depth]
     plot_comparison_colors = [
         'k', 'r', 'g', 'b', 'm', 'c', 'y', 'crimson', 'indigo', 'lightcoral',
         'grey', 'sandybrown', 'palegreen', 'gold', 'yellowgreen', 'lime',
@@ -172,7 +171,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
 
-        self.env = Environment(self.required_variables, self._config)
+        self.env = Environment(self.required_variables, self.required_profiles_z_range, self.max_speed, self._config)
 
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
@@ -698,6 +697,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def required_variables(self):
         """Any trajectory model implementation must list needed variables."""
 
+    @abstractproperty
+    def required_profiles_z_range(self):
+        """Any trajectory model implementation must list range or return None."""
+
     def test_data_folder(self):
         import opendrift
         return os.path.abspath(
@@ -709,8 +712,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         outStr = '--------------------\n'
         outStr += 'Reader performance:\n'
-        for r in self.readers:
-            reader = self.readers[r]
+        for r in self.env.readers:
+            reader = self.env.readers[r]
             if reader.is_lazy:
                 continue
             outStr += '--------------------\n'
@@ -1811,7 +1814,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if steps is not None:
                 duration = steps * self.time_step
             else:
-                for reader in self.readers.values():
+                for reader in self.env.readers.values():
                     if reader.end_time is not None:
                         if end_time is None:
                             end_time = reader.end_time
@@ -2101,11 +2104,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             else:
                 readers = self.env.priority_list[var]
                 if readers[0].startswith(
-                        'constant_reader') and var in self.readers[
+                        'constant_reader') and var in self.env.readers[
                             readers[0]]._parameter_value_map:
                     self.add_metadata(
                         keyword,
-                        self.readers[readers[0]]._parameter_value_map[var][0])
+                        self.env.readers[readers[0]]._parameter_value_map[var][0])
                 else:
                     self.add_metadata(keyword, self.env.priority_list[var])
 
@@ -2427,7 +2430,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if 'land_binary_mask' in self.env.priority_list and self.env.priority_list[
                     'land_binary_mask'][0] == 'shape':
                 logger.debug('Using custom shapes for plotting land..')
-                ax.add_geometries(self.readers['shape'].polys,
+                ax.add_geometries(self.env.readers['shape'].polys,
                                   ccrs.PlateCarree(globe=globe),
                                   facecolor=land_color,
                                   edgecolor='black')
@@ -3699,8 +3702,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             variable = background[0]  # A vector is requested
         else:
             variable = background  # A scalar is requested
-        for readerName in self.readers:
-            reader = self.readers[readerName]
+        for readerName in self.env.readers:
+            reader = self.env.readers[readerName]
             if variable in reader.variables:
                 if time is None or reader.start_time is None or (
                         time >= reader.start_time
@@ -4398,7 +4401,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 outStr += '  ' + variable + '\n'
 
         lazy_readers = [
-            r for r in self.readers if self.readers[r].is_lazy is True
+            r for r in self.env.readers if self.env.readers[r].is_lazy is True
         ]
         if len(lazy_readers) > 0:
             outStr += '---\nLazy readers:\n'
@@ -4537,7 +4540,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if reader is None:
             logger.info('No reader provided, using first available:')
-            reader = list(self.readers.items())[0][1]
+            reader = list(self.env.readers.items())[0][1]
             logger.info(reader.name)
         if isinstance(reader, pyproj.Proj):
             proj = reader

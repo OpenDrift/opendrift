@@ -104,6 +104,8 @@ class OpenBerg(OpenDriftSimulation):
         'land_binary_mask': {'fallback': None},
         }
 
+    required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
+
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
                      'missing_data': 'gray', 'stranded': 'red'}
@@ -115,8 +117,6 @@ class OpenBerg(OpenDriftSimulation):
 
         #self.required_profiles = ['x_sea_water_velocity',
         #                          'y_sea_water_velocity']  # Get vertical current profiles
-
-        self.required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
 
         # Calling general constructor of parent class
         super(OpenBerg, self).__init__(*args, **kwargs)
@@ -183,7 +183,7 @@ class OpenBerg(OpenDriftSimulation):
         """
         # Retrieve profile provided in z dimension by reader
         variable_groups, reader_groups, missing_variables = \
-         	self.get_reader_groups(['x_sea_water_velocity','y_sea_water_velocity'])
+         	self.env.get_reader_groups(['x_sea_water_velocity','y_sea_water_velocity'])
 
         if len(reader_groups) == 0:
         	# No current data -> fallback values used
@@ -192,10 +192,10 @@ class OpenBerg(OpenDriftSimulation):
 
 		# Obtain depth levels from reader:
         reader_name = reader_groups[0][0]
-        if hasattr(self.readers[reader_name], 'z'):
-            profile = np.abs(np.ma.filled(self.readers[reader_name].z))
+        if hasattr(self.env.readers[reader_name], 'z'):
+            profile = np.abs(np.ma.filled(self.env.readers[reader_name].z))
         else:  # ROMS sigma levels
-            profile = np.abs(np.ma.filled(self.readers[reader_name].zlevels))
+            profile = np.abs(np.ma.filled(self.env.readers[reader_name].zlevels))
 
         # If current data is missing in at least one dimension, no weighting is performed:
         if len(missing_variables) > 0:

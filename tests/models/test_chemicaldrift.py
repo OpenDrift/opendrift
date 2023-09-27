@@ -32,7 +32,7 @@ def test_chemicaldrift_partitioning_organics():
 
     days=300
     ntraj=200
-    
+
     # If one parameter is given as a list, different instances of
     # ChemicalDrift will be created
     configs = [
@@ -49,14 +49,14 @@ def test_chemicaldrift_partitioning_organics():
     [ "chemical:particle_diameter_uncertainty"  , 0                     ],
     [ "drift:vertical_mixing"                   , False                 ],
     ]
-    
+
     # possible to specify lists of different constant readers values
     # that will be used in different longitude intervals
     readers = [
     [ "spm"                                     , 80                    ],
     [ "x_sea_water_velocity"                    , 0                     ],
     [ "y_sea_water_velocity"                    , 0                     ]]
-    
+
     # Build list of ChemicalDrift objecs with different parameters
     o=list()
     for i in range(len(configs)):

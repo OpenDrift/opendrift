@@ -1,5 +1,5 @@
 import logging
-from typing import OrderedDict, Dict
+from typing import OrderedDict, Dict, List
 import copy
 import traceback
 import numpy as np
@@ -20,13 +20,12 @@ class Environment(Timeable, Configurable):
     readers: OrderedDict
     priority_list: OrderedDict
     required_variables: Dict
-    required_profiles_z_range = None  # [min_depth, max_depth]
-
-    max_speed = 1.0
+    required_profiles_z_range: List[float]  # [min_depth, max_depth]
+    max_speed: float
 
     proj_latlon = pyproj.Proj('+proj=latlong')
 
-    def __init__(self, required_variables, _config):
+    def __init__(self, required_variables, required_profiles_z_range, max_speed, _config):
         super().__init__()
 
         self.fallback_values = {}
@@ -34,7 +33,9 @@ class Environment(Timeable, Configurable):
         self.priority_list = OrderedDict()
 
         self.required_variables = required_variables
-        self._config = _config
+        self.required_profiles_z_range = required_profiles_z_range
+        self.max_speed = max_speed
+        self._config = _config # reference to simulation config
 
         # Find variables which require profiles
         self.required_profiles = [
@@ -50,7 +51,7 @@ class Environment(Timeable, Configurable):
             and self.required_variables[var]['important'] is False
         ]
 
-    def finalize(self, simulation: Configurable, simulation_extent):
+    def finalize(self, simulation: 'OpenDriftSimulation', simulation_extent):
         """
         Prepare environment for simulation.
         """
@@ -821,3 +822,12 @@ class Environment(Timeable, Configurable):
         self.timer_end('main loop:readers')
 
         return env.view(np.recarray), env_profiles, missing
+
+class HasEnvironment:
+    """
+    A class that has an `Environment`. Some shortcuts for dealing with readers are provided to the inner `env` instance.
+    """
+    env: Environment
+
+    def add_reader(self, readers, variables=None, first=False):
+        self.env.add_reader(readers, variables, first)
