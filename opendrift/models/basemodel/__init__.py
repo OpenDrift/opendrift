@@ -49,7 +49,6 @@ import cartopy.feature as cfeature
 import opendrift
 from opendrift.timer import Timeable
 from opendrift.errors import NotCoveredError
-from opendrift.readers.basereader import BaseReader, standard_names
 from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.models.physics_methods import PhysicsMethods
 from opendrift.config import Configurable, CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
@@ -247,17 +246,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
         # Set configuration options
         self._add_config({
             # type, default, min, max, enum, important, value, units, description
-            'general:use_auto_landmask': {
-                'type':
-                'bool',
-                'default':
-                True,
-                'description':
-                'A built-in GSHHG global landmask is used if True, '
-                'otherwise landmask is taken from reader or fallback value.',
-                'level':
-                CONFIG_LEVEL_ADVANCED
-            },
             'general:coastline_action': {
                 'type':
                 'enum',
@@ -346,26 +334,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
                 CONFIG_LEVEL_ADVANCED,
                 'description':
                 'Numerical advection scheme for ocean current advection'
-            },
-            'drift:current_uncertainty': {
-                'type': 'float',
-                'default': 0,
-                'min': 0,
-                'max': 5,
-                'units': 'm/s',
-                'description':
-                'Add gaussian perturbation with this standard deviation to current components at each time step',
-                'level': CONFIG_LEVEL_ADVANCED
-            },
-            'drift:current_uncertainty_uniform': {
-                'type': 'float',
-                'default': 0,
-                'min': 0,
-                'max': 5,
-                'units': 'm/s',
-                'description':
-                'Add gaussian perturbation with this standard deviation to current components at each time step',
-                'level': CONFIG_LEVEL_ADVANCED
             },
             'drift:horizontal_diffusivity': {
                 'type': 'float',
@@ -473,49 +441,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             }
         self._add_config(c)
 
-        # Add constant and fallback environment variables to config
-        c = {}
-        for v in self.required_variables:
-            minval = maxval = units = None
-            description_constant = 'Use constant value for %s' % v
-            description_fallback = 'Fallback value for %s if not available from any reader' % v
-            if v in standard_names:
-                if 'valid_min' in standard_names[v]:
-                    minval = standard_names[v]['valid_min']
-                if 'valid_max' in standard_names[v]:
-                    maxval = standard_names[v]['valid_max']
-                if 'long_name' in standard_names[v]:
-                    description_constant = description_fallback = standard_names[
-                        v]['long_name']
-                if 'units' in standard_names[v]:
-                    units = standard_names[v]['units']
-            c['environment:constant:%s' % v] = {
-                'type': 'float',
-                'min': minval,
-                'max': maxval,
-                'units': units,
-                'default': None,
-                'level': CONFIG_LEVEL_BASIC,
-                'description': description_constant
-            }
-            c['environment:fallback:%s' % v] = {
-                'type':
-                'float',
-                'min':
-                minval,
-                'max':
-                maxval,
-                'units':
-                units,
-                'default':
-                self.required_variables[v]['fallback']
-                if 'fallback' in self.required_variables[v] else None,
-                'level':
-                CONFIG_LEVEL_BASIC,
-                'description':
-                description_fallback
-            }
-        self._add_config(c)
 
         self.history = None  # Recarray to store trajectories and properties
 
@@ -849,6 +774,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
             o.env.add_reader(reader_landmask)
+            o.env.finalize()
             land_reader = reader_landmask
         else:
             logger.info('Using existing reader for land_binary_mask')

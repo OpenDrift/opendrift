@@ -5,7 +5,8 @@ import numpy as np
 import pyproj
 
 from opendrift.timer import Timeable
-from opendrift.readers.basereader import BaseReader
+from opendrift.config import CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
+from opendrift.readers.basereader import BaseReader, standard_names
 from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.errors import NotCoveredError
 from opendrift.models import physics_methods as pm
@@ -27,6 +28,8 @@ class Environment(Timeable, Configurable):
 
     proj_latlon = pyproj.Proj('+proj=latlong')
 
+    __finalized__ = False
+
     def __init__(self, required_variables, required_profiles_z_range, max_speed, _config):
         super().__init__()
 
@@ -39,6 +42,94 @@ class Environment(Timeable, Configurable):
         self.required_profiles_z_range = required_profiles_z_range
         self.max_speed = max_speed
         self._config = _config # reference to simulation config
+
+        # Add constant and fallback environment variables to config
+        c = {}
+        for v in self.required_variables:
+            minval = maxval = units = None
+            description_constant = 'Use constant value for %s' % v
+            description_fallback = 'Fallback value for %s if not available from any reader' % v
+            if v in standard_names:
+                if 'valid_min' in standard_names[v]:
+                    minval = standard_names[v]['valid_min']
+                if 'valid_max' in standard_names[v]:
+                    maxval = standard_names[v]['valid_max']
+                if 'long_name' in standard_names[v]:
+                    description_constant = description_fallback = standard_names[
+                        v]['long_name']
+                if 'units' in standard_names[v]:
+                    units = standard_names[v]['units']
+            c['environment:constant:%s' % v] = {
+                'type': 'float',
+                'min': minval,
+                'max': maxval,
+                'units': units,
+                'default': None,
+                'level': CONFIG_LEVEL_BASIC,
+                'description': description_constant
+            }
+            c['environment:fallback:%s' % v] = {
+                'type':
+                'float',
+                'min':
+                minval,
+                'max':
+                maxval,
+                'units':
+                units,
+                'default':
+                self.required_variables[v]['fallback']
+                if 'fallback' in self.required_variables[v] else None,
+                'level':
+                CONFIG_LEVEL_BASIC,
+                'description':
+                description_fallback
+            }
+        self._add_config(c)
+
+        self._add_config({
+            'general:use_auto_landmask': {
+                'type':
+                'bool',
+                'default':
+                True,
+                'description':
+                'A built-in GSHHG global landmask is used if True, '
+                'otherwise landmask is taken from reader or fallback value.',
+                'level':
+                CONFIG_LEVEL_ADVANCED
+            },
+            'drift:current_uncertainty': {
+                'type': 'float',
+                'default': 0,
+                'min': 0,
+                'max': 5,
+                'units': 'm/s',
+                'description':
+                'Add gaussian perturbation with this standard deviation to current components at each time step',
+                'level': CONFIG_LEVEL_ADVANCED
+            },
+            'drift:current_uncertainty_uniform': {
+                'type': 'float',
+                'default': 0,
+                'min': 0,
+                'max': 5,
+                'units': 'm/s',
+                'description':
+                'Add gaussian perturbation with this standard deviation to current components at each time step',
+                'level': CONFIG_LEVEL_ADVANCED
+            },
+            'readers:max_number_of_fails': {
+                'type': 'int',
+                'default': 1,
+                'min': 0,
+                'max': 1e6,
+                'units': 'number',
+                'description':
+                'Readers are discarded if they fail (e.g. corrupted data, og hanging servers) move than this number of times',
+                'level': CONFIG_LEVEL_ADVANCED
+            },
+        })
 
         # Find variables which require profiles
         self.required_profiles = [
@@ -70,6 +161,8 @@ class Environment(Timeable, Configurable):
         self.__add_auto_landmask__()
         self.__assert_no_missing_variables__()
         self.prepare_readers(simulation_extent, start, end)
+
+        self.__finalized__ = True
 
     def prepare_readers(self, extent, start_time, end_time):
         for reader in self.readers.values():
@@ -420,6 +513,20 @@ class Environment(Timeable, Configurable):
     def get_environment(self, variables, time, lon, lat, z, profiles):
         '''Retrieve environmental variables at requested positions.
 
+        Args:
+
+            variables: list of variable names
+
+            time: time to get environment for
+
+            lon: array of longitudes
+
+            lat: array of latitudes
+
+            z: depth to get value for
+
+            profiles: ?
+
         Updates:
             Buffer (raw data blocks) for each reader stored for performance:
                 [readers].var_block_before (last before requested time)
@@ -431,8 +538,9 @@ class Environment(Timeable, Configurable):
                          interpolated to requested positions/time.
 
         '''
+        assert self.__finalized__ is True, 'The environment has not been finalized.'
+
         self.timer_start('main loop:readers')
-        print(f"{variables=}")
         # Initialise ndarray to hold environment variables
         dtype = [(var, np.float32) for var in variables]
         env = np.ma.array(np.zeros(len(lon)) * np.nan, dtype=dtype)
