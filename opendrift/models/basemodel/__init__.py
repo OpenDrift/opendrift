@@ -1635,18 +1635,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
-    def set_fallback_values(self, refresh=False):
-        if hasattr(self, 'fallback_values') and refresh is False:
-            raise ValueError(
-                'Manually editing fallback_values dict is deprecated, please use set_config()'
-            )
-        else:
-            c = self.get_configspec('environment:fallback:')
-            self.fallback_values = {}
-            for var in list(c):
-                if c[var]['value'] is not None:
-                    self.fallback_values[var.split(':')[-1]] = c[var]['value']
-
     def run(self,
             time_step=None,
             steps=None,
@@ -1706,52 +1694,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
         self.add_metadata('seed_geojson',
                           geojson.FeatureCollection(self.seed_geojson))
 
-        # Collect fallback values from config into dict
-        self.set_fallback_values(refresh=True)
-
         if outfile is None and export_buffer_length is not None:
             logger.debug('No output file is specified, '
                          'neglecting export_buffer_length')
             export_buffer_length = None
-
-        # Make constant readers if config environment:constant:<var> is
-        c = self.get_configspec('environment:constant:')
-        mr = {}
-        for var in list(c):
-            if c[var]['value'] is not None:
-                mr[var.split(':')[-1]] = c[var]['value']
-        if len(mr) > 0:
-            from opendrift.readers import reader_constant
-            rc = reader_constant.Reader(mr)
-            self.add_reader(rc, first=True)
-
-        missing_variables = self.env.missing_variables()
-        missing_variables = [
-            m for m in missing_variables if m != 'land_binary_mask'
-        ]
-        if len(missing_variables) > 0:
-            has_fallback = [
-                var for var in missing_variables if var in self.fallback_values
-            ]
-            has_no_fallback = [
-                var for var in missing_variables
-                if var not in self.fallback_values
-            ]
-            #if has_fallback == missing_variables:
-            if len(has_fallback) > 0:  # == missing_variables:
-                logger.info('Fallback values will be used for the following '
-                            'variables which have no readers: ')
-                for var in has_fallback:
-                    logger.info('\t%s: %f' % (var, self.fallback_values[var]))
-            #else:
-            if len(has_no_fallback) > 0 and len(
-                    self._lazy_readers()) == 0:  # == missing_variables:
-                logger.warning(
-                    'No readers added for the following variables: ' +
-                    str(has_no_fallback))
-                raise ValueError('Readers must be added for the '
-                                 'following required variables: ' +
-                                 str(has_no_fallback))
 
         # Some cleanup needed if starting from imported state
         if self.steps_calculation >= 1:
@@ -2097,8 +2043,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
         for var in self.required_variables:
             keyword = 'reader_' + var
             if var not in self.env.priority_list:
-                if var in self.fallback_values:
-                    self.add_metadata(keyword, self.fallback_values[var])
+                if var in self.env.fallback_values:
+                    self.add_metadata(keyword, self.env.fallback_values[var])
                 else:
                     self.add_metadata(keyword, None)
             else:

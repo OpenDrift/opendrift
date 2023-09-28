@@ -14,7 +14,6 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import sys
 from datetime import datetime, timedelta
 import numpy as np
 from scipy.interpolate import interp1d

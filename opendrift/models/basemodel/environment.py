@@ -54,29 +54,40 @@ class Environment(Timeable, Configurable):
             and self.required_variables[var]['important'] is False
         ]
 
-    def finalize(self, simulation: 'OpenDriftSimulation', simulation_extent):
+    def finalize(self, simulation_extent=None, start=None, end=None):
         """
         Prepare environment for simulation.
-        """
-        self.fallback_values = simulation.get_fallback_values()
-        self.__generate_constant_readers__(simulation)
-        self.__add_auto_landmask__(simulation)
-        self.__assert_no_missing_variables__()
-        self.prepare_readers(simulation_extent, simulation.start_time,
-                             simulation.expected_end_time,
-                             simulation.max_speed)
 
-    def prepare_readers(self, extent, start_time, end_time, max_speed):
+        Args:
+
+            simulation_extent: The expected extent of the simulation.
+
+            start: Expected start time of simulation.
+
+            end: Expected end time of simulation.
+        """
+        self.__generate_constant_readers__()
+        self.__add_auto_landmask__()
+        self.__assert_no_missing_variables__()
+        self.prepare_readers(simulation_extent, start, end)
+
+    def prepare_readers(self, extent, start_time, end_time):
         for reader in self.readers.values():
             logger.debug('\tPreparing %s' % reader.name)
             reader.prepare(extent=extent,
                            start_time=start_time,
                            end_time=end_time,
-                           max_speed=max_speed)
+                           max_speed=self.max_speed)
 
-    def __generate_constant_readers__(self, config: Configurable):
+    def __generate_constant_readers__(self):
+        c = self.get_configspec('environment:fallback:')
+        self.fallback_values = {}
+        for var in list(c):
+            if c[var]['value'] is not None:
+                self.fallback_values[var.split(':')[-1]] = c[var]['value']
+
         # Make constant readers if config environment:constant:<var> is
-        c = config.get_configspec('environment:constant:')
+        c = self.get_configspec('environment:constant:')
         mr = {}
         for var in list(c):
             if c[var]['value'] is not None:
@@ -86,13 +97,13 @@ class Environment(Timeable, Configurable):
             rc = reader_constant.Reader(mr)
             self.add_reader(rc, first=True)
 
-    def __add_auto_landmask__(self, config: Configurable):
+    def __add_auto_landmask__(self):
         ##############################################################
         # If no landmask has been added, we determine it dynamically
         ##############################################################
         # TODO: some more error checking here
         # If landmask is requested, it shall not be obtained from other readers
-        if config.get_config('general:use_auto_landmask') is True:
+        if self.get_config('general:use_auto_landmask', False) is True:
             if 'land_binary_mask' in self.priority_list:
                 if 'global_landmask' in self.priority_list['land_binary_mask']:
                     self.priority_list['land_binary_mask'] = [
@@ -101,7 +112,7 @@ class Environment(Timeable, Configurable):
                 else:
                     del self.priority_list['land_binary_mask']
 
-        if config.get_config('general:use_auto_landmask') is True and \
+        if self.get_config('general:use_auto_landmask', False) is True and \
                 ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list \
                 and 'land_binary_mask' not in self.fallback_values):
@@ -427,9 +438,6 @@ class Environment(Timeable, Configurable):
         env = np.ma.array(np.zeros(len(lon)) * np.nan, dtype=dtype)
 
         num_elements_active = len(lon)
-
-        if not hasattr(self, 'fallback_values'):
-            self.set_fallback_values(refresh=False)
 
         # Discard any existing readers which are not relevant
         for readername, reader in self.readers.copy().items():

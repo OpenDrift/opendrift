@@ -14,9 +14,12 @@ class Configurable:
     def __init__(self):
         self._config = {}
 
-    def get_config(self, key):
+    def get_config(self, key, default='raise'):
         if not key in self._config:
-            raise ValueError('No config setting named %s' % key)
+            if default == 'raise':
+                raise ValueError('No config setting named %s' % key)
+            else:
+                return default
         return (self._config[key]['value'])
 
     def list_config(self, prefix=''):
@@ -190,12 +193,3 @@ class Configurable:
             del config[r]
         self._config.update(config)
 
-    def get_fallback_values(self):
-        fallback_values = {}
-
-        c = self.get_configspec('environment:fallback:')
-        for var in list(c):
-            if c[var]['value'] is not None:
-                fallback_values[var.split(':')[-1]] = c[var]['value']
-
-        return fallback_values
