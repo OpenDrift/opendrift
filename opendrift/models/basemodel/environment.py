@@ -948,6 +948,23 @@ class Environment(Timeable, Configurable):
 
         return env.view(np.recarray), env_profiles, missing
 
+    def get_variables_along_trajectory(self, variables, lons, lats, times):
+        data = {'time': times, 'lon': lons, 'lat': lats}
+        for var in variables:
+            data[var] = np.zeros(len(times))
+        for i, time in enumerate(times):
+            self.time = time
+            d = self.get_environment(lon=np.atleast_1d(lons[i]),
+                                     lat=np.atleast_1d(lats[i]),
+                                     z=np.atleast_1d(0),
+                                     time=time,
+                                     variables=variables,
+                                     profiles=None)
+            for var in variables:
+                data[var][i] = d[0][var][0]
+
+        return data
+
 class HasEnvironment:
     """
     A class that has an `Environment`. Some shortcuts for dealing with readers are provided to the inner `env` instance.
