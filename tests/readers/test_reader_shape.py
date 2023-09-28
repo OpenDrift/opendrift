@@ -48,7 +48,7 @@ def test_global_array(test_data):
     # global
     oc = OceanDrift(loglevel=00)
     oc.add_reader([reader_nordic, reader_landmask])
-    en, en_prof, missing = oc.get_environment(['land_binary_mask'],
+    en, en_prof, missing = oc.env.get_environment(['land_binary_mask'],
                                               reader_nordic.start_time, lon,
                                               lat, np.array([0, 0]), None)
 
