@@ -4256,7 +4256,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
         outStr += '\t%s active %s particles  (%s deactivated, %s scheduled)\n'\
             % (self.num_elements_active(), self.ElementType.__name__,
                self.num_elements_deactivated(), self.num_elements_scheduled())
-        variable_groups, reader_groups, missing = self.get_reader_groups()
+        variable_groups, reader_groups, missing = self.env.get_reader_groups()
         outStr += '-------------------\n'
         outStr += 'Environment variables:\n'
         for i, variableGroup in enumerate(variable_groups):

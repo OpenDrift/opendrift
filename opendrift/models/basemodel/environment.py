@@ -157,6 +157,7 @@ class Environment(Timeable, Configurable):
 
             end: Expected end time of simulation.
         """
+        # TODO: discard irrelevant readers
         self.__generate_constant_readers__()
         self.__add_auto_landmask__()
         self.__assert_no_missing_variables__()
@@ -428,7 +429,7 @@ class Environment(Timeable, Configurable):
 
         return reader
 
-    def discard_reader_if_not_relevant(self, reader):
+    def discard_reader_if_not_relevant(self, reader, time):
         if reader.is_lazy:
             return False
         if reader.start_time is not None and reader.always_valid is False:
@@ -440,7 +441,7 @@ class Environment(Timeable, Configurable):
                        'start_time') and reader.end_time < self.start_time:
                 self.discard_reader(reader, 'ends before simuation start')
                 return True
-            if hasattr(self, 'time') and reader.end_time < self.time:
+            if time is not None and reader.end_time < time:
                 self.discard_reader(reader,
                                     'ends before simuation is finished')
                 return True
@@ -549,7 +550,7 @@ class Environment(Timeable, Configurable):
 
         # Discard any existing readers which are not relevant
         for readername, reader in self.readers.copy().items():
-            self.discard_reader_if_not_relevant(reader)
+            self.discard_reader_if_not_relevant(reader, time)
 
         if 'drift:truncate_ocean_model_below_m' in self._config:
             truncate_depth = self.get_config(
@@ -581,10 +582,10 @@ class Environment(Timeable, Configurable):
                 while reader is not None:
                     reader = self._initialise_next_lazy_reader()
                     if reader is not None:
-                        if self.discard_reader_if_not_relevant(reader):
+                        if self.discard_reader_if_not_relevant(reader, time):
                             reader = None
                     if reader is not None:
-                        if (reader.covers_time(self.time) and len(
+                        if (reader.covers_time(time) and len(
                                 reader.covers_positions(lon, lat)[0]) > 0):
                             missing_variables = list(
                                 set(missing_variables) - set(reader.variables))

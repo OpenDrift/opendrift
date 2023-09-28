@@ -38,7 +38,7 @@ def init(self, filename):
     self.outfile.model_url = 'https://github.com/OpenDrift/opendrift'
     self.outfile.opendrift_class = self.__class__.__name__
     self.outfile.opendrift_module = self.__class__.__module__
-    self.outfile.readers = str(self.readers.keys())
+    self.outfile.readers = str(self.env.readers.keys())
     self.outfile.time_coverage_start = str(self.start_time)
     self.outfile.time_step_calculation = str(self.time_step)
     self.outfile.time_step_output = str(self.time_step_output)

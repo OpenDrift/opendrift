@@ -371,7 +371,7 @@ class TestRun(unittest.TestCase):
                                     np.float32)]).view(np.recarray)
             o.environment_profiles = { 'z': z, 'ocean_vertical_diffusivity':
                                       np.tile(diffusivity, (N, 1)).T}
-            o.set_fallback_values()
+            o.env.finalize()
             o.vertical_mixing()
             self.assertAlmostEqual(o.elements.z.min(), case['zmin'], 1)
             self.assertAlmostEqual(o.elements.z.max(), case['zmax'], 1)

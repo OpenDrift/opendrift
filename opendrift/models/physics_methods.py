@@ -762,7 +762,7 @@ class PhysicsMethods:
                                                az, dist, radians=False)
             # Find current at midpoint, a half timestep later
             logger.debug('Runge-kutta, fetching half time-step later...')
-            mid_env, profiles, missing = self.get_environment(
+            mid_env, profiles, missing = self.env.get_environment(
                 ['x_sea_water_velocity', 'y_sea_water_velocity'],
                 self.time + self.time_step/2,
                 mid_lon, mid_lat, self.elements.z, profiles=None)
@@ -777,7 +777,7 @@ class PhysicsMethods:
                     geod.fwd(self.elements.lon,
                              self.elements.lat,
                              az2, dist2, radians=False)
-                env2, profiles, missing = self.get_environment(
+                env2, profiles, missing = self.env.get_environment(
                     ['x_sea_water_velocity', 'y_sea_water_velocity'],
                     self.time + self.time_step/2,
                     lon2, lat2, self.elements.z, profiles=None)
@@ -791,7 +791,7 @@ class PhysicsMethods:
                     geod.fwd(self.elements.lon,
                              self.elements.lat,
                              az3, dist3, radians=False)
-                env3, profiles, missing = self.get_environment(
+                env3, profiles, missing = self.env.get_environment(
                     ['x_sea_water_velocity', 'y_sea_water_velocity'],
                     self.time + self.time_step,
                     lon3, lat3, self.elements.z, profiles=None)

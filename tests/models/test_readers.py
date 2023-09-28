@@ -245,7 +245,7 @@ class TestReaders(unittest.TestCase):
         o1.required_variables = [r for r in o1.required_variables
                                  if r != 'land_binary_mask']
         o1.add_readers_from_list(reader_list, lazy=False)
-        time = o1.readers['roms native'].start_time
+        time = o1.env.readers['roms native'].start_time
         o1.seed_elements(lat=67.85, lon=14, time=time)
         o1.run(steps=5)
 
@@ -449,6 +449,7 @@ class TestReaders(unittest.TestCase):
             reader_arctic.covers_positions(testlon, testlat, testz)[0]))
         o.seed_elements(testlon, testlat, z=testz, time=reader_nordic.start_time)
         o.set_config('environment:fallback:land_binary_mask', 0)
+        o.env.finalize()
         env, env_profiles, missing = \
             o.env.get_environment(list(o.required_variables),
                               reader_nordic.start_time,
