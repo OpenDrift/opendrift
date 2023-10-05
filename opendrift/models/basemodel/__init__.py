@@ -774,7 +774,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
             o.env.add_reader(reader_landmask)
-            o.env.finalize()
+            #o.env.finalize()
             land_reader = reader_landmask
         else:
             logger.info('Using existing reader for land_binary_mask')
@@ -1746,7 +1746,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
         # Store expected simulation extent, to check if new readers have coverage
         self.simulation_extent = simulation_extent
 
-        self.env.finalize(self, simulation_extent)
+        self.env.finalize(self.simulation_extent)
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
@@ -1875,6 +1875,28 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
                 logger.debug('%s elements scheduled.' %
                              self.num_elements_scheduled())
                 logger.debug('===================================' * 2)
+                if len(self.elements.lon) > 0:
+                    lonmin = self.elements.lon.min()
+                    lonmax = self.elements.lon.max()
+                    latmin = self.elements.lat.min()
+                    latmax = self.elements.lat.max()
+                    zmin = self.elements.z.min()
+                    zmax = self.elements.z.max()
+                    if latmin == latmax:
+                        logger.debug('\t\tlatitude =  %s' % (latmin))
+                    else:
+                        logger.debug('\t\t%s <- latitude  -> %s' %
+                                     (latmin, latmax))
+                    if lonmin == lonmax:
+                        logger.debug('\t\tlongitude = %s' % (lonmin))
+                    else:
+                        logger.debug('\t\t%s <- longitude -> %s' %
+                                     (lonmin, lonmax))
+                    if zmin == zmax:
+                        logger.debug('\t\tz = %s' % (zmin))
+                    else:
+                        logger.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
+                    logger.debug('---------------------------------')
 
                 self.environment, self.environment_profiles, missing = \
                     self.env.get_environment(list(self.required_variables),
