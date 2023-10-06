@@ -28,10 +28,6 @@ time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=30)]
 #time = reader_arome.start_time
 
-# Seed oil elements at defined position and time
-o.seed_elements(lon=4.6, lat=60.0, radius=50, number=3000, time=time,
-                wind_drift_factor=.02)
-
 #%%
 # Adjusting some configuration
 o.set_config('drift:vertical_mixing', False)
@@ -40,6 +36,10 @@ o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
 o.set_config('drift:current_uncertainty', .1)
 o.set_config('drift:wind_uncertainty', 1)
+
+# Seed oil elements at defined position and time
+o.seed_elements(lon=4.6, lat=60.0, radius=50, number=3000, time=time,
+                wind_drift_factor=.02)
 
 #%%
 # Running model

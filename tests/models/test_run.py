@@ -31,6 +31,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.basemodel import Mode
 from opendrift.models.openoil import OpenOil
 from opendrift.models.leeway import Leeway
 from opendrift.models.pelagicegg import PelagicEggDrift
@@ -90,6 +91,25 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_activated(), 0)
         self.assertEqual(o.num_elements_deactivated(), 0)
         self.assertEqual(o.num_elements_total(), number)
+
+    def test_modes(self):
+        '''Test that methods are not allowed if wrong mode'''
+        o = OceanDrift(loglevel=50)
+        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+                    '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        o.set_config('environment:constant:land_binary_mask', 0)
+        o.set_config('general:use_auto_landmask', False)
+        o.add_reader(norkyst)
+        assert o.mode == Mode.Config
+        o.seed_elements(lon=3, lat=60, time=datetime.now())
+        assert o.mode == Mode.Ready
+        with self.assertRaises(ValueError):  # Cannot add readers after elements have been seeded
+            o.add_reader(norkyst)
+        with self.assertRaises(ValueError):  # Cannot set config after readers have been added
+            o.set_config('seed:ocean_only', False)
+        o.run(steps=1)
+        assert o.mode == Mode.Result
+
 
     def test_seed_cone(self):
         o = OceanDrift(loglevel=20)

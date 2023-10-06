@@ -22,7 +22,7 @@ import traceback
 import inspect
 import logging
 
-from opendrift.models.basemodel.environment import Environment, HasEnvironment
+from opendrift.models.basemodel.environment import Environment
 
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
@@ -47,6 +47,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
 import opendrift
+from opendrift import Mode
 from opendrift.timer import Timeable
 from opendrift.errors import NotCoveredError
 from opendrift.readers import reader_from_url, reader_global_landmask
@@ -54,7 +55,8 @@ from opendrift.models.physics_methods import PhysicsMethods
 from opendrift.config import Configurable, CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
-class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment):
+
+class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     """Generic trajectory model class, to be extended (subclassed).
 
     This as an Abstract Base Class, meaning that only subclasses can
@@ -102,6 +104,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
     """
 
     __metaclass__ = ABCMeta
+
+    mode = Mode.Config
 
     status_categories = ['active']  # Particles are active by default
 
@@ -481,6 +485,20 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             self.metadata_dict = OrderedDict()
         self.metadata_dict[key] = value
 
+    def add_reader(self, readers, variables=None, first=False):
+
+        # Do not allow adding new readers after elements have been seeded
+        if self.mode != Mode.Config:
+            raise ValueError('Readers cannot be added after seeding elements')
+        self.env.add_reader(readers, variables, first)
+
+    def add_readers_from_list(self, *args, **kwargs):
+        '''Make readers from a list of URLs or paths to netCDF datasets'''
+        # Do not allow adding new readers after elements have been seeded
+        if self.mode != Mode.Config:
+            raise ValueError('Readers cannot be added after seeding elements')
+        self.env.add_readers_from_list(*args, **kwargs)
+
     def prepare_run(self):
         pass  # to be overloaded when needed
 
@@ -697,6 +715,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
 
         Also assigns a unique ID to each particle, monotonically increasing."""
 
+        # First time some elements are seeded/scheduled, we change mode to Ready
+        if self.mode == Mode.Config:
+            logger.debug('First seeding, changing mode to Ready')
+            self.mode = Mode.Ready
+
+        assert self.mode == Mode.Ready, 'Not ready for seeding'
+
         # prepare time
         if isinstance(time, np.ndarray):
             time = list(time)
@@ -774,7 +799,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
             o.env.add_reader(reader_landmask)
-            #o.env.finalize()
+            o.env.finalize()  # This is not env of the main simulation
             land_reader = reader_landmask
         else:
             logger.info('Using existing reader for land_binary_mask')
@@ -1606,6 +1631,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
                 saved to file. Default is None (all variables are saved)
         """
 
+        self.mode = Mode.Run
+
         # Exporting software and hardware specification, for possible debugging
         logger.debug(opendrift.versions())
 
@@ -2036,6 +2063,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable, HasEnvironment
                 del self.environment_profiles
             self.io_import_file(outfile)
 
+        self.mode = Mode.Result
         self.timer_end('cleaning up')
         self.timer_end('total time')
 

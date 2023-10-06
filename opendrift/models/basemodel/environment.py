@@ -166,7 +166,8 @@ class Environment(Timeable, Configurable):
         self.__finalized__ = True
 
     def prepare_readers(self, extent, start_time, end_time):
-        self.simulation_extent = extent
+        if extent is not None:
+            self.simulation_extent = extent
         for reader in self.readers.values():
             logger.debug('\tPreparing %s' % reader.name)
             reader.prepare(extent=extent,
@@ -942,16 +943,3 @@ class Environment(Timeable, Configurable):
                 data[var][i] = d[0][var][0]
 
         return data
-
-class HasEnvironment:
-    """
-    A class that has an `Environment`. Some shortcuts for dealing with readers are provided to the inner `env` instance.
-    """
-    env: Environment
-
-    def add_reader(self, readers, variables=None, first=False):
-        self.env.add_reader(readers, variables, first)
-
-    def add_readers_from_list(self, *args, **kwargs):
-        '''Make readers from a list of URLs or paths to netCDF datasets'''
-        self.env.add_readers_from_list(*args, **kwargs)
