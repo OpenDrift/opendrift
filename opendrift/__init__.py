@@ -10,11 +10,8 @@ Opendrift module
 """
 import logging; logger = logging.getLogger(__name__)
 import importlib
-from enum import Enum
 import numpy as np
 from .version import __version__
-
-Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 
 # For automated access to available drift classes, e.g. for GUI
 # Hardcoded for now

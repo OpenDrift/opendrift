@@ -1,6 +1,5 @@
 import logging
 from typing import Dict, Union
-from opendrift import Mode
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +60,6 @@ class Configurable:
         return configspec
 
     def set_config(self, key, value):
-        if self.mode != Mode.Config:
-            raise ValueError('Cannot set config after elements have been seeded')
         if not key in self._config:
             self.list_config()
             raise ValueError('No config setting named %s' % key)

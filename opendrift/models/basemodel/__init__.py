@@ -45,9 +45,10 @@ from matplotlib.patches import Polygon
 from matplotlib.path import Path
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from enum import Enum
+import functools
 
 import opendrift
-from opendrift import Mode
 from opendrift.timer import Timeable
 from opendrift.errors import NotCoveredError
 from opendrift.readers import reader_from_url, reader_global_landmask
@@ -55,6 +56,25 @@ from opendrift.models.physics_methods import PhysicsMethods
 from opendrift.config import Configurable, CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 
+Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
+
+class WrongMode(Exception):
+    def __init__(self, expected_mode, real_mode, msg = None):
+        super().__init__(f"Cannot call this function in this mode: {real_mode}, only in: {expected_mode}: {msg}")
+
+
+def require_mode(mode: Mode, error = None):
+    def _decorator(func):
+        @functools.wraps(func)
+        def inner(self, *args, **kwargs):
+            if self.mode != mode:
+                raise WrongMode(mode, self.mode, error)
+
+            func(self, *args, **kwargs)
+
+        return inner
+
+    return _decorator
 
 class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     """Generic trajectory model class, to be extended (subclassed).
@@ -477,6 +497,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'Dependencies are outdated, please update with: conda env update -f environment.yml'
             )
             logger.warning('#' * 82)
+
+    @require_mode(mode=Mode.Config, error='Cannot set config after elements have been seeded')
+    @functools.wraps(Configurable.set_config)
+    def set_config(self, *args, **kwargs):
+        return Configurable.set_config(self, *args, **kwargs)
 
     def add_metadata(self, key, value):
         """Add item to metadata dictionary, for export as netCDF global attributes"""
