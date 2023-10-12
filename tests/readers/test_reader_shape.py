@@ -47,11 +47,14 @@ def test_global_array(test_data):
 
     # global
     oc = OceanDrift(loglevel=00)
+    oc.set_config('general:use_auto_landmask', False)
     oc.add_reader([reader_nordic, reader_landmask])
+    oc.env.finalize()
     en, en_prof, missing = oc.env.get_environment(['land_binary_mask'],
                                               reader_nordic.start_time, lon,
                                               lat, np.array([0, 0]), None)
 
     np.testing.assert_array_equal(en.land_binary_mask, np.array([True, False]))
+    print(oc.env.readers)
     assert len(
-        oc.readers) == 2  # make sure opendrift doesn't add default basemap
+        oc.env.readers) == 2  # make sure opendrift doesn't add default basemap

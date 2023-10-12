@@ -744,6 +744,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if self.mode == Mode.Config:
             logger.debug('First seeding, changing mode to Ready')
             self.mode = Mode.Ready
+            self.env.finalize
 
         assert self.mode == Mode.Ready, 'Not ready for seeding'
 
@@ -1011,6 +1012,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   in self.env.priority_list) or len(self.env._lazy_readers()):
                 if not hasattr(self, 'time'):
                     self.time = time[0]
+                self.env.finalize()
                 env, env_profiles, missing = \
                     self.env.get_environment(['sea_floor_depth_below_sea_level'],
                                          time=time[0], lon=lon, lat=lat,

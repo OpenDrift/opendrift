@@ -36,21 +36,21 @@ class TestXarray(unittest.TestCase):
         if os.path.exists(outfile):
             os.remove(outfile)
         o = OceanDrift(loglevel=20)
-        o.set_config('environment:fallback:land_binary_mask', 0)
         t1 = datetime.now()
         t2 = t1 + timedelta(hours=6)
+        reader_x = reader_oscillating.Reader('x_sea_water_velocity',
+                        amplitude=1, zero_time=t1)
+        reader_y = reader_oscillating.Reader('y_sea_water_velocity',
+                        amplitude=1, zero_time=t2)
+        o.add_reader([reader_x, reader_y])
+        o.set_config('environment:fallback:land_binary_mask', 0)
+        o.set_config('drift:horizontal_diffusivity', 10)
         o.seed_elements(time=t1, lon=4, lat=60, number=100,
                         origin_marker=0)
         o.seed_elements(time=[t1, t2], lon=4.2, lat=60.2, number=100,
                         origin_marker=1)
         o.seed_elements(time=[t1, t2], lon=4.1, lat=60.1, number=100,
                         origin_marker=2)
-        reader_x = reader_oscillating.Reader('x_sea_water_velocity',
-                        amplitude=1, zero_time=t1)
-        reader_y = reader_oscillating.Reader('y_sea_water_velocity',
-                        amplitude=1, zero_time=t2)
-        o.add_reader([reader_x, reader_y])
-        o.set_config('drift:horizontal_diffusivity', 10)
         o.run(duration=timedelta(hours=12), time_step=1800, outfile=outfile)
         #o.plot(fast=True)
         density_pixelsize_m=5000

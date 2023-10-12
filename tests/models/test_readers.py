@@ -77,41 +77,43 @@ class TestReaders(unittest.TestCase):
                          [o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc'])
 
-    def test_repeated_run(self):
-        # NOTE: this test fails if outfile is not None
-        #outfile = 'leeway_test.nc'
-        outfile = None
-        o = OceanDrift(loglevel=50)
-        o.set_config('drift:vertical_mixing', False)
-        o.add_readers_from_list(reader_list)
-        o.seed_elements(lon=14, lat=67.85,
-                        time=datetime(2016, 2, 2, 12))
-        o.run(steps=5, outfile=outfile)
-        lon1 = o.get_property('lon')[0]
-        # Repeated run with same object
-        o.seed_elements(lon=14, lat=67.85,
-                        time=datetime(2016, 2, 2, 12))
-        o.run(steps=5, outfile=outfile)
-        lon2 = o.get_property('lon')[0]
-        # Third run, with different config
-        o.seed_elements(lon=14, lat=67.85,
-                        time=datetime(2016, 2, 2, 12),
-                        wind_drift_factor=.1)
-        o.run(steps=5)
-        lon3 = o.get_property('lon')[0]
-        # Fourth run, with different time
-        o.reset()  # Reset is needed due to new start_time
-        o.seed_elements(lon=14, lat=67.85,
-                        time=datetime(2016, 2, 2, 13),
-                        wind_drift_factor=.1)
-        o.run(steps=5, outfile=outfile)
-        lon4 = o.get_property('lon')[0]
+    # Disabling this test after simulations now have Mode,
+    # repeated run with same object not anymore allowed
+    #def test_repeated_run(self):
+    #    # NOTE: this test fails if outfile is not None
+    #    #outfile = 'leeway_test.nc'
+    #    outfile = None
+    #    o = OceanDrift(loglevel=50)
+    #    o.set_config('drift:vertical_mixing', False)
+    #    o.add_readers_from_list(reader_list)
+    #    o.seed_elements(lon=14, lat=67.85,
+    #                    time=datetime(2016, 2, 2, 12))
+    #    o.run(steps=5, outfile=outfile)
+    #    lon1 = o.get_property('lon')[0]
+    #    # Repeated run with same object
+    #    o.seed_elements(lon=14, lat=67.85,
+    #                    time=datetime(2016, 2, 2, 12))
+    #    o.run(steps=5, outfile=outfile)
+    #    lon2 = o.get_property('lon')[0]
+    #    # Third run, with different config
+    #    o.seed_elements(lon=14, lat=67.85,
+    #                    time=datetime(2016, 2, 2, 12),
+    #                    wind_drift_factor=.1)
+    #    o.run(steps=5)
+    #    lon3 = o.get_property('lon')[0]
+    #    # Fourth run, with different time
+    #    o.reset()  # Reset is needed due to new start_time
+    #    o.seed_elements(lon=14, lat=67.85,
+    #                    time=datetime(2016, 2, 2, 13),
+    #                    wind_drift_factor=.1)
+    #    o.run(steps=5, outfile=outfile)
+    #    lon4 = o.get_property('lon')[0]
 
-        # Check results
-        self.assertEqual(lon1[-1][0], lon2[-1][0])
-        self.assertNotEqual(lon3[-1][0], lon2[-1][0])
+    #    # Check results
+    #    self.assertEqual(lon1[-1][0], lon2[-1][0])
+    #    self.assertNotEqual(lon3[-1][0], lon2[-1][0])
 
-        #os.remove(outfile)
+    #    #os.remove(outfile)
 
     def test_reader_from_url(self):
         readers = reader_from_url(reader_list)
@@ -286,6 +288,7 @@ class TestReaders(unittest.TestCase):
     def test_automatic_landmask(self):
         o = OceanDrift(loglevel=20)
         self.assertRaises(ValueError, o.run)
+        o = OceanDrift(loglevel=20)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
         o.run(steps=2)
 
@@ -447,8 +450,8 @@ class TestReaders(unittest.TestCase):
         self.assertIsNone(np.testing.assert_array_almost_equal(
             [0, 1, 2],
             reader_arctic.covers_positions(testlon, testlat, testz)[0]))
-        o.seed_elements(testlon, testlat, z=testz, time=reader_nordic.start_time)
         o.set_config('environment:fallback:land_binary_mask', 0)
+        o.seed_elements(testlon, testlat, z=testz, time=reader_nordic.start_time)
         o.env.finalize()
         env, env_profiles, missing = \
             o.env.get_environment(list(o.required_variables),
@@ -527,15 +530,15 @@ class TestReaders(unittest.TestCase):
 
         o1 = OceanDrift(loglevel=50)
         o1.set_config('environment:fallback:x_sea_water_velocity', None)
+        o1.set_config('environment:fallback:land_binary_mask', 0)
         o1.add_reader(r1)
         o1.seed_elements(lon=15, lat=70.1, time=r1.start_time)
-        o1.set_config('environment:fallback:land_binary_mask', 0)
         o1.run(time_step=3600*3, duration=timedelta(hours=48))
         o2 = OceanDrift(loglevel=50)
         o2.set_config('environment:fallback:x_sea_water_velocity', None)
+        o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.add_reader(r2)
         o2.seed_elements(lon=15, lat=70.1, time=r1.start_time)
-        o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.run(time_step=3600*3, duration=timedelta(hours=48))
         # Compare
         lat1 = o1.get_property('lat')[0]

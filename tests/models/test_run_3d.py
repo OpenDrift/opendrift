@@ -48,12 +48,11 @@ class TestRun(unittest.TestCase):
         o.add_reader([reader_nordic, reader_arctic])
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 10)  # Some wind for mixing
+        o.set_config('vertical_mixing:timestep', 20)
+        o.set_config('drift:advection_scheme', 'runge-kutta')
         # Seed close to Nordic boundary
         o.seed_elements(lon=14.9, lat=71.1, radius=2000, number=100,
                         time=reader_nordic.start_time, z=0)
-        o.set_config('vertical_mixing:timestep', 20)
-
-        o.set_config('drift:advection_scheme', 'runge-kutta')
         o.run(steps=5, time_step=3600, time_step_output=3600)
         self.assertEqual(o.num_elements_active(), 100)
         self.assertEqual(o.num_elements_deactivated(), 0)
@@ -83,31 +82,31 @@ class TestRun(unittest.TestCase):
 
     def test_truncate_ocean_model(self):
         o = OceanDrift(loglevel=30)
+        o.set_config('general:use_auto_landmask', False)
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + \
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(reader_nordic)
         o.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
                         z=np.linspace(-90, 0, 10),
                         time=reader_nordic.start_time)
-        o.set_config('general:use_auto_landmask', False)
         o.run(steps=5)
 
         o2 = OceanDrift(loglevel=30)
         o2.add_reader(reader_nordic)
         o2.set_config('drift:truncate_ocean_model_below_m', 50)
+        o2.set_config('general:use_auto_landmask', False)
         o2.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
                         z=np.linspace(-90, 0, 10),
                         time=reader_nordic.start_time)
-        o2.set_config('general:use_auto_landmask', False)
         o2.run(steps=5)
 
         o3 = OceanDrift(loglevel=30)
         o3.add_reader(reader_nordic)
         o3.set_config('drift:truncate_ocean_model_below_m', 50)
+        o3.set_config('general:use_auto_landmask', False)
         o3.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,
                         z=np.linspace(-90, 0, 10),
                         time=reader_nordic.start_time)
-        o3.set_config('general:use_auto_landmask', False)
         o3.run(steps=5)
 
         # Final depths should not be affected

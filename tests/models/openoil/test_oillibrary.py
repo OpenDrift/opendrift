@@ -40,6 +40,11 @@ def test_oils():
         o.set_config('environment:fallback:y_wind', 0)
         o.set_config('environment:fallback:x_sea_water_velocity', .7)
         o.set_config('environment:fallback:y_sea_water_velocity', 0)
+        o.set_config('processes:evaporation', True)
+        o.set_config('processes:emulsification', True)
+        o.set_config('drift:vertical_mixing', False)
+        o.set_config('drift:wind_uncertainty', 0)
+        o.set_config('drift:current_uncertainty', 0)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.seed_elements(4.7,
                         60.0,
@@ -48,11 +53,6 @@ def test_oils():
                         z=0,
                         time=datetime.now(),
                         oil_type=oiltype)
-        o.set_config('processes:evaporation', True)
-        o.set_config('processes:emulsification', True)
-        o.set_config('drift:vertical_mixing', False)
-        o.set_config('drift:wind_uncertainty', 0)
-        o.set_config('drift:current_uncertainty', 0)
         o.run(steps=3)
         initial_mass = o.get_property('mass_oil')[0][0, 0]
         assert o.elements.mass_evaporated.min(
@@ -60,7 +60,6 @@ def test_oils():
         assert o.elements.mass_evaporated.min() > 0
         assert o.elements.mass_evaporated.max() / initial_mass <= 1
         print(oiltype, o.elements.mass_evaporated.min())
-
 
 def test_oilbudget():
     for windspeed in [3, 8]:
@@ -100,17 +99,16 @@ def test_oilbudget():
             o.plot_oil_budget(filename=filename)
             os.remove(filename)
 
-
 def test_oil_volume():
     o = OpenOil(loglevel=50)
     m3_per_hour = 50
     o.set_config('seed:m3_per_hour', m3_per_hour)
-    o.seed_elements(lon=4, lat=60, time=datetime.now())
     o.set_config('environment:fallback:x_wind', 0)
     o.set_config('environment:fallback:y_wind', 0)
     o.set_config('environment:fallback:x_sea_water_velocity', 0)
     o.set_config('environment:fallback:y_sea_water_velocity', 0)
     o.set_config('environment:fallback:land_binary_mask', 0)
+    o.seed_elements(lon=4, lat=60, time=datetime.now())
     o.run(steps=1)
     b = o.get_oil_budget()
     volume = b['mass_total'] / b['oil_density']
@@ -124,6 +122,13 @@ def test_dispersion():
             if oil == 'SKRUGARD' and windspeed == 3:
                 continue
             o = OpenOil(loglevel=20, weathering_model='noaa')
+            o.set_config('processes:dispersion', True)
+            o.set_config('vertical_mixing:timestep', 10)
+            o.set_config('environment:fallback:land_binary_mask', 0)
+            o.set_config('environment:fallback:x_wind', windspeed)
+            o.set_config('environment:fallback:y_wind', 0)
+            o.set_config('environment:fallback:x_sea_water_velocity', 0)
+            o.set_config('environment:fallback:y_sea_water_velocity', .3)
             oilname = oil
             if oil not in o.oiltypes:
                 if oilname == 'SKRUGARD':
@@ -135,13 +140,6 @@ def test_dispersion():
                             number=100,
                             time=datetime.now(),
                             oil_type=oilname)
-            o.set_config('processes:dispersion', True)
-            o.set_config('vertical_mixing:timestep', 10)
-            o.set_config('environment:fallback:land_binary_mask', 0)
-            o.set_config('environment:fallback:x_wind', windspeed)
-            o.set_config('environment:fallback:y_wind', 0)
-            o.set_config('environment:fallback:x_sea_water_velocity', 0)
-            o.set_config('environment:fallback:y_sea_water_velocity', .3)
             o.run(duration=timedelta(hours=3), time_step=900)
 
             b = o.get_oil_budget()
@@ -182,17 +180,17 @@ def test_dispersion():
 def test_no_dispersion():
     o = OpenOil(loglevel=50, weathering_model='noaa')
 
-    o.seed_elements(lon=4.8,
-                    lat=60,
-                    number=100,
-                    time=datetime.now(),
-                    oil_type='SIRTICA')
     o.set_config('processes:dispersion', False)
     o.set_config('environment:fallback:land_binary_mask', 0)
     o.set_config('environment:fallback:x_wind', 8)
     o.set_config('environment:fallback:y_wind', 8)
     o.set_config('environment:fallback:x_sea_water_velocity', 0)
     o.set_config('environment:fallback:y_sea_water_velocity', .3)
+    o.seed_elements(lon=4.8,
+                    lat=60,
+                    number=100,
+                    time=datetime.now(),
+                    oil_type='SIRTICA')
     o.run(duration=timedelta(hours=2), time_step=1800)
     b = o.get_oil_budget()
     actual_dispersed = b['mass_dispersed'] / b['mass_total']
@@ -203,11 +201,6 @@ def test_no_dispersion():
 def test_biodegradation():
     o = OpenOil(loglevel=50, weathering_model='noaa')
 
-    o.seed_elements(lon=4.8,
-                    lat=60,
-                    number=100,
-                    time=datetime.now(),
-                    oil_type='SIRTICA')
     o.set_config('processes:dispersion', True)
     o.set_config('processes:evaporation', True)
     o.set_config('processes:emulsification', True)
@@ -218,6 +211,12 @@ def test_biodegradation():
     o.set_config('environment:fallback:x_sea_water_velocity', 0)
     o.set_config('environment:fallback:y_sea_water_velocity', 0)
     o.set_config('environment:fallback:sea_water_temperature', 30)
+ 
+    o.seed_elements(lon=4.8,
+                    lat=60,
+                    number=100,
+                    time=datetime.now(),
+                    oil_type='SIRTICA')
     o.run(duration=timedelta(days=1), time_step=1800)
     initial_mass = o.get_property('mass_oil')[0][0, 0]
     biodegraded30 = o.elements.mass_biodegraded
@@ -233,18 +232,17 @@ def test_droplet_distribution():
             oiltype = 'SKRUGARD'
         else:
             oiltype = 'SKRUGARD 2012'
-        o.set_config('wave_entrainment:droplet_size_distribution',
-                     droplet_distribution)
-        o.seed_elements(lon=4.8,
-                        lat=60,
-                        number=100,
-                        time=datetime.now(),
-                        oil_type=oiltype)
+        o.set_config('wave_entrainment:droplet_size_distribution', droplet_distribution)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 8)
         o.set_config('environment:fallback:y_wind', 0)
         o.set_config('environment:fallback:x_sea_water_velocity', 0)
         o.set_config('environment:fallback:y_sea_water_velocity', .3)
+        o.seed_elements(lon=4.8,
+                        lat=60,
+                        number=100,
+                        time=datetime.now(),
+                        oil_type=oiltype)
         o.run(duration=timedelta(hours=1), time_step=1800)
         d = o.elements.diameter
         # Suspicious, Sintef-param should give larer droplets
@@ -266,17 +264,17 @@ def test_seed_metadata_output():
         'time': datetime(2021, 1, 22)
     }
     o = OpenOil(loglevel=50)
+    o.set_config('environment:fallback:land_binary_mask', 0)
+    o.set_config('environment:fallback:x_wind', 1)
+    o.set_config('environment:fallback:y_wind', 0)
+    o.set_config('environment:fallback:x_sea_water_velocity', 0)
+    o.set_config('environment:fallback:y_sea_water_velocity', .3)
     o.seed_elements(lon=a['lon'],
                     lat=a['lat'],
                     z=a['z'],
                     radius=a['radius'],
                     number=a['number'],
                     time=a['time'])
-    o.set_config('environment:fallback:land_binary_mask', 0)
-    o.set_config('environment:fallback:x_wind', 1)
-    o.set_config('environment:fallback:y_wind', 0)
-    o.set_config('environment:fallback:x_sea_water_velocity', 0)
-    o.set_config('environment:fallback:y_sea_water_velocity', .3)
     o.run(duration=timedelta(hours=1), time_step=1800, outfile=outfile)
     f = xr.open_dataset(outfile)
     for var in ['lon', 'lat', 'number', 'radius', 'z', 'm3_per_hour']:
