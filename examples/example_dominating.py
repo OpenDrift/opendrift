@@ -18,10 +18,10 @@ lons = [4, 4.2, 4.3, 4.32, 4.6]
 t = datetime.now()
 
 o = OceanDrift(loglevel=20)
+o.set_config('environment:constant:y_sea_water_velocity', .1)
 
 for i, lon in enumerate(lons):
     o.seed_elements(lon=lon, lat=60, radius=3000, number=2000, time=t, origin_marker_name='Lon %f' % lon)
-o.set_config('environment:constant:y_sea_water_velocity', .1)
 o.run(steps=15, outfile=of)
 
 #%%

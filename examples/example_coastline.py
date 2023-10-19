@@ -10,7 +10,7 @@ from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
-o.max_speed = 3
+o.set_config('drift:max_speed', 3)
 
 # This example works better using hourly input from Thredds than the daily data from test folder
 reader_current = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml')

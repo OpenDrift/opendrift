@@ -22,6 +22,7 @@ reader_topaz = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/d
 
 o.add_reader([reader_norkyst, reader_topaz])
 o.set_config('environment:fallback:land_binary_mask', 0)
+o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Seeding some particles
@@ -33,8 +34,6 @@ lons, lats = np.meshgrid(lons, lats)
 # Seed oil elements at defined position and time
 o.seed_elements(lons, lats, radius=0, number=2500,
                 time=reader_topaz.start_time)
-
-o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Running model

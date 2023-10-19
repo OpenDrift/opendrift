@@ -7,6 +7,7 @@ from shutil import move
 
 import numpy as np
 from netCDF4 import Dataset, num2date, date2num
+from opendrift.models.basemodel import Mode
 
 # Module with functions to export/import trajectory data to/from netCDF file
 # Strives to be compliant with netCDF CF-convention on trajectories
@@ -352,6 +353,7 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
 
     # Import and apply config settings
     attributes = infile.ncattrs()
+    self.mode = Mode.Config  # To allow setting config
     for attr in attributes:
         if attr.startswith('config_'):
             value = infile.getncattr(attr)
@@ -362,13 +364,16 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
                 value = False
             if value == 'None':
                 value = None
+            self.set_config(conf_key, value)
             try:
                 self.set_config(conf_key, value)
                 logger.debug('Setting imported config: %s -> %s' %
                              (conf_key, value))
-            except:
+            except Exception as e:
+                logger.warning(e)
                 logger.warning('Could not set config: %s -> %s' %
                                 (conf_key, value))
+    self.mode = Mode.Result
 
     # Import time steps from metadata
     def timedelta_from_string(timestring):

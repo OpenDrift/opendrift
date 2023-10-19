@@ -162,7 +162,6 @@ class Leeway(OpenDriftSimulation):
         'dispersed': 'magenta'
     }
 
-    max_speed = 5  # Assumed max average speed of any element
 
     # Configuration
     def __init__(self, d=None, *args, **kwargs):
@@ -229,6 +228,7 @@ class Leeway(OpenDriftSimulation):
 
         self._set_config_default('general:time_step_minutes', 10)
         self._set_config_default('general:time_step_output_minutes', 60)
+        self._set_config_default('drift:max_speed', 5)
 
     def seed_elements(self, lon, lat, object_type=None, **kwargs):
         """Seed particles in a cone-shaped area over a time period."""
@@ -281,7 +281,7 @@ class Leeway(OpenDriftSimulation):
         rdw = np.zeros(number)
         epsdw = np.zeros(number)
         for i in range(number):
-            rdw[i] = np.random.randn(1)
+            rdw[i] = np.random.randn(1)[0]
             epsdw[i] = rdw[i] * dwstd
             # Avoid negative downwind slopes
             while downwind_slope[i] + epsdw[i] / 20.0 < 0.0:

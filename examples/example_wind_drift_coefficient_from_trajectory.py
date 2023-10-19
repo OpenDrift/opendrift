@@ -26,13 +26,15 @@ ot.add_readers_from_list([ot.test_data_folder() +
     ot.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
 
 #%%
+# Adding some horizontal diffusivity as "noise"
+ot.set_config('drift:horizontal_diffusivity', 10)
+
+#%%
 # Using a wind_drift_factor of 0.33 i.e. drift is current + 3.3% of wind speed
-ot.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].start_time,
+ot.seed_elements(lon=4, lat=60, number=1, time=ot.env.readers[list(ot.env.readers)[0]].start_time,
         wind_drift_factor=0.033)
 
 #%%
-# Adding some horizontal diffusivity as "noise"
-ot.set_config('drift:horizontal_diffusivity', 10)
 ot.run(duration=timedelta(hours=12), time_step=600)
 
 #%%
@@ -47,12 +49,12 @@ o = OceanDrift(loglevel=50)
 o.add_readers_from_list([o.test_data_folder() +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc',
     o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
-t = o.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_sea_water_velocity', 'x_wind', 'y_wind'],
+t = o.env.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_sea_water_velocity', 'x_wind', 'y_wind'],
         lons=drifter_lons, lats=drifter_lats, times=drifter_times)
 
 wind_drift_factor, azimuth = wind_drift_factor_from_trajectory(t)
 
-o.seed_elements(lon=4, lat=60, number=1, time=ot.readers[list(ot.readers)[0]].start_time,
+o.seed_elements(lon=4, lat=60, number=1, time=ot.env.readers[list(ot.env.readers)[0]].start_time,
                 wind_drift_factor=0.033)
 
 #%% 
@@ -111,7 +113,7 @@ o.add_readers_from_list([o.test_data_folder() +
 #%%
 # Calulating trajectories for 100 different wind_drift_factors between 0 and 0.05
 wdf = np.linspace(0.0, 0.05, 100)
-o.seed_elements(lon=4, lat=60, time=ot.readers[list(ot.readers)[0]].start_time,
+o.seed_elements(lon=4, lat=60, time=ot.env.readers[list(ot.env.readers)[0]].start_time,
                 wind_drift_factor=wdf, number=len(wdf))
 o.run(duration=timedelta(hours=12), time_step=600)
 o.plot(linecolor='wind_drift_factor', drifter=drifter)

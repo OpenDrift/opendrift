@@ -16,17 +16,17 @@ o = OpenOil(loglevel=20)
 o.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/fou-hi/barents_eps_zdepth_be'])
 
 #%%
-# Imaginary oil spill in Hinlopen strait
-o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
-                number=3000, time=datetime.utcnow() - timedelta(days=7))
-
-#%%
 # Adjusting some configuration
 o.set_config('processes:dispersion',  False)
 o.set_config('processes:evaporation',  False)
 o.set_config('processes:emulsification',  False)
 o.set_config('drift:horizontal_diffusivity', 10)
 o.set_config('drift:truncate_ocean_model_below_m', 3)
+
+#%%
+# Imaginary oil spill in Hinlopen strait
+o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
+                number=3000, time=datetime.utcnow() - timedelta(days=7))
 
 #%%
 # Running model

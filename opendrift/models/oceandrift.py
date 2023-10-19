@@ -66,8 +66,6 @@ class OceanDrift(OpenDriftSimulation):
 
     ElementType = Lagrangian3DArray
 
-    max_speed = 1  # m/s
-
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
@@ -172,6 +170,8 @@ class OceanDrift(OpenDriftSimulation):
                 'description': 'Elements are seeded at seafloor, and seeding depth (z) is neglected.',
                 'level': CONFIG_LEVEL_ESSENTIAL},
             })
+
+        self._set_config_default('drift:max_speed', 1)
 
     def update(self):
         """Update positions and properties of elements."""
@@ -469,8 +469,13 @@ class OceanDrift(OpenDriftSimulation):
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
+        diffusivity_fallback = self.get_config('environment:fallback:ocean_vertical_diffusivity')
         if diffusivity_model == 'environment':
-            if 'ocean_vertical_diffusivity' in self.environment_profiles and not (self.environment_profiles['ocean_vertical_diffusivity'].min() == self.env.fallback_values['ocean_vertical_diffusivity'] and self.environment_profiles['ocean_vertical_diffusivity'].max() == self.env.fallback_values['ocean_vertical_diffusivity']):
+            if 'ocean_vertical_diffusivity' in self.environment_profiles and not (
+                    self.environment_profiles['ocean_vertical_diffusivity'].min() ==
+                    diffusivity_fallback and
+                    self.environment_profiles['ocean_vertical_diffusivity'].max() ==
+                    diffusivity_fallback):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
                 logger.debug('Using diffusivity from ocean model')
@@ -481,8 +486,8 @@ class OceanDrift(OpenDriftSimulation):
                         -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
                 Kprofiles = self.get_diffusivity_profile('windspeed_Large1994')
         elif diffusivity_model == 'constant':
-            logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (self.env.fallback_values['ocean_vertical_diffusivity']))
-            Kprofiles = self.env.fallback_values['ocean_vertical_diffusivity']*np.ones(
+            logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (diffusivity_fallback))
+            Kprofiles = diffusivity_fallback*np.ones(
                     self.environment_profiles['ocean_vertical_diffusivity'].shape) # keep constant value for ocean_vertical_diffusivity
         else:
             logger.debug('Using functional expression for diffusivity')
@@ -504,7 +509,7 @@ class OceanDrift(OpenDriftSimulation):
             Sprofiles = self.environment_profiles['sea_water_salinity']
             Tprofiles = \
                 self.environment_profiles['sea_water_temperature']
-            if ('sea_water_salinity' in self.env.fallback_values and
+            if (self.get_config('environment:fallback:sea_water_salinity') is not None and
                 Sprofiles.min() == Sprofiles.max()):
                 logger.debug('Salinity and temperature are fallback'
                               'values, skipping TSprofile')

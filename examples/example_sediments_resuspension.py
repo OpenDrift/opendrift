@@ -17,12 +17,6 @@ reader_oscy = reader_oscillating.Reader('y_sea_water_velocity',
 
 o = SedimentDrift(loglevel=50)  # 0 for debug output
 
-#%%
-# Seeding sediments
-o.seed_elements(lon=4.65, lat=60, number=10000, 
-                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=6)],
-                terminal_velocity=-.01)  # 1 cm/s settling speed
-
 if True:
     o.add_reader([reader_oscx, reader_oscy])
     o.set_config('environment:fallback:y_wind', -6)
@@ -41,6 +35,12 @@ o.set_config('drift:current_uncertainty', 0.1)
 o.set_config('drift:wind_uncertainty', 1)
 o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 #o.set_config('vertical_mixing:diffusivitymodel', 'environment')
+
+#%%
+# Seeding sediments
+o.seed_elements(lon=4.65, lat=60, number=10000, 
+                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=6)],
+                terminal_velocity=-.01)  # 1 cm/s settling speed
 
 o.run(time_step=1800, time_step_output=1800, duration=timedelta(hours=72))
 

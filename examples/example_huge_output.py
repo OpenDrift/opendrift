@@ -13,21 +13,21 @@ from opendrift.readers import reader_oscillating
 #%%
 # First make a simulation with two seedings, marked by *origin_marker*
 o = OceanDrift(loglevel=50)
+o.set_config('drift:horizontal_diffusivity', 10)
 t1 = datetime.now()
 t2 = t1 + timedelta(hours=6)
 number = 10000
 outfile = 'simulation.nc'  # Raw simulation output
-o.seed_elements(time=t1, lon=4, lat=60, number=number,
-                origin_marker=0)
-o.seed_elements(time=[t1, t2], lon=4.2, lat=60.4, number=number,
-                origin_marker=1)
-
 reader_x = reader_oscillating.Reader('x_sea_water_velocity',
                 amplitude=1, zero_time=t1)
 reader_y = reader_oscillating.Reader('y_sea_water_velocity',
                 amplitude=1, zero_time=t2)
 o.add_reader([reader_x, reader_y])
-o.set_config('drift:horizontal_diffusivity', 10)
+o.seed_elements(time=t1, lon=4, lat=60, number=number,
+                origin_marker=0)
+o.seed_elements(time=[t1, t2], lon=4.2, lat=60.4, number=number,
+                origin_marker=1)
+
 o.run(duration=timedelta(hours=24),
       time_step=900, time_step_output=1800, outfile=outfile)
 

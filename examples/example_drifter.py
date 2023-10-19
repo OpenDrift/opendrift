@@ -21,6 +21,9 @@ reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 
 o.add_reader([reader_current, reader_wind])
 
+# Prevent mixing elements downwards
+o.set_config('drift:vertical_mixing', False)
+
 #%%
 # Seeding elements
 #
@@ -40,9 +43,6 @@ wind_drift_factor = np.random.uniform(0, 0.06, 2000)
 o.seed_elements(4.7, 59.9, radius=3000, number=2000,
                 time=reader_current.start_time,
                 wind_drift_factor=wind_drift_factor)
-
-# Prevent mixing elements downwards
-o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Running model

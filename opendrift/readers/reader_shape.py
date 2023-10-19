@@ -94,6 +94,10 @@ class Reader(BaseReader, ContinuousReader):
         self.xmin, self.ymin, self.xmax, self.ymax = self.land.bounds
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
+        self.xmin = self.xmin[0]
+        self.xmax = self.xmax[0]
+        self.ymin = self.ymin[0]
+        self.ymax = self.ymax[0]
 
     def __on_land__(self, x, y):
         if self.invert is False:

@@ -20,8 +20,15 @@ histogram_file = 'runoff_histogram.nc'
 #%%
 # First make a simulation with two seedings, marked by *origin_marker*
 o = OceanDrift(loglevel=20)
+o.set_config('drift:horizontal_diffusivity', 300)
+o.set_config('general:coastline_action', 'previous')
 t1 = datetime.now()
 t2 = t1 + timedelta(hours=48)
+reader_x = reader_oscillating.Reader('x_sea_water_velocity', period_seconds=3600*24,
+                amplitude=1, zero_time=t1)
+reader_y = reader_oscillating.Reader('y_sea_water_velocity', period_seconds=3600*72,
+                amplitude=.5, zero_time=t2)
+o.add_reader([reader_x, reader_y])
 number = 25000
 o.seed_elements(time=[t1, t2], lon=9.017931, lat=58.562702, number=number,
                 origin_marker_name='River 1')  # River 1
@@ -29,13 +36,6 @@ o.seed_elements(time=[t1, t2], lon=8.824815, lat=58.425648, number=number,
                 origin_marker_name='River 2')  # River 2
 seed_times = o.elements_scheduled_time[0:number]
 
-reader_x = reader_oscillating.Reader('x_sea_water_velocity', period_seconds=3600*24,
-                amplitude=1, zero_time=t1)
-reader_y = reader_oscillating.Reader('y_sea_water_velocity', period_seconds=3600*72,
-                amplitude=.5, zero_time=t2)
-o.add_reader([reader_x, reader_y])
-o.set_config('drift:horizontal_diffusivity', 300)
-o.set_config('general:coastline_action', 'previous')
 o.run(duration=timedelta(hours=48),
       time_step=1800, time_step_output=3600, outfile=outfile)
 

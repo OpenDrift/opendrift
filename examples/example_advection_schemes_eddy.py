@@ -21,9 +21,9 @@ for scheme in ['euler', 'runge-kutta', 'runge-kutta4']:
         o = OceanDrift(loglevel=50)
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('drift:advection_scheme', scheme)
+        o.set_config('drift:vertical_mixing', False)
         o.add_reader(fake_eddy)
         o.seed_elements(lon=2.0, lat=63.0, time=datetime.utcnow())
-        o.set_config('drift:vertical_mixing', False)
         o.run(duration=timedelta(days=9), time_step=time_step)
         runs.append(o)
 

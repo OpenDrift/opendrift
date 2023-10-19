@@ -31,7 +31,7 @@ from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.models.basemodel import Mode
+from opendrift.models.basemodel import Mode, WrongMode
 from opendrift.models.openoil import OpenOil
 from opendrift.models.leeway import Leeway
 from opendrift.models.pelagicegg import PelagicEggDrift
@@ -105,7 +105,7 @@ class TestRun(unittest.TestCase):
         assert o.mode == Mode.Ready
         with self.assertRaises(ValueError):  # Cannot add readers after elements have been seeded
             o.add_reader(norkyst)
-        with self.assertRaises(ValueError):  # Cannot set config after readers have been added
+        with self.assertRaises(WrongMode):  # Cannot set config after readers have been added
             o.set_config('seed:ocean_only', False)
         o.run(steps=1)
         assert o.mode == Mode.Result
@@ -224,6 +224,10 @@ class TestRun(unittest.TestCase):
         latvec = np.array([60, 60, 61, 61])
         time=datetime(2015, 1, 1, 12, 5, 17)
         o.set_config('seed:oil_type', 'HEIDRUN')
+        o.set_config('environment:fallback:x_wind', 0)
+        o.set_config('environment:fallback:y_wind', 0)
+        o.set_config('environment:fallback:x_sea_water_velocity', 0)
+        o.set_config('environment:fallback:y_sea_water_velocity', 0)
         o.seed_within_polygon(lonvec, latvec, number=number,
                               time=time, wind_drift_factor=.09)
         self.assertEqual(o.num_elements_scheduled(), number)
@@ -719,7 +723,7 @@ class TestRun(unittest.TestCase):
         # See an element at some depth, and progapate towards coast
         # (shallower water) and check that it is not penetrating seafloor
         o = OceanDrift(loglevel=50)
-        o.max_speed = 100
+        o.set_config('drift:max_speed', 100)
         reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200
         o.add_reader([reader_norkyst],

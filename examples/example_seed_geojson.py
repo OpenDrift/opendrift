@@ -13,6 +13,8 @@ from opendrift.models.openoil import OpenOil
 #--------
 
 o = OpenOil(loglevel=50)
+for var in ['x_wind', 'y_wind', 'x_sea_water_velocity', 'y_sea_water_velocity']:
+    o.set_config('environment:constant:' + var, 0)
 o.seed_from_geojson("""{
       "type": "Feature",
       "geometry": {
@@ -40,6 +42,8 @@ o.plot(fast=True)
 
 o = OpenOil(loglevel=50)
 o.set_config('environment:constant:sea_floor_depth_below_sea_level', 200)
+for var in ['x_wind', 'y_wind', 'x_sea_water_velocity', 'y_sea_water_velocity']:
+    o.set_config('environment:constant:' + var, 0)
 o.seed_from_geojson("""{
       "type": "Feature",
       "geometry": {
@@ -53,8 +57,6 @@ o.seed_from_geojson("""{
       }
     }""")
 
-for var in ['x_wind', 'y_wind', 'x_sea_water_velocity', 'y_sea_water_velocity']:
-    o.set_config('environment:constant:' + var, 0)
 o.run(duration=timedelta(hours=6), time_step=300)
 o.animation_profile()
 
@@ -68,6 +70,8 @@ o.animation_profile()
 # from (position1, radius1, time1) to (position2, radius2, time2)
 
 o = Leeway(loglevel=50)
+for var in ['x_wind', 'y_wind', 'x_sea_water_velocity', 'y_sea_water_velocity']:
+    o.set_config('environment:constant:' + var, 0)
 o.seed_from_geojson("""{
       "type": "Feature",
       "geometry": {
@@ -83,8 +87,6 @@ o.seed_from_geojson("""{
       }
     }""")
 
-for var in ['x_wind', 'y_wind', 'x_sea_water_velocity', 'y_sea_water_velocity']:
-    o.set_config('environment:constant:' + var, 0)
 o.run(duration=timedelta(hours=6))
 o.animation(fast=True)
 

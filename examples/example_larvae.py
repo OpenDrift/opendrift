@@ -11,19 +11,19 @@ from opendrift.models.larvalfish import LarvalFish
 o = LarvalFish(loglevel=50)
 
 #%%
-# Seeding 20 fish eggs, which will hatch as larvae after some time, depending om temperature
-time = datetime(2020, 7, 1, 12)
-o.seed_elements(lon=4, lat=60, time=[time, time+timedelta(hours=24)], number=20)
-
-#%%
 # No horizontal movement, here only investigating vertical mixing and swimming
 r = ConstantReader(
         {'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0, 'x_wind': 0, 'y_wind': 0,
          'sea_water_temperature': 10,
          'land_binary_mask': 0, 'ocean_vertical_diffusivity': .02})
 o.add_reader(r)
-
 o.set_config('general:use_auto_landmask', False)
+
+#%%
+# Seeding 20 fish eggs, which will hatch as larvae after some time, depending om temperature
+time = datetime(2020, 7, 1, 12)
+o.seed_elements(lon=4, lat=60, time=[time, time+timedelta(hours=24)], number=20)
+
 o.run(duration=timedelta(days=40))
 
 #%%

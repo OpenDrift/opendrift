@@ -48,11 +48,11 @@ duration = timedelta(hours=24)
 simulations = []
 for cname, case in cases.items():
     o = case['model'](loglevel=50)
-    o.seed_elements(lon=lon, lat=lat, time=time, number=1000,
-                    **case['kwargs'])
     for var, value in environment.items():
         o.set_config('environment:constant:' + var, value)
     o.set_config('general:use_auto_landmask', False)
+    o.seed_elements(lon=lon, lat=lat, time=time, number=1000,
+                    **case['kwargs'])
     o.run(duration=duration)
     simulations.append(o)
 

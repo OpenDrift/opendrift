@@ -38,6 +38,10 @@ def test_leeway_config_object():
     """Check that correct object type is fetched from config"""
     l = Leeway(loglevel=20)
     l.set_config('seed:object_type', 'Surf board with person')
+    l.set_config('environment:constant:x_wind', 0)
+    l.set_config('environment:constant:y_wind', 0)
+    l.set_config('environment:constant:x_sea_water_velocity', 0)
+    l.set_config('environment:constant:y_sea_water_velocity', 0)
     l.seed_elements(lon=4.5, lat=60, number=100,
                     time=datetime(2015, 1, 1))
     objType = l.elements_scheduled.object_type

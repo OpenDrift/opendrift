@@ -29,13 +29,13 @@ time = [reader_arome.start_time,
         reader_arome.start_time + timedelta(hours=30)]
 
 #%%
-# Seed oil elements at defined position and time
-o.seed_elements(lon, lat, radius=50, number=5000, time=time)
-
-#%%
 # Using windspeed relative to moving ocean (current)
 o.set_config('drift:relative_wind',  False)
 o.set_config('drift:vertical_mixing', False)
+
+#%%
+# Seed oil elements at defined position and time
+o.seed_elements(lon, lat, radius=50, number=5000, time=time)
 
 o.run(steps=48*2, time_step=1800, time_step_output=3600*2)
 
@@ -43,9 +43,9 @@ o.run(steps=48*2, time_step=1800, time_step_output=3600*2)
 # Second run, for comparison
 o2 = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o2.add_reader([reader_norkyst, reader_arome])
-o2.seed_elements(lon, lat, radius=50, number=5000, time=time)
 o2.set_config('drift:relative_wind',  True)
 o2.set_config('drift:vertical_mixing', False)
+o2.seed_elements(lon, lat, radius=50, number=5000, time=time)
 o2.run(steps=48*2, time_step=1800, time_step_output=3600*2)
 
 

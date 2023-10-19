@@ -136,7 +136,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         'missing_data': 'gray'
     }
 
-    max_speed = 1  # Assumed max average speed of any element
     plot_comparison_colors = [
         'k', 'r', 'g', 'b', 'm', 'c', 'y', 'crimson', 'indigo', 'lightcoral',
         'grey', 'sandybrown', 'palegreen', 'gold', 'yellowgreen', 'lime',
@@ -194,7 +193,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
 
-        self.env = Environment(self.required_variables, self.required_profiles_z_range, self.max_speed, self._config)
+        self.env = Environment(self.required_variables, self.required_profiles_z_range, self._config)
 
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
@@ -744,7 +743,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if self.mode == Mode.Config:
             logger.debug('First seeding, changing mode to Ready')
             self.mode = Mode.Ready
-            self.env.finalize
+            self.env.finalize()
 
         assert self.mode == Mode.Ready, 'Not ready for seeding'
 
@@ -1773,7 +1772,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Prepare readers for the requested simulation domain/time
         ##############################################################
         max_distance = \
-            self.max_speed*self.expected_steps_calculation * \
+                self.get_config('drift:max_speed')*self.expected_steps_calculation * \
             np.abs(self.time_step.total_seconds())
         deltalat = max_distance / 111000.
         deltalon = deltalat / np.cos(
@@ -2045,8 +2044,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         for var in self.required_variables:
             keyword = 'reader_' + var
             if var not in self.env.priority_list:
-                if var in self.env.fallback_values:
-                    self.add_metadata(keyword, self.env.fallback_values[var])
+                fallback = self.get_config(f'environment:fallback:{var}')
+                if fallback is not None:
+                    self.add_metadata(keyword, fallback)
                 else:
                     self.add_metadata(keyword, None)
             else:
@@ -2496,7 +2496,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if cmap is None:
             cmap = 'jet'
         if isinstance(cmap, str):
-            cmap = matplotlib.cm.get_cmap(cmap)
+            cmap = matplotlib.colormaps[cmap]
 
         if color is False and background is None and lcs is None and density is False:
             colorbar = False
@@ -3284,7 +3284,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             alpha = np.max((min_alpha, alpha))
         else:
             alpha = lalpha  #  provided transparency of trajectories
-        print(alpha, 'ALPHA')
         if legend is False:
             legend = None
         if self.history is not None and linewidth != 0 and show_trajectories is True:
@@ -4590,6 +4589,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         #del self.elements
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
+        self.mode = Mode.Config
 
     def gui_postproc(self):
         '''To be overloaded by subclasses'''

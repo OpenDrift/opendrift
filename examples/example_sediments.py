@@ -7,15 +7,7 @@ Sediment drift from Glomma river outlet
 from datetime import timedelta, datetime
 from opendrift.models.sedimentdrift import SedimentDrift
 
-o = SedimentDrift(loglevel=0)  # 0 for debug output
-
-#%%
-# Source of sediments at Glomma river outlet
-lat=59.169194
-lon=10.962920
-o.seed_elements(lon=lon, lat=lat, number=10000,
-                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=48)],
-                terminal_velocity=-.001)  # 1 mm/s settling speed
+o = SedimentDrift(loglevel=20)  # 0 for debug output
 
 if False:  # Using constant south-westwards current and wind
     o.set_config('environment:fallback:x_sea_water_velocity', -.05)
@@ -33,6 +25,14 @@ o.set_config('drift:current_uncertainty', .2)
 o.set_config('drift:wind_uncertainty', 2)
 o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 #o.set_config('vertical_mixing:diffusivitymodel', 'environment')
+
+#%%
+# Source of sediments at Glomma river outlet
+lat=59.169194
+lon=10.962920
+o.seed_elements(lon=lon, lat=lat, number=10000,
+                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=48)],
+                terminal_velocity=-.001)  # 1 mm/s settling speed
 
 o.run(time_step=600, time_step_output=1800, duration=timedelta(hours=36))
 

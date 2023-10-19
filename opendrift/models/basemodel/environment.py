@@ -17,12 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 class Environment(Timeable, Configurable):
-    fallback_values: Dict
     readers: OrderedDict
     priority_list: OrderedDict
     required_variables: Dict
     required_profiles_z_range: List[float]  # [min_depth, max_depth]
-    max_speed: float
 
     discarded_readers: Dict
 
@@ -30,17 +28,15 @@ class Environment(Timeable, Configurable):
 
     __finalized__ = False
 
-    def __init__(self, required_variables, required_profiles_z_range, max_speed, _config):
+    def __init__(self, required_variables, required_profiles_z_range, _config):
         super().__init__()
 
-        self.fallback_values = {}
         self.readers = OrderedDict()
         self.priority_list = OrderedDict()
         self.discarded_readers = {}
 
         self.required_variables = required_variables
         self.required_profiles_z_range = required_profiles_z_range
-        self.max_speed = max_speed
         self._config = _config # reference to simulation config
 
         # Add constant and fallback environment variables to config
@@ -119,6 +115,16 @@ class Environment(Timeable, Configurable):
                 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': CONFIG_LEVEL_ADVANCED
             },
+            'drift:max_speed': {
+                'type': 'float',
+                'default': 1,
+                'min': 0,
+                'max': np.inf,
+                'units': 'seconds',
+                'description':
+                'Typical maximum speed of elements, used to estimate reader buffer size',
+                'level': CONFIG_LEVEL_ADVANCED
+            },
             'readers:max_number_of_fails': {
                 'type': 'int',
                 'default': 1,
@@ -157,11 +163,14 @@ class Environment(Timeable, Configurable):
 
             end: Expected end time of simulation.
         """
-        # TODO: discard irrelevant readers
-        self.__generate_constant_readers__()
-        self.__add_auto_landmask__()
-        self.__assert_no_missing_variables__()
-        self.prepare_readers(simulation_extent, start, end)
+
+        if self.__finalized__ is False:
+            # TODO: discard irrelevant readers
+            self.__generate_constant_readers__()
+            self.__add_auto_landmask__()
+            self.__assert_no_missing_variables__()
+        if simulation_extent is not None:
+            self.prepare_readers(simulation_extent, start, end)
 
         self.__finalized__ = True
 
@@ -169,20 +178,14 @@ class Environment(Timeable, Configurable):
         if extent is not None:
             self.simulation_extent = extent
         for reader in self.readers.values():
-            logger.debug('\tPreparing %s' % reader.name)
+            logger.debug(f'\tPreparing {reader.name} for extent {extent}')
             reader.prepare(extent=extent,
                            start_time=start_time,
                            end_time=end_time,
-                           max_speed=self.max_speed)
+                           max_speed=self.get_config('drift:max_speed'))
 
     def __generate_constant_readers__(self):
-        c = self.get_configspec('environment:fallback:')
-        self.fallback_values = {}
-        for var in list(c):
-            if c[var]['value'] is not None:
-                self.fallback_values[var.split(':')[-1]] = c[var]['value']
-
-        # Make constant readers if config environment:constant:<var> is
+        # Make constant readers if config environment:constant:<var> is set
         c = self.get_configspec('environment:constant:')
         mr = {}
         for var in list(c):
@@ -206,42 +209,44 @@ class Environment(Timeable, Configurable):
                         'global_landmask'
                     ]
                 else:
-                    del self.priority_list['land_binary_mask']
+                    if self.get_config('environment:constant:land_binary_mask') is None:
+                        del self.priority_list['land_binary_mask']
 
         if self.get_config('general:use_auto_landmask', False) is True and \
                 ('land_binary_mask' in self.required_variables and \
-                'land_binary_mask' not in self.priority_list \
-                and 'land_binary_mask' not in self.fallback_values):
-            logger.info(
-                'Adding a dynamical landmask with max. priority based on '
-                'assumed maximum speed of %s m/s. '
-                'Adding a customised landmask may be faster...' %
-                self.max_speed)
-            self.timer_start('preparing main loop:making dynamical landmask')
-            reader_landmask = reader_global_landmask.Reader()
-            self.add_reader(reader_landmask)
-            self.timer_end('preparing main loop:making dynamical landmask')
+                'land_binary_mask' not in self.priority_list):
+            if self.get_config('environment:constant:land_binary_mask') is None:
+                logger.info(
+                    'Adding a dynamical landmask with max. priority based on '
+                    'assumed maximum speed of %s m/s. '
+                    'Adding a customised landmask may be faster...' %
+                    self.get_config('drift:max_speed'))
+                self.timer_start('preparing main loop:making dynamical landmask')
+                reader_landmask = reader_global_landmask.Reader()
+                self.add_reader(reader_landmask)
+                self.timer_end('preparing main loop:making dynamical landmask')
+            else:
+                logger.warning('Using constant reader for land_binary_mask, ' 
+                               'although config general:use_auto_landmask is True')
 
     def __assert_no_missing_variables__(self):
         missing_variables = self.missing_variables()
-        missing_variables = [
-            m for m in missing_variables if m != 'land_binary_mask'
-        ]
         if len(missing_variables) > 0:
             has_fallback = [
-                var for var in missing_variables if var in self.fallback_values
+                var for var in missing_variables
+                if (self.get_config(f'environment:fallback:{var}') is not None or
+                    self.get_config(f'environment:constant:{var}') is not None)
             ]
             has_no_fallback = [
                 var for var in missing_variables
-                if var not in self.fallback_values
+                if (self.get_config(f'environment:fallback:{var}') is None and
+                    self.get_config(f'environment:constant:{var}') is None)
             ]
-            #if has_fallback == missing_variables:
             if len(has_fallback) > 0:  # == missing_variables:
                 logger.info('Fallback values will be used for the following '
                             'variables which have no readers: ')
                 for var in has_fallback:
-                    logger.info('\t%s: %f' % (var, self.fallback_values[var]))
-            #else:
+                    logger.info('\t%s: %f' % (var, self.get_config(f'environment:fallback:{var}')))
             if len(has_no_fallback) > 0 and len(
                     self._lazy_readers()) == 0:  # == missing_variables:
                 logger.warning(
@@ -321,7 +326,7 @@ class Environment(Timeable, Configurable):
             # Horizontal buffer of reader must be large enough to cover
             # the distance possibly covered by elements within a time step
             if not reader.is_lazy:
-                reader.set_buffer_size(max_speed=self.max_speed)
+                reader.set_buffer_size(max_speed=self.get_config('drift:max_speed'))
 
             self.readers[reader.name] = reader
             logger.debug('Added reader ' + reader.name)
@@ -415,7 +420,7 @@ class Environment(Timeable, Configurable):
             self.discard_reader(reader, reason='could not be initialized')
             return self._initialise_next_lazy_reader()  # Call self
 
-        reader.set_buffer_size(max_speed=self.max_speed)
+        reader.set_buffer_size(max_speed=self.get_config('drift:max_speed'))
         # Update reader lazy name with actual name
         self.readers[reader.name] = \
             self.readers.pop(lazyname)
@@ -778,16 +783,20 @@ class Environment(Timeable, Configurable):
         logger.debug('Finished processing all variable groups')
 
         self.timer_start('main loop:readers:postprocessing')
-        for var in self.fallback_values:
-            if (var not in variables) and (profiles is None
-                                           or var not in profiles):
+        #for var in self.fallback_values:
+        #    if (var not in variables) and (profiles is None
+        #                                   or var not in profiles):
+        #        continue
+        for var in variables:
+            if self.get_config(f'environment:fallback:{var}') is None:
                 continue
             mask = env[var].mask
+            fallback = self.get_config(f'environment:fallback:{var}')
             if any(mask == True):
                 logger.debug(
                     '    Using fallback value %s for %s for %s elements' %
-                    (self.fallback_values[var], var, np.sum(mask == True)))
-                env[var][mask] = self.fallback_values[var]
+                    (fallback, var, np.sum(mask == True)))
+                env[var][mask] = fallback
             # Profiles
             if profiles is not None and var in profiles:
                 if 'env_profiles' not in locals():
@@ -800,19 +809,19 @@ class Environment(Timeable, Configurable):
                 if var not in env_profiles:
                     logger.debug(
                         '      Using fallback value %s for %s for all profiles'
-                        % (self.fallback_values[var], var))
-                    env_profiles[var] = self.fallback_values[var]*\
+                        % (fallback, var))
+                    env_profiles[var] = fallback*\
                         np.ma.ones((len(env_profiles['z']), num_elements_active))
                 else:
                     mask = env_profiles[var].mask
                     num_masked_values_per_element = np.sum(mask == True)
                     num_missing_profiles = np.sum(num_masked_values_per_element
                                                   == len(env_profiles['z']))
-                    env_profiles[var][mask] = self.fallback_values[var]
+                    env_profiles[var][mask] = fallback
                     logger.debug(
                         '      Using fallback value %s for %s for %s profiles'
                         % (
-                            self.fallback_values[var],
+                            fallback,
                             var,
                             num_missing_profiles,
                         ))
@@ -928,6 +937,7 @@ class Environment(Timeable, Configurable):
         return env.view(np.recarray), env_profiles, missing
 
     def get_variables_along_trajectory(self, variables, lons, lats, times):
+        self.finalize()
         data = {'time': times, 'lon': lons, 'lat': lats}
         for var in variables:
             data[var] = np.zeros(len(times))

@@ -13,7 +13,7 @@ def test_add_readers(test_data_roms):
             'fallback': 10
         },
     }
-    env = Environment(required_variables, None, 1., c._config)
+    env = Environment(required_variables, None, c._config)
     env.add_reader(test_data_roms)
     env.finalize()
 
@@ -22,20 +22,3 @@ def test_add_readers(test_data_roms):
         test_data_roms.start_time, [10], [50], [0], [])
     assert e[0][0] == 0
     assert e[0][1] == 10
-
-
-def test_fallback_values():
-    o = OceanDrift()
-    o.set_config('general:use_auto_landmask', False)
-    assert o.required_variables == o.env.required_variables
-    assert o._config == o.env._config
-    assert len(o.env.fallback_values) == 0
-
-    o.env.finalize()
-    assert len(o.env.fallback_values) > 1
-
-    assert o.env.fallback_values['x_sea_water_velocity'] == 0
-
-    o.set_config('environment:fallback:x_sea_water_velocity', 10.)
-    o.env.finalize()
-    assert o.env.fallback_values['x_sea_water_velocity'] == 10.

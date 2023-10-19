@@ -40,11 +40,11 @@ class TestStranding(unittest.TestCase):
         o.set_config('environment:fallback:y_wind', 10)  # Some wind for mixing
         o.set_config('general:coastline_action', 'stranding')
         o.set_config('vertical_mixing:timestep', 120)
+        o.set_config('drift:max_speed', .1)
         o.seed_elements(lon=14.0, lat=68.15, radius=2000, number=100,
                         time=[reader_nordic.start_time,
                               reader_nordic.end_time], z=0)
 
-        o.max_speed=.1
         o.run(end_time=reader_nordic.end_time, time_step=3600*6)
         self.assertEqual(o.status_categories[1], 'stranded')
         self.assertEqual(o.elements_deactivated.status.min(), 1)
@@ -67,6 +67,7 @@ class TestStranding(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', 1)
         o.set_config('general:coastline_action', 'previous')
         o.set_config('drift:vertical_mixing', False)
+        o.set_config('drift:max_speed', 1)
         reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
         '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
         reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() +
@@ -76,7 +77,6 @@ class TestStranding(unittest.TestCase):
         o.seed_elements(lon=13.0, lat=68.0, radius=20000, number=100,
                         time=[reader_arctic.start_time,
                               reader_nordic.end_time], z=-30)
-        o.max_speed=1
         o.run(end_time=reader_nordic.end_time, time_step=3600*36)
         self.assertEqual(o.num_elements_scheduled(), 0)
         self.assertEqual(o.num_elements_active(), 100)

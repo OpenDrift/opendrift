@@ -18,6 +18,7 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 
 o.add_reader(reader_norkyst)
 o.set_config('environment:fallback:land_binary_mask', 0)
+o.disable_vertical_motion()
 
 #%%
 # Forward run
@@ -25,7 +26,6 @@ o.set_config('environment:fallback:land_binary_mask', 0)
 lon = 4.2; lat = 60.1;
 time = reader_norkyst.start_time
 o.seed_elements(lon, lat, radius=1000, number=100, time=time)
-o.disable_vertical_motion()
 
 o.run(steps=50*4, time_step=900, time_step_output=3600, outfile=ncfile)
 
@@ -43,9 +43,9 @@ time_final = o.time
 del o
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 o.set_config('environment:fallback:land_binary_mask', 0)
+o.disable_vertical_motion()
 o.add_reader(reader_norkyst)
 o.schedule_elements(elements_final, time_final)
-o.disable_vertical_motion()
 
 #%%
 # Running model backwards from end of forward simulation

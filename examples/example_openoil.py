@@ -22,6 +22,13 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
 o.add_reader([reader_norkyst, reader_arome])
 
 #%%
+# Adjusting some configuration
+o.set_config('processes:evaporation',  True)
+o.set_config('processes:emulsification',  True)
+o.set_config('drift:vertical_mixing',  True)
+o.set_config('vertical_mixing:timestep',  5)
+
+#%%
 # Seeding some particles
 time = reader_arome.start_time
 oil_type = 'GULLFAKS, EXXON'
@@ -29,13 +36,6 @@ oil_type = 'ARABIAN MEDIUM, API'
 oil_type = 'ALGERIAN CONDENSATE'
 o.seed_elements(lon=4.9, lat=60.1, radius=3000, number=2000,
                 time=time, z=0, oil_type=oil_type)
-
-#%%
-# Adjusting some configuration
-o.set_config('processes:evaporation',  True)
-o.set_config('processes:emulsification',  True)
-o.set_config('drift:vertical_mixing',  True)
-o.set_config('vertical_mixing:timestep',  5)
 
 #%%
 # Running model

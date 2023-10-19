@@ -24,17 +24,17 @@ reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov20
 o.add_reader([reader_arome, reader_norkyst])
 
 #%%
-# Seeding some oil particles
-oil_type='MARTIN LINGE CRUDE 2016'
-o.seed_elements(lon=4.88, lat=60.1, z=0, radius=3000, number=500,
-                time=reader_norkyst.start_time, oil_type=oil_type)
-
-#%%
 # Adjusting some configuration
 o.set_config('processes:dispersion', False)
 o.set_config('processes:evaporation', True)
 o.set_config('processes:emulsification', True)
 o.set_config('drift:vertical_mixing', True)
+
+#%%
+# Seeding some oil particles
+oil_type='MARTIN LINGE CRUDE 2016'
+o.seed_elements(lon=4.88, lat=60.1, z=0, radius=3000, number=500,
+                time=reader_norkyst.start_time, oil_type=oil_type)
 
 #%%
 # Running model

@@ -32,7 +32,10 @@ class WindBlow(OpenDriftSimulation):
         'y_wind': {'fallback': 0}
         }
 
-    max_speed = 12  # m/s
+
+    def __init__(self, *args, **kwargs):
+        super(WindBlow, self).__init__(*args, **kwargs)
+        self._set_config_default('drift:max_speed', 12)
 
     def update(self):
 

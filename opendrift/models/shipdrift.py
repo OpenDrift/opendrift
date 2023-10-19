@@ -98,7 +98,6 @@ class ShipDrift(OpenDriftSimulation):
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0}
         }
 
-    max_speed = 2  # m/s
     winwav_angle = 20  # Angular offset in degrees
 
     def __init__(self, *args, **kwargs):
@@ -153,6 +152,8 @@ class ShipDrift(OpenDriftSimulation):
         # (in contrast to the Leeway model), we use a default diffusivity
         # to yield some variability.
         self._set_config_default('drift:horizontal_diffusivity', 100)
+
+        self._set_config_default('drift:max_speed', 2)
 
     def seed_elements(self, *args, **kwargs):
 

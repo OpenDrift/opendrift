@@ -32,7 +32,7 @@ seafloor_actions = ['previous', 'deactivate', 'lift_to_seafloor']
 for seafloor_action in seafloor_actions:
 
     o = OceanDrift(loglevel=50)  # Set loglevel to 0 for debug information
-    o.max_speed = 10
+    o.set_config('drift:max_speed', 10)
 
     o.add_reader([reader_osc, reader_norkyst])
 

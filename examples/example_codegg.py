@@ -16,6 +16,14 @@ o.add_readers_from_list([
     'https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc'])
 
 #%%
+# Adjusting some configuration
+o.set_config('drift:vertical_mixing', True)
+o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
+#%%
+# Vertical mixing requires fast time step
+o.set_config('vertical_mixing:timestep', 60.) # seconds
+
+#%%
 # spawn NEA cod eggs at defined position and time
 time = datetime.utcnow()
 o.seed_elements(14. , 68.1, z=-40, radius=2000, number=500,
@@ -26,14 +34,6 @@ o.seed_elements(13.5, 68., z=-40, radius=2000, number=500,
                 time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
 o.seed_elements(13., 67.8, z=-40, radius=2000, number=500,
                 time=time, diameter=0.0014, neutral_buoyancy_salinity=31.25)
-
-#%%
-# Adjusting some configuration
-o.set_config('drift:vertical_mixing', True)
-o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983') # windspeed parameterization for eddy diffusivity
-#%%
-# Vertical mixing requires fast time step
-o.set_config('vertical_mixing:timestep', 60.) # seconds
 
 #%%
 # Running model

@@ -14,7 +14,7 @@ from opendrift.models.oceandrift import OceanDrift
 ###############################
 # MODEL
 ###############################
-o = OceanDrift(loglevel=0)  # Set loglevel to 0 for debug information
+o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 ###############################
 # READERS
 ###############################
@@ -32,6 +32,7 @@ schism_native = reader_schism_native.Reader(
 
 o.add_reader([reader_landmask,schism_native])
 o.set_config('general:use_auto_landmask', False) # prevent opendrift from making a new dynamical landmask with global_landmask
+o.disable_vertical_motion()  #Deactivate any vertical processes/advection"""
 
 # Seed elements at defined positions, depth and time
 o.seed_elements(lon=174.046669, lat=-40.928116, radius=20, number=100,
@@ -43,7 +44,6 @@ o.seed_elements(lon= 173.8839, lat=-40.9160, radius=20, number=100,
 o.seed_elements(lon=174.2940, lat=-41.0888, radius=20, number=100,
                 z=np.linspace(0,-10, 100), time=schism_native.start_time)
 
-o.disable_vertical_motion()  #Deactivate any vertical processes/advection"""
 #%%
 # Running model
 o.run(time_step=900,
