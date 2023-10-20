@@ -28,7 +28,7 @@ lcs = o.calculate_ftle(
 
 #%%
 # Simulation from beginning and up to 30 hours (time of LCS)
-o.reset()
+o = o.clone()
 o.seed_elements(lon=4.4, lat=60.2, number=1000, radius=1000,
                 time=reader_norkyst.start_time)
 o.run(end_time=reader_norkyst.start_time+timedelta(hours=20),

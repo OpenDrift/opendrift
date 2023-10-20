@@ -3,7 +3,7 @@
 Double gyre - LCS with particles
 ============================================
 
-Drift of particles in an idealised (analytical) eddy current field, 
+Drift of particles in an idealised (analytical) eddy current field,
 plotted on top of the LCS. This takes some minutes to calculate.
 """
 
@@ -43,7 +43,7 @@ lcs = o.calculate_ftle(time=times, time_step=time_step,
 
 #%%
 # Make run with particles for the same period
-o.reset()
+o = o.clone()
 o.disable_vertical_motion()
 x = [.9]
 y = [.5]

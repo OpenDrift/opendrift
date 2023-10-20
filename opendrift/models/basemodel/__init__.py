@@ -15,6 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 # Copyright 2020, Gaute Hope, MET Norway
 
+from copy import deepcopy
 import sys
 import os
 import types
@@ -64,6 +65,7 @@ def require_mode(mode: Mode, post_next_mode=False, error=None):
 
         @functools.wraps(func)
         def inner(self, *args, **kwargs):
+
             def next_mode():
                 # Change the mode
                 prev = self.mode
@@ -533,6 +535,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             )
             logger.warning('#' * 82)
 
+    def clone(self):
+        c = self.__class__()
+
+        c._config.clear()
+        for k, v in self._config.items():
+            c._config[k] = v
+
+        c.add_reader([r for _, r in self.env.readers.items()])
+
+        return c
+
     @require_mode(mode=Mode.Config,
                   error='Cannot set config after elements have been seeded')
     @functools.wraps(Configurable.set_config)
@@ -906,7 +919,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return lon, lat
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_elements(self,
                       lon,
                       lat,
@@ -1070,7 +1083,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         time_array = np.array(time)
         self.schedule_elements(elements, time)
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_cone(self, lon, lat, time, radius=0, number=None, **kwargs):
         """Seed elements along a transect/cone between two points/times
 
@@ -1186,7 +1199,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            number=number,
                            **kwargs)
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_from_geojson(self, gjson):
         """Under development"""
         try:
@@ -1230,7 +1243,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             raise ValueError('Not yet implemented')
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_repeated_segment(self,
                               lons,
                               lats,
@@ -1287,7 +1300,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_within_polygon(self, lons, lats, number=None, **kwargs):
         """Seed a number of elements within given polygon.
 
@@ -1380,7 +1393,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, number=number, **kwargs)
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_from_wkt(self, wkt, number=None, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
 
@@ -1431,7 +1444,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                      **kwargs)
             num_seeded += num_elements
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_from_shapefile(self,
                             shapefile,
                             number,
@@ -1533,7 +1546,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          number=num_elements,
                                          **kwargs)
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_letters(self, text, lon, lat, time, number, scale=1.2):
         """Seed elements within text polygons"""
         from matplotlib.font_manager import FontProperties
@@ -1553,7 +1566,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                      number=number,
                                      time=time)
 
-    @require_mode(mode = Mode.Ready)
+    @require_mode(mode=Mode.Ready)
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
 
@@ -2468,7 +2481,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     np.reshape(self.elements_scheduled.lat, (1, -1))).T
         return lons, lats
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def animation(self,
                   buffer=.2,
                   corners=None,
@@ -2982,7 +2995,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.exception(e)
                 pass
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def animation_profile(self,
                           filename=None,
                           compare=None,
@@ -3192,7 +3205,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return compare_list, compare_args
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def plot(self,
              background=None,
              buffer=.2,
@@ -4219,7 +4232,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         time_array_relative = [td * i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def plot_environment(self, filename=None, ax=None, show=True):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
@@ -4260,7 +4273,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             plt.savefig(filename)
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def plot_property(self, prop, filename=None, mean=False):
         """Basic function to plot time series of any element properties."""
         import matplotlib.pyplot as plt
@@ -4298,7 +4311,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             plt.savefig(filename)
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def get_property(self, propname):
         """Get property from history, sorted by status."""
         index_of_first, index_of_last = \
@@ -4313,7 +4326,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return prop.T, status.T
 
-    @require_mode(mode = Mode.Result)
+    @require_mode(mode=Mode.Result)
     def get_trajectory_lengths(self):
         """Calculate lengths and speeds along trajectories."""
         lons = self.get_property('lon')[0]
@@ -4330,7 +4343,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return total_length, distances, speeds
 
-    @require_mode(mode = Mode.Run)
+    @require_mode(mode=Mode.Run)
     def update_positions(self, x_vel, y_vel):
         """Move particles according to given velocity components.
 
@@ -4570,22 +4583,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.info('Calculating LCS for ' + str(t))
             # Forwards
             if RLCS is True:
-                self.reset()
-                self.seed_elements(lons.ravel(), lats.ravel(), time=t, z=z)
-                self.run(duration=duration, time_step=time_step)
-                f_x1, f_y1 = proj(self.history['lon'].T[-1].reshape(X.shape),
-                                  self.history['lat'].T[-1].reshape(X.shape))
+                o = self.clone()
+                o.seed_elements(lons.ravel(), lats.ravel(), time=t, z=z)
+                o.run(duration=duration, time_step=time_step)
+                f_x1, f_y1 = proj(o.history['lon'].T[-1].reshape(X.shape),
+                                  o.history['lat'].T[-1].reshape(X.shape))
                 lcs['RLCS'][i, :, :] = ftle(f_x1 - X, f_y1 - Y, delta, T)
             # Backwards
             if ALCS is True:
-                self.reset()
-                self.seed_elements(lons.ravel(),
-                                   lats.ravel(),
-                                   time=t + duration,
-                                   z=z)
-                self.run(duration=duration, time_step=-time_step)
-                b_x1, b_y1 = proj(self.history['lon'].T[-1].reshape(X.shape),
-                                  self.history['lat'].T[-1].reshape(X.shape))
+                o = self.clone()
+                o.seed_elements(lons.ravel(),
+                                lats.ravel(),
+                                time=t + duration,
+                                z=z)
+                o.run(duration=duration, time_step=-time_step)
+                b_x1, b_y1 = proj(o.history['lon'].T[-1].reshape(X.shape),
+                                  o.history['lat'].T[-1].reshape(X.shape))
                 lcs['ALCS'][i, :, :] = ftle(b_x1 - X, b_y1 - Y, delta, T)
 
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
