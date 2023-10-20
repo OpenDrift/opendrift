@@ -23,6 +23,7 @@ import inspect
 import logging
 
 from opendrift.models.basemodel.environment import Environment
+from opendrift.readers import reader_global_landmask
 
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
@@ -50,31 +51,64 @@ import functools
 
 import opendrift
 from opendrift.timer import Timeable
-from opendrift.errors import NotCoveredError
-from opendrift.readers import reader_from_url, reader_global_landmask
+from opendrift.errors import WrongMode
 from opendrift.models.physics_methods import PhysicsMethods
-from opendrift.config import Configurable, CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
-
+from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 
-class WrongMode(Exception):
-    def __init__(self, expected_mode, real_mode, msg = None):
-        super().__init__(f"Cannot call this function in this mode: {real_mode}, only in: {expected_mode}: {msg}")
 
+def require_mode(mode: Mode, post_next_mode=False, error=None):
 
-def require_mode(mode: Mode, error = None):
     def _decorator(func):
+
         @functools.wraps(func)
         def inner(self, *args, **kwargs):
+            def next_mode():
+                # Change the mode
+                prev = self.mode
+
+                if self.mode is Mode.Config:
+                    self.env.finalize()
+                    self.mode = Mode.Ready
+
+                elif self.mode is Mode.Ready:
+                    self.mode = Mode.Run
+
+                elif self.mode is Mode.Run:
+                    self.mode = Mode.Result
+
+                elif self.mode is Mode.Result:
+                    pass
+
+                else:
+                    raise Exception("Unknown mode")
+
+                logger.debug(f"Changed mode from {prev} to {self.mode}")
+
             if self.mode != mode:
-                raise WrongMode(mode, self.mode, error)
+                # Check if we can advance to the required mode
+                if mode is Mode.Ready and self.mode is Mode.Config:
+                    next_mode()
+
+                elif mode is Mode.Run and self.mode is Mode.Ready:
+                    next_mode()
+
+                elif mode is Mode.Result and self.mode is Mode.Run:
+                    next_mode()
+
+                else:
+                    raise WrongMode(mode, self.mode, error)
 
             func(self, *args, **kwargs)
+
+            if post_next_mode:
+                next_mode()
 
         return inner
 
     return _decorator
+
 
 class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     """Generic trajectory model class, to be extended (subclassed).
@@ -193,7 +227,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
 
-        self.env = Environment(self.required_variables, self.required_profiles_z_range, self._config)
+        self.env = Environment(self.required_variables,
+                               self.required_profiles_z_range, self._config)
 
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
@@ -464,7 +499,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             }
         self._add_config(c)
 
-
         self.history = None  # Recarray to store trajectories and properties
 
         # Find variables which require profiles
@@ -497,7 +531,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             )
             logger.warning('#' * 82)
 
-    @require_mode(mode=Mode.Config, error='Cannot set config after elements have been seeded')
+    @require_mode(mode=Mode.Config,
+                  error='Cannot set config after elements have been seeded')
     @functools.wraps(Configurable.set_config)
     def set_config(self, *args, **kwargs):
         return Configurable.set_config(self, *args, **kwargs)
@@ -734,18 +769,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         """The total number of active and deactivated elements."""
         return self.num_elements_active() + self.num_elements_deactivated()
 
+    @require_mode(mode=Mode.Ready)
     def schedule_elements(self, elements, time):
         """Schedule elements to be seeded during runtime.
 
         Also assigns a unique ID to each particle, monotonically increasing."""
-
-        # First time some elements are seeded/scheduled, we change mode to Ready
-        if self.mode == Mode.Config:
-            logger.debug('First seeding, changing mode to Ready')
-            self.mode = Mode.Ready
-            self.env.finalize()
-
-        assert self.mode == Mode.Ready, 'Not ready for seeding'
 
         # prepare time
         if isinstance(time, np.ndarray):
@@ -876,6 +904,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return lon, lat
 
+    @require_mode(mode = Mode.Ready)
     def seed_elements(self,
                       lon,
                       lat,
@@ -1011,7 +1040,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   in self.env.priority_list) or len(self.env._lazy_readers()):
                 if not hasattr(self, 'time'):
                     self.time = time[0]
-                self.env.finalize()
                 env, env_profiles, missing = \
                     self.env.get_environment(['sea_floor_depth_below_sea_level'],
                                          time=time[0], lon=lon, lat=lat,
@@ -1040,6 +1068,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         time_array = np.array(time)
         self.schedule_elements(elements, time)
 
+    @require_mode(mode = Mode.Ready)
     def seed_cone(self, lon, lat, time, radius=0, number=None, **kwargs):
         """Seed elements along a transect/cone between two points/times
 
@@ -1155,6 +1184,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            number=number,
                            **kwargs)
 
+    @require_mode(mode = Mode.Ready)
     def seed_from_geojson(self, gjson):
         """Under development"""
         try:
@@ -1198,6 +1228,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             raise ValueError('Not yet implemented')
 
+    @require_mode(mode = Mode.Ready)
     def seed_repeated_segment(self,
                               lons,
                               lats,
@@ -1254,6 +1285,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         self.seed_elements(lon=lon, lat=lat, time=time, **kwargs)
 
+    @require_mode(mode = Mode.Ready)
     def seed_within_polygon(self, lons, lats, number=None, **kwargs):
         """Seed a number of elements within given polygon.
 
@@ -1346,6 +1378,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Finally seed at calculated positions
         self.seed_elements(lonpoints, latpoints, number=number, **kwargs)
 
+    @require_mode(mode = Mode.Ready)
     def seed_from_wkt(self, wkt, number=None, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
 
@@ -1396,6 +1429,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                      **kwargs)
             num_seeded += num_elements
 
+    @require_mode(mode = Mode.Ready)
     def seed_from_shapefile(self,
                             shapefile,
                             number,
@@ -1497,6 +1531,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          number=num_elements,
                                          **kwargs)
 
+    @require_mode(mode = Mode.Ready)
     def seed_letters(self, text, lon, lat, time, number, scale=1.2):
         """Seed elements within text polygons"""
         from matplotlib.font_manager import FontProperties
@@ -1516,6 +1551,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                      number=number,
                                      time=time)
 
+    @require_mode(mode = Mode.Ready)
     def seed_from_ladim(self, ladimfile, roms):
         """Seed elements from ladim \\*.rls text file: [time, x, y, z, name]"""
 
@@ -1612,6 +1648,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             #if self.num_elements_active() == 0:
             #    raise ValueError('No more active elements.')  # End simulation
 
+    @require_mode(mode=Mode.Run, post_next_mode=True)
     def run(self,
             time_step=None,
             steps=None,
@@ -1656,8 +1693,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             export_variables: list of variables and parameter names to be
                 saved to file. Default is None (all variables are saved)
         """
-
-        self.mode = Mode.Run
 
         # Exporting software and hardware specification, for possible debugging
         logger.debug(opendrift.versions())
@@ -1798,7 +1833,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         # Store expected simulation extent, to check if new readers have coverage
         self.simulation_extent = simulation_extent
-
         self.env.finalize(self.simulation_extent)
 
         ####################################################################
@@ -2055,8 +2089,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                         'constant_reader') and var in self.env.readers[
                             readers[0]]._parameter_value_map:
                     self.add_metadata(
-                        keyword,
-                        self.env.readers[readers[0]]._parameter_value_map[var][0])
+                        keyword, self.env.readers[
+                            readers[0]]._parameter_value_map[var][0])
                 else:
                     self.add_metadata(keyword, self.env.priority_list[var])
 
@@ -2090,7 +2124,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 del self.environment_profiles
             self.io_import_file(outfile)
 
-        self.mode = Mode.Result
         self.timer_end('cleaning up')
         self.timer_end('total time')
 
@@ -4221,6 +4254,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             plt.savefig(filename)
 
+    @require_mode(mode = Mode.Result)
     def plot_property(self, prop, filename=None, mean=False):
         """Basic function to plot time series of any element properties."""
         import matplotlib.pyplot as plt
@@ -4258,6 +4292,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             plt.savefig(filename)
 
+    @require_mode(mode = Mode.Result)
     def get_property(self, propname):
         """Get property from history, sorted by status."""
         index_of_first, index_of_last = \
@@ -4272,6 +4307,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return prop.T, status.T
 
+    @require_mode(mode = Mode.Result)
     def get_trajectory_lengths(self):
         """Calculate lengths and speeds along trajectories."""
         lons = self.get_property('lon')[0]
@@ -4288,6 +4324,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return total_length, distances, speeds
 
+    @require_mode(mode = Mode.Run)
     def update_positions(self, x_vel, y_vel):
         """Move particles according to given velocity components.
 

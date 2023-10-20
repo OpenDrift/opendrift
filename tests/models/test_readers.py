@@ -33,7 +33,7 @@ from opendrift.readers import reader_lazy
 from opendrift.readers import reader_from_url
 from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.readers import reader_current_from_track
-from opendrift.errors import OutsideSpatialCoverageError
+from opendrift.errors import OutsideSpatialCoverageError, WrongMode
 
 
 o = OceanDrift(loglevel=20)
@@ -287,7 +287,7 @@ class TestReaders(unittest.TestCase):
 
     def test_automatic_landmask(self):
         o = OceanDrift(loglevel=20)
-        self.assertRaises(ValueError, o.run)
+        self.assertRaises(WrongMode, o.run)
         o = OceanDrift(loglevel=20)
         o.seed_elements(lon=4, lat=60, time=datetime(2016,9,1))
         o.run(steps=2)
