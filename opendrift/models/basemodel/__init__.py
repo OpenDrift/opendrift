@@ -100,10 +100,12 @@ def require_mode(mode: Mode, post_next_mode=False, error=None):
                 else:
                     raise WrongMode(mode, self.mode, error)
 
-            func(self, *args, **kwargs)
+            r = func(self, *args, **kwargs)
 
             if post_next_mode:
                 next_mode()
+
+            return r
 
         return inner
 
@@ -2466,6 +2468,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     np.reshape(self.elements_scheduled.lat, (1, -1))).T
         return lons, lats
 
+    @require_mode(mode = Mode.Result)
     def animation(self,
                   buffer=.2,
                   corners=None,
@@ -2979,6 +2982,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.exception(e)
                 pass
 
+    @require_mode(mode = Mode.Result)
     def animation_profile(self,
                           filename=None,
                           compare=None,
@@ -3188,6 +3192,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return compare_list, compare_args
 
+    @require_mode(mode = Mode.Result)
     def plot(self,
              background=None,
              buffer=.2,
@@ -4214,6 +4219,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         time_array_relative = [td * i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
+    @require_mode(mode = Mode.Result)
     def plot_environment(self, filename=None, ax=None, show=True):
         """Plot mean wind and current velocities of element of last run."""
         x_wind = self.get_property('x_wind')[0]
