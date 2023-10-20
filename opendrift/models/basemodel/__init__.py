@@ -4575,22 +4575,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return center, variance
 
-    def reset(self):
-        """Preparing OpenDrift object for new run"""
-        if not hasattr(self, 'start_time'):
-            logger.info('Nothing to reset')
-            return
-
-        for attr in ['start_time', 'elements']:
-            if hasattr(self, attr):
-                delattr(self, attr)
-        #del self.start_time
-        self.history = None
-        #del self.elements
-        self.elements_deactivated = self.ElementType()  # Empty array
-        self.elements = self.ElementType()  # Empty array
-        self.mode = Mode.Config
-
     def gui_postproc(self):
         '''To be overloaded by subclasses'''
         pass
