@@ -84,7 +84,15 @@ class Reader(BaseReader, UnstructuredReader):
     ocean_depth_nele = None
     ocean_depth_node = None
 
-    def __init__(self, filename, proj4, filetype='zarr', name=None):
+    def __init__(self, filename, proj4, filetype='zarr', cache=None, name=None):
+        """
+        filename: zarr store or netcdf file
+        proj4: PROJ4 string
+        filetype: "zarr" or "netcdf"
+        cache: either None (no caching) or int (size of cache in bytes). 
+            Only respected for zarr stores.
+        name: name of Reader.
+        """
         filestr = str(filename) # if Path was supplied
         if name is None:
             self.name = filestr
@@ -94,7 +102,13 @@ class Reader(BaseReader, UnstructuredReader):
         self.timer_start("open dataset")
         logger.info('Opening dataset: ' + filestr)
         if filetype=='zarr':
-            self.dataset = xr.open_dataset(filename, engine='zarr', drop_variables=['time'])
+            from zarr.storage import FSStore, LRUStoreCache
+            store_nocache = FSStore(filestr)
+            if cache is not None:
+                store = LRUStoreCache(store_nocache, max_size=cache) # e.g. 2**30 = 1 GiB cache
+            else:
+                store = store_nocache
+            self.dataset = xr.open_dataset(store, engine='zarr', drop_variables=['time'])
         elif filetype=='netcdf':
             self.dataset = open_fvcom_files_as_xarray(filename)
 
