@@ -594,7 +594,7 @@ class OpenDriftGUI(tk.Tk):
             pass
 
         # Only ESSENTIAL config items are shown on front page with seeding
-        sc = self.o.get_configspec(level=self.o.CONFIG_LEVEL_ESSENTIAL)
+        sc = self.o.get_configspec(level=opendrift.config.CONFIG_LEVEL_ESSENTIAL)
         self.seed_input = {}
         self.seed_input_var = {}
         self.seed_input_label = {}
