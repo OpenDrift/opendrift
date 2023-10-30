@@ -92,6 +92,7 @@ from . import noaa_oil_weathering as noaa
 from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
+from opendrift.models.basemodel import Mode
 
 
 # Defining the oil element properties
@@ -1646,7 +1647,14 @@ class OpenOil(OceanDrift):
 
         if 'oil_type' in kwargs:
             if self.get_config('seed:oil_type') != kwargs['oil_type']:
-                self.set_config('seed:oil_type', kwargs['oil_type'])
+                if self.mode != Mode.Config:
+                    logger.warning(f'Setting oil type in mode {self.mode}: need to temporarily change mode to Config')
+                    mode = self.mode
+                    self.mode = Mode.Config
+                    self.set_config('seed:oil_type', kwargs['oil_type'])
+                    self.mode = mode
+                else:
+                    self.set_config('seed:oil_type', kwargs['oil_type'])
             del kwargs['oil_type']
         else:
             logger.info('Oil type not specified, using default: ' +
