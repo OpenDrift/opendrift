@@ -573,6 +573,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             raise ValueError('Readers cannot be added after seeding elements')
         self.env.add_readers_from_list(*args, **kwargs)
 
+    def add_readers_from_file(self, *args, **kwargs):
+        '''Make readers from a file containing list of URLs or paths to netCDF datasets'''
+        # Do not allow adding new readers after elements have been seeded
+        if self.mode != Mode.Config:
+            raise ValueError('Readers cannot be added after seeding elements')
+        self.env.add_readers_from_file(*args, **kwargs)
+
     def prepare_run(self):
         pass  # to be overloaded when needed
 
