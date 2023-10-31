@@ -2488,7 +2488,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     np.reshape(self.elements_scheduled.lat, (1, -1))).T
         return lons, lats
 
-    @require_mode(mode=Mode.Result)
     def animation(self,
                   buffer=.2,
                   corners=None,
@@ -3212,7 +3211,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return compare_list, compare_args
 
-    @require_mode(mode=Mode.Result)
     def plot(self,
              background=None,
              buffer=.2,

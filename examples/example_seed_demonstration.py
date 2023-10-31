@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import numpy as np
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
-from opendrift.models.basemodel import Mode
 
 o = OceanDrift(loglevel=50)
 
@@ -22,7 +21,6 @@ print('o.seed_elements(lon=4, lat=60, time=time)')
 print('='*70)
 o.seed_elements(lon=4, lat=60, time=time)
 #o.run(steps=1)
-o.mode = Mode.Result
 o.plot(buffer=.7, fast=True)
 
 
@@ -35,7 +33,6 @@ print('o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)')
 print('='*70)
 o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)
 #o.run(steps=1)
-o.mode = Mode.Result
 o.plot(buffer=.7, fast=True)
 
 

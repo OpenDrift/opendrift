@@ -7,7 +7,6 @@ Seeding from GeoJSON string
 from datetime import datetime, timedelta
 from opendrift.models.leeway import Leeway
 from opendrift.models.openoil import OpenOil
-from opendrift.models.basemodel import Mode
 
 #%%
 # Polygon
@@ -34,7 +33,6 @@ o.seed_from_geojson("""{
         "m3_per_hour": 50
       }
     }""")
-o.mode = Mode.Result
 o.plot(fast=True)
 
 
