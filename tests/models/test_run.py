@@ -103,7 +103,7 @@ class TestRun(unittest.TestCase):
         assert o.mode == Mode.Config
         o.seed_elements(lon=3, lat=60, time=datetime.now())
         assert o.mode == Mode.Ready
-        with self.assertRaises(ValueError):  # Cannot add readers after elements have been seeded
+        with self.assertRaises(WrongMode):  # Cannot add readers after elements have been seeded
             o.add_reader(norkyst)
         with self.assertRaises(WrongMode):  # Cannot set config after readers have been added
             o.set_config('seed:ocean_only', False)
