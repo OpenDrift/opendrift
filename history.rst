@@ -1,6 +1,26 @@
 History
 =======
 
+Next release
+----------------------------
+* Order of initializing a simulation is now strict: configuration and adding readers must be done before seeding elements and starting simulation. Internally this is regulated by *modes*: ['Config', 'Ready', 'Run', 'Result'] and use of decorators for when methods are applicable.
+* Related restructuring, including new Config and Environment classes, and renaming basemodel.py to basemodel/__init__.py. reset method is removed, and a clone method is intruduced instead.
+* drift:max_speed is now a config value. fallback_values it not anymore a cached dict, but must be retrieved from config. Updated all examples and tests to seed elements after config and readers
+* Several updates to ChemicalDrift module
+* Fixed bug related to rotation of east/north-oriented vectors from reader_netCDF_generic with projection of different orientation
+* Fixed bug for buffer size for negative time steps and readers with no time dimension
+* dbyte type landmask now allowed in ROMS reader
+* Removing u_eastward and v_northward from ROMS variable mappings, as these are wrongly rotated. Rotation should be fixed if these are re-inserted
+* Readers are now quarantined/discarded if they fail more than the number of times given by config readers:max_number_of_fails (default 1)
+* Added method plot_stokes_profile to plot vertical profiles of Stokes drift
+* Added standard_name aliases for baroclinic_x_sea_water_velocity, baroclinic_eastward_sea_water_velocity, and y/north counterparts
+* Added normal and lognormal droplet size distributions for subsea blowout (author Giles Fearon)
+* Fixed bug for solar_coeff in sealice model (author Julien Moreau)
+* vector_pairs_xy now also contains name of magnitude and direction_to components, i.e. 4 elements array (xname, yname, magnitude, direction_to). For future automatic conversion between x_comp,ycomp and speed,magnitude
+* More generic environment mapping methods, from vectors to magnitude/direction and vice versa. Need improvement formapping based on other mapped variables. Readerinfo now use get_variables_interpolated_xy instead of get_variables to report data at point
+* Fixed wrong distribution of angles when seeding with uniform distribution. Thanks to Oyvind Breivik for spotting.
+* oil_type can be decided at first seeding, but not changed at second seeding. I.e. as before, only a single oil type can be used for a simulation.
+
 2023-05-02 / Release v1.10.7
 ----------------------------
 * CF projection info is now parsed with pyproj.CF.from_cf()
