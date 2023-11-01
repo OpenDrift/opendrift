@@ -18,7 +18,7 @@
 import sys
 import os
 import types
-from typing import Union
+from typing import Union, List
 import traceback
 import inspect
 import logging
@@ -59,7 +59,7 @@ from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVA
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 
 
-def require_mode(mode: Union[Mode, list[Mode]], post_next_mode=False, error=None):
+def require_mode(mode: Union[Mode, List[Mode]], post_next_mode=False, error=None):
     if not isinstance(mode, list):
         mode = [mode]
 
