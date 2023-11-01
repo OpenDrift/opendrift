@@ -92,7 +92,6 @@ from . import noaa_oil_weathering as noaa
 from . import adios
 from opendrift.models.physics_methods import oil_wave_entrainment_rate_li2017
 from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
-from opendrift.models.basemodel import Mode
 
 
 # Defining the oil element properties
@@ -1464,7 +1463,7 @@ class OpenOil(OceanDrift):
         """
 
         if self.get_config('seed:oil_type') != oiltype:
-            self.set_config('seed:oil_type', oiltype)
+            self.__set_seed_config__('seed:oil_type', oiltype)
             logger.info(f'setting oil_type to: {oiltype}')
 
         oiltype = adios.oil_name_alias.get(oiltype, oiltype)
@@ -1571,8 +1570,6 @@ class OpenOil(OceanDrift):
             kwargs['lat'] = args[1]
             args = {}
 
-        self.store_oil_seed_metadata(**kwargs)
-
         if 'number' not in kwargs:
             number = self.get_config('seed:number')
         else:
@@ -1647,14 +1644,7 @@ class OpenOil(OceanDrift):
 
         if 'oil_type' in kwargs:
             if self.get_config('seed:oil_type') != kwargs['oil_type']:
-                if self.mode != Mode.Config:
-                    logger.warning(f'Setting oil type in mode {self.mode}: need to temporarily change mode to Config')
-                    mode = self.mode
-                    self.mode = Mode.Config
-                    self.set_config('seed:oil_type', kwargs['oil_type'])
-                    self.mode = mode
-                else:
-                    self.set_config('seed:oil_type', kwargs['oil_type'])
+                self.__set_seed_config__('seed:oil_type', kwargs['oil_type'])
             del kwargs['oil_type']
         else:
             logger.info('Oil type not specified, using default: ' +
@@ -1689,6 +1679,8 @@ class OpenOil(OceanDrift):
             duration_hours = 1.  # For instantaneous spill, we use 1h
         kwargs['mass_oil'] = (m3_per_hour * duration_hours / num_elements *
                               kwargs['density'])
+
+        self.store_oil_seed_metadata(**kwargs)
 
         super(OpenOil, self).seed_elements(*args, **kwargs)
 

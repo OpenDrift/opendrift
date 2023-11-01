@@ -59,7 +59,9 @@ from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVA
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 
 
-def require_mode(mode: Mode, post_next_mode=False, error=None):
+def require_mode(mode: Mode|list[Mode], post_next_mode=False, error=None):
+    if not isinstance(mode, list):
+        mode = [mode]
 
     def _decorator(func):
 
@@ -88,15 +90,15 @@ def require_mode(mode: Mode, post_next_mode=False, error=None):
 
                 logger.debug(f"Changed mode from {prev} to {self.mode}")
 
-            if self.mode != mode:
+            if self.mode not in mode:
                 # Check if we can advance to the required mode
-                if mode is Mode.Ready and self.mode is Mode.Config:
+                if mode[0] is Mode.Ready and self.mode is Mode.Config:
                     next_mode()
 
-                elif mode is Mode.Run and self.mode is Mode.Ready:
+                elif mode[0] is Mode.Run and self.mode is Mode.Ready:
                     next_mode()
 
-                elif mode is Mode.Result and self.mode is Mode.Run:
+                elif mode[0] is Mode.Result and self.mode is Mode.Run:
                     next_mode()
 
                 else:
@@ -552,6 +554,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def set_config(self, *args, **kwargs):
         return Configurable.set_config(self, *args, **kwargs)
 
+    @require_mode(mode=[Mode.Config, Mode.Ready])
+    @functools.wraps(Configurable.set_config)
+    def __set_seed_config__(self, key: str, value):
+        """
+        This method allows setting config values that are passed as seed arguments. The environment is already prepared before this, so make sure that nothing is changed that requires the environment to be re-initialized.
+        """
+        if not key.startswith('seed'):
+            raise ValueError("This method is only allowed for setting seed arguments.")
+
+        # check that the oil_type is only set once
+        if key == 'seed:oil_type' and self.num_elements_scheduled() > 0:
+            if value != self.get_config('seed:oil_type'):
+                raise WrongMode(Mode.Config, self.mode, msg=f"Cannot change the oil type after elements have been seeded: {self.get_config('seed:oil_type')} -> {value}")
+
+        return Configurable.set_config(self, key, value)
+
     def add_metadata(self, key, value):
         """Add item to metadata dictionary, for export as netCDF global attributes"""
         if not hasattr(self, 'metadata_dict'):
@@ -559,25 +577,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.metadata_dict = OrderedDict()
         self.metadata_dict[key] = value
 
+    @require_mode(mode=Mode.Config)
     def add_reader(self, readers, variables=None, first=False):
-
-        # Do not allow adding new readers after elements have been seeded
-        if self.mode != Mode.Config:
-            raise ValueError('Readers cannot be added after seeding elements')
         self.env.add_reader(readers, variables, first)
 
+    @require_mode(mode=Mode.Config)
     def add_readers_from_list(self, *args, **kwargs):
         '''Make readers from a list of URLs or paths to netCDF datasets'''
-        # Do not allow adding new readers after elements have been seeded
-        if self.mode != Mode.Config:
-            raise ValueError('Readers cannot be added after seeding elements')
         self.env.add_readers_from_list(*args, **kwargs)
 
+    @require_mode(mode=Mode.Config)
     def add_readers_from_file(self, *args, **kwargs):
         '''Make readers from a file containing list of URLs or paths to netCDF datasets'''
-        # Do not allow adding new readers after elements have been seeded
-        if self.mode != Mode.Config:
-            raise ValueError('Readers cannot be added after seeding elements')
         self.env.add_readers_from_file(*args, **kwargs)
 
     def prepare_run(self):

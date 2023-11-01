@@ -1,7 +1,9 @@
 import pyproj
 import numpy as np
 from datetime import datetime, timedelta
+import pytest
 
+import opendrift
 from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_ArtificialOceanEddy
 
@@ -116,3 +118,37 @@ def test_oil_type_alias():
                     z=0,
                     time=datetime.now())
     o.run(steps=3)
+
+def test_seed_oil_type():
+    o = OpenOil(loglevel=50)
+    o.set_oiltype('AASGARD A 2003')
+    assert o.oiltype.name == 'AASGARD A 2003'
+    print(o.oiltype)
+
+    o.set_config('environment:fallback:x_wind', 7)
+    o.set_config('environment:fallback:y_wind', 0)
+    o.set_config('environment:fallback:x_sea_water_velocity', .7)
+    o.set_config('environment:fallback:y_sea_water_velocity', 0)
+    o.set_config('environment:fallback:land_binary_mask', 0)
+
+    latstart = 68.988911
+    lonstart = 16.040701
+    latend = 69.991446
+    lonend = 17.760061
+    time = [datetime.utcnow(), datetime.utcnow() + timedelta(hours=12)]
+
+    # changing oil type on first seed is ok
+    o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
+                oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
+
+    assert o.oiltype.name == 'EKOFISK, CITGO'
+    # seeding again with the same oil type is ok
+    o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
+                oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
+
+    assert o.oiltype.name == 'EKOFISK, CITGO'
+
+    # seeding with another oil is not ok
+    with pytest.raises(opendrift.errors.WrongMode):
+        o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
+                    oil_type='AASGARD A 2003', radius=[100, 800], number=10000, time=[time])
