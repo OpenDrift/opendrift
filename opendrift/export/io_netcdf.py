@@ -261,6 +261,8 @@ def import_file_xarray(self, filename, chunks, elements=None):
         self.lonmax = np.float32(self.ds.lon.maxval)
         self.latmax = np.float32(self.ds.lat.maxval)
 
+    self.mode = Mode.Result
+
 def import_file(self, filename, times=None, elements=None, load_history=True):
     """Create OpenDrift object from imported file.
      times: indices of time steps to be imported, must be contineous range.

@@ -400,7 +400,6 @@ class Leeway(OpenDriftSimulation):
         except:
             raise ValueError('Could not open file for writing: ' + filename)
 
-        start_time = self.start_time
         for inp in ['lon', 'lat', 'radius', 'time']:
             if len(np.atleast_1d(self.ascii[inp])) == 1:
                 self.ascii[inp] = [self.ascii[inp], self.ascii[inp]]
@@ -475,7 +474,6 @@ class Leeway(OpenDriftSimulation):
             orientation[status.mask] = 0
             status[status == 0] = 11  # active
             status[status == 1] = 41  # stranded
-            ID = np.arange(0, num_active + 1)
             f.write('\n# Date [UTC]:\nnowDate   nowTime\n')
             f.write((
                 self.start_time +
@@ -496,7 +494,7 @@ class Leeway(OpenDriftSimulation):
                 step - index_of_first) / 60
             age_minutes[age_minutes < 0] = 0
             for i in range(num_active):
-                f.write('%i\t%s\t%s\t%i\t%i\t%i\n' %
+                f.write('%i\t%.6f\t%.6f\t%i\t%i\t%i\n' %
                         (i + 1, lon[i], lat[i], status[i], age_minutes[i],
                          orientation[i]))
 

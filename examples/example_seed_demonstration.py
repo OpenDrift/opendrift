@@ -11,17 +11,7 @@ from opendrift.models.openoil import OpenOil
 
 o = OceanDrift(loglevel=50)
 
-#%%
-# We do not care about landmask or current for this seeding demonstration,
-# so we simple specify fallback_values instead of adding any readers
-o.set_config('environment:fallback:land_binary_mask', 0)
-o.set_config('environment:fallback:x_sea_water_velocity', 0)
-o.set_config('environment:fallback:y_sea_water_velocity', 0)
-o.set_config('drift:wind_uncertainty', 0)
-o.set_config('drift:current_uncertainty', 0)
-
 time=datetime(2016, 1, 20, 12, 30, 0)
-
 
 #%%
 # Seeding a single element at a point
@@ -36,6 +26,7 @@ o.plot(buffer=.7, fast=True)
 
 #%%
 # Seeding 100 elements within a radius of 1000 m
+o = OceanDrift(loglevel=50)
 print('\n' + '='*70)
 print('Seeding 100 elements within a radius of 1000 m:')
 print('o.seed_elements(lon=4, lat=60, number=100, radius=1000, time=time)')

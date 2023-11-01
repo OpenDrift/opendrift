@@ -1463,7 +1463,7 @@ class OpenOil(OceanDrift):
         """
 
         if self.get_config('seed:oil_type') != oiltype:
-            self.set_config('seed:oil_type', oiltype)
+            self.__set_seed_config__('seed:oil_type', oiltype)
             logger.info(f'setting oil_type to: {oiltype}')
 
         oiltype = adios.oil_name_alias.get(oiltype, oiltype)
@@ -1570,8 +1570,6 @@ class OpenOil(OceanDrift):
             kwargs['lat'] = args[1]
             args = {}
 
-        self.store_oil_seed_metadata(**kwargs)
-
         if 'number' not in kwargs:
             number = self.get_config('seed:number')
         else:
@@ -1646,7 +1644,7 @@ class OpenOil(OceanDrift):
 
         if 'oil_type' in kwargs:
             if self.get_config('seed:oil_type') != kwargs['oil_type']:
-                self.set_config('seed:oil_type', kwargs['oil_type'])
+                self.__set_seed_config__('seed:oil_type', kwargs['oil_type'])
             del kwargs['oil_type']
         else:
             logger.info('Oil type not specified, using default: ' +
@@ -1681,6 +1679,8 @@ class OpenOil(OceanDrift):
             duration_hours = 1.  # For instantaneous spill, we use 1h
         kwargs['mass_oil'] = (m3_per_hour * duration_hours / num_elements *
                               kwargs['density'])
+
+        self.store_oil_seed_metadata(**kwargs)
 
         super(OpenOil, self).seed_elements(*args, **kwargs)
 
