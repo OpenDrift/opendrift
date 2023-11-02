@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 import numpy as np
 from typing import List
 
-from .models.oil.oil import Oil as AdiosOil
-from .computation import gnome_oil
-from .computation import physical_properties
-from .util.estimations import oil_water_surface_tension_from_api
+from adios_db.models.oil.oil import Oil as AdiosOil
+from adios_db.computation import gnome_oil
+from adios_db.computation import physical_properties
+from adios_db.computation.estimations import oil_water_surface_tension_from_api
 
 
 class NotFullOil(Exception):
