@@ -4500,8 +4500,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def __save_animation__(self, fig, plot_timestep, filename, frames, fps,
                            blit, interval):
+
         if filename is None or 'sphinx_gallery' in sys.modules:
-            filename = self._sphinx_gallery_filename(stack_offset=4)
+            stack_offset = 4
+            import gc
+            fr = sys._getframe(2)
+            for o in gc.get_objects():
+                if inspect.isfunction(o) and o.__code__ is fr.f_code:
+                    if hasattr(getattr(self, o.__name__), '__wrapped__'):
+                        stack_offset = 5
+            filename = self._sphinx_gallery_filename(stack_offset=stack_offset)
 
         logger.info('Saving animation to ' + str(filename) + '...')
 
