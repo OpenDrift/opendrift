@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import pytest
 import numpy as np
 from opendrift.models.openoil import adios
+from opendrift.models.openoil import OpenOil
 
 
 @pytest.fixture
@@ -76,4 +77,15 @@ def test_vapor_pressure(aasgard):
     # new_vp.sort()
 
     # np.testing.assert_array_almost_equal(old_vp, new_vp)
+
+def test_k0y_const():
+    o = OpenOil()
+    for oil in o.oiltypes:
+        print('testing oil:', oil)
+        oils = adios.oils(1, oil)
+        if len(oils) > 0:
+            f = oils[0].make_full()
+            if hasattr(f, 'gnome_oil'):
+                print(f.k0y)
+                assert f.k0y == 2.024e-06
 
