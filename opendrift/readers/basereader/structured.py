@@ -119,9 +119,10 @@ class StructuredReader(Variables):
         logger.debug('Clearing cache for reader %s before starting new simulation' % self.name)
         self.var_block_before = {}
         self.var_block_after = {}
-        if self.time_step is None:  # Set buffer large nough for whole simulation
-                logger.debug('Time step is None for %s, setting buffer size large nough for whole simulation' % self.name)
-                self.set_buffer_size(max_speed, end_time-start_time)
+        if self.time_step is None and start_time is not None:
+            # Set buffer large enough for whole simulation
+            logger.debug('Time step is None for %s, setting buffer size large nough for whole simulation' % self.name)
+            self.set_buffer_size(max_speed, end_time-start_time)
         super().prepare(extent, start_time, end_time, max_speed)
 
     def set_convolution_kernel(self, convolve):
