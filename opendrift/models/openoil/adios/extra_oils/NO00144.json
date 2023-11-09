@@ -10,6 +10,7 @@
             "reference": "Sorheim et al, 2020, Dvalin crude oil - Weathering properties and behaviour at sea, SINTEF report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 36.39,
         "model_completeness": 64,
         "gnome_suitable": true
     },

@@ -1501,7 +1501,7 @@ class OpenOil(OceanDrift):
         if self.oil_weathering_model == 'noaa':
             o = { 'data': { 'attributes' : json } }
             o['data']['_id'] = o['data']['attributes']['oil_id']
-            o['data']['attributes']['metadata']['location'] = 'NORWAY'
+            o['data']['attributes']['metadata']['location'] = 'Norway'
 
             self.oiltype = adios.oil.OpendriftOil(o)
             self.oil_name = self.oiltype.name

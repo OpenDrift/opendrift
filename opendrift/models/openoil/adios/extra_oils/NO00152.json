@@ -10,6 +10,7 @@
             "reference": "Guyomarch 2014, WEATHERING AND DISPERSIBILITY STUDY OF THE ALVE CRUDE OIL IN SIMULATED LOCAL WEATHER CONDITIONS"
         },
         "product_type": "Crude Oil NOS",
+        "API": 38.61,
         "model_completeness": 63,
         "gnome_suitable": true
     },

@@ -10,6 +10,7 @@
             "reference": "Chever F., 2018, Weathering and dispersibility study of the GINA KROG crude oil at the laboratory and pilot scale in simulated local conditions, Equinor Final Report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 29.32,
         "model_completeness": 48,
         "gnome_suitable": true
     },

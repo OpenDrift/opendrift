@@ -10,6 +10,7 @@
             "reference": "Hellstrom K.C., 2019, Gudrun crude oil - Weathering properties and behaviour at sea, SINTEF report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 43.02,
         "model_completeness": 50,
         "gnome_suitable": true
     },

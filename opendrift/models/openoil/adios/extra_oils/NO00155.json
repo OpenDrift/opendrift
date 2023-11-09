@@ -10,6 +10,7 @@
             "reference": "Sorheim et al., 2022, Lille Prinsen - Weathering properties and behaviour at sea"
         },
         "product_type": "Crude Oil NOS",
+        "API": 34.63,
         "model_completeness": 46,
         "gnome_suitable": true
     },

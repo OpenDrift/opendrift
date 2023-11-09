@@ -1,6 +1,6 @@
 {
     "oil_id": "AD04011",
-    "adios_data_model_version": "0.11.0",
+    "adios_data_model_version": "0.12.0",
     "metadata": {
         "name": "GENERIC FUEL OIL No. 6",
         "source_id": "AD04011",
@@ -9,7 +9,7 @@
             "reference": " "
         },
         "product_type": "Refined Product NOS",
-        "API": 14.1,
+        "API": 14.46,
         "model_completeness": 45,
         "gnome_suitable": true
     },
@@ -365,7 +365,7 @@
                 {
                     "name": "vanadium",
                     "measurement": {
-                        "value": 42,
+                        "value": 42.0,
                         "unit": "ppm",
                         "unit_type": "massfraction"
                     }

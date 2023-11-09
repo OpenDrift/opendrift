@@ -10,6 +10,7 @@
             "reference": "Sorheim K. R. et al. 2020, SINTEF report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 59.01,
         "model_completeness": 63,
         "gnome_suitable": true
     },
