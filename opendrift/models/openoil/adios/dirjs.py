@@ -20,6 +20,9 @@ import logging
 import json
 import itertools
 from functools import lru_cache
+from adios_db.models.oil.oil import Oil as AdiosOil
+from adios_db.computation import gnome_oil
+
 
 from .oil import OpendriftOil
 
@@ -47,15 +50,20 @@ def __get_archive__():
             logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
             oils.append(o)
 
+    for o in oils:
+        # For Norwegian oils, we add year to the name
+        if o['data']['_id'][0:2] == 'NO':
+            o['data']['attributes']['metadata']['name'] = \
+                    o['data']['attributes']['metadata']['name'] + ' ' + \
+                    str(o['data']['attributes']['metadata']['reference']['year'])
     return oils
 
 def get_oil_names(location=None):
     a = __get_archive__()
 
     if location is not None:
-        a = filter(
-            lambda o: o['data']['attributes']['metadata'].get(
-                'location', None) == location, a)
+        a = [o for o in a if 'location' in o['data']['attributes']['metadata']
+                and o['data']['attributes']['metadata']['location'].lower() == location.lower()]
 
     return [o['data']['attributes']['metadata']['name'] for o in a]
 
