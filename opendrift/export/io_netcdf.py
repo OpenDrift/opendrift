@@ -366,7 +366,6 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
                 value = False
             if value == 'None':
                 value = None
-            self.set_config(conf_key, value)
             try:
                 self.set_config(conf_key, value)
                 logger.debug('Setting imported config: %s -> %s' %
