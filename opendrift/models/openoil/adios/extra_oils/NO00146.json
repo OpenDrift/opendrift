@@ -10,6 +10,7 @@
             "reference": "Sorheim and Hellstrom, 2021, Utgard condensate - Weathering properties and behaviour at sea"
         },
         "product_type": "Crude Oil NOS",
+        "API": 51.85,
         "model_completeness": 63,
         "gnome_suitable": true
     },

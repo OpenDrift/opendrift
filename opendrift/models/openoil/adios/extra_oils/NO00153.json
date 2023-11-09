@@ -10,6 +10,7 @@
             "reference": "Strom-Kristiansen et al., 1995, Forvitringsegenskaper paa sjoen for Sture Blend, Oseberg feltsenter og Oseberg C raaolje"
         },
         "product_type": "Crude Oil NOS",
+        "API": 33.45,
         "model_completeness": 53,
         "gnome_suitable": true
     },

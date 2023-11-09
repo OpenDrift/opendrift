@@ -1,6 +1,6 @@
 {
     "oil_id": "AD04006",
-    "adios_data_model_version": "0.11.0",
+    "adios_data_model_version": "0.12.0",
     "metadata": {
         "name": "GENERIC FUEL OIL No.2",
         "source_id": "AD04006",
@@ -9,7 +9,7 @@
             "reference": " "
         },
         "product_type": "Refined Product NOS",
-        "API": 32.0,
+        "API": 32.43,
         "model_completeness": 46,
         "gnome_suitable": true
     },

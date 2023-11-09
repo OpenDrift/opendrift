@@ -10,6 +10,7 @@
             "reference": "Guyomarch, J. and Chever, F, 2015. Weathering and dispersibility study of the VEGA condensate in simulated local weather conditions. R.15.35.C/5205"
         },
         "product_type": "Crude Oil NOS",
+        "API": 51.14,
         "model_completeness": 62,
         "gnome_suitable": true
     },

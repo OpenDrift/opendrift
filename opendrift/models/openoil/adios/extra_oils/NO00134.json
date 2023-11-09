@@ -6,10 +6,11 @@
         "source_id": "NO00134",
         "location": "NORWAY",
         "reference": {
-            "year": 2001,
+            "year": 2000,
             "reference": "Leirvik F. and Moldestad M.O., 2001, Oseberg Sor - Egenskaper og forvitring pa sjoen relatert til beredskap, SINTEF report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 39.23,
         "model_completeness": 53,
         "gnome_suitable": true
     },

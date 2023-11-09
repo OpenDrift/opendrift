@@ -10,6 +10,7 @@
             "reference": "Strom T. et al., 1998, Oseberg Ost raaolje, STF66 A98152"
         },
         "product_type": "Crude Oil NOS",
+        "API": 37.79,
         "model_completeness": 50,
         "gnome_suitable": true
     },

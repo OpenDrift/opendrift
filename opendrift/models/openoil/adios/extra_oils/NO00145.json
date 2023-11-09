@@ -10,6 +10,7 @@
             "reference": "Sorheim and Pettersen, 2021, Fogelberg condensate - Weathering properties and behaviour at sea, SINTEF report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 45.42,
         "model_completeness": 63,
         "gnome_suitable": true
     },

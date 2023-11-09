@@ -6,10 +6,11 @@
         "source_id": "NO00135",
         "location": "NORWAY",
         "reference": {
-            "year": 2017,
+            "year": 2019,
             "reference": "Sorheim K.R. and Hellstrom K.C., Kvitebjorn condensate - Weathering properties and behaviour at sea"
         },
         "product_type": "Crude Oil NOS",
+        "API": 56.48,
         "model_completeness": 51,
         "gnome_suitable": true
     },

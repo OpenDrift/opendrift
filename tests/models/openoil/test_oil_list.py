@@ -17,8 +17,12 @@ def test_get_openoil_list_norway(test_data):
     with open(oils, 'r') as fd:
         oils = [o.strip() for o in fd.readlines()]
 
-    o = OpenOil(location = 'NORWAY')
+    print(oils, 'OILS')
 
-    print(set(oils) - set(o.oiltypes))
+    o = OpenOil(location = 'NORWAY')
+    print(o.oiltypes, 'OILTYPES')
+    print(len(o.oiltypes))
+    print(len(oils))
+    print(set(o.oiltypes)-set(oils))
 
     assert set(o.oiltypes) >= set(oils)

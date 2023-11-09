@@ -10,6 +10,7 @@
             "reference": "Sorheim et al., 2022, Weathering study of TOR II and evaluation of oil weathering properties on Eldfisk S and Ekofisk J"
         },
         "product_type": "Crude Oil NOS",
+        "API": 34.03,
         "model_completeness": 64,
         "gnome_suitable": true
     },

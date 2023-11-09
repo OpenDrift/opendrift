@@ -10,6 +10,7 @@
             "reference": "Andreassen I. And Pettersen T.A., 2013, Atla condensate - properties and behaviour at sea"
         },
         "product_type": "Crude Oil NOS",
+        "API": 57.99,
         "model_completeness": 60,
         "gnome_suitable": true
     },

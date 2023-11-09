@@ -10,6 +10,7 @@
             "reference": "Sorheim et al., 2021, Duva - Weathering properties and behaviour at sea"
         },
         "product_type": "Crude Oil NOS",
+        "API": 31.3,
         "model_completeness": 64,
         "gnome_suitable": true
     },

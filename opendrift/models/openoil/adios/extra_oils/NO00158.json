@@ -10,6 +10,7 @@
             "reference": "Moldestad et al., 2001, Goliat - weathering properties, appearance code, water solubility and toxicity"
         },
         "product_type": "Crude Oil NOS",
+        "API": 33.45,
         "model_completeness": 61,
         "gnome_suitable": true
     },

@@ -10,6 +10,7 @@
             "reference": "Resby J.M.L., 2003, Njord - Egenskaper og forvitring pa sjoen relatert til beredskapstiltak"
         },
         "product_type": "Crude Oil NOS",
+        "API": 43.67,
         "model_completeness": 61,
         "gnome_suitable": true
     },

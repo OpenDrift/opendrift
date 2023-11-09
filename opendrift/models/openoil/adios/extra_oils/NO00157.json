@@ -10,6 +10,7 @@
             "reference": "Moldestad et al., 2001, Vale lettolje - Forvitringsegenskaper og vannloselighet"
         },
         "product_type": "Crude Oil NOS",
+        "API": 40.68,
         "model_completeness": 58,
         "gnome_suitable": true
     },

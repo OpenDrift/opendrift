@@ -10,6 +10,7 @@
             "reference": "Hellstrom and Pettersen, 2014, Marulk condensate - properties and beheabiour at sea, SINTEF report"
         },
         "product_type": "Crude Oil NOS",
+        "API": 54.75,
         "model_completeness": 64,
         "gnome_suitable": true
     },

@@ -10,6 +10,7 @@
             "reference": "Sorheim et al., 2022, Dugong - Weathering properties and behaviour at sea"
         },
         "product_type": "Crude Oil NOS",
+        "API": 38.3,
         "model_completeness": 61,
         "gnome_suitable": true
     },

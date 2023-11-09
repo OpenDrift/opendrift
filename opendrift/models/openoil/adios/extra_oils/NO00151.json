@@ -10,6 +10,7 @@
             "reference": "Sorheim et al., 2021, Characterization of oil properties and weathering studies on Statfjord crude oils"
         },
         "product_type": "Crude Oil NOS",
+        "API": 36.19,
         "model_completeness": 64,
         "gnome_suitable": true
     },
