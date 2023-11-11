@@ -53,6 +53,9 @@ def __get_archive__():
     for o in oils:
         # For Norwegian oils, we add year to the name
         if o['data']['_id'][0:2] == 'NO':
+            if o['data']['attributes']['metadata']['name'][-4:].isnumeric():
+                # Removing year if already in name
+                o['data']['attributes']['metadata']['name'] = o['data']['attributes']['metadata']['name'][0:-4].strip()
             o['data']['attributes']['metadata']['name'] = \
                     o['data']['attributes']['metadata']['name'] + ' ' + \
                     str(o['data']['attributes']['metadata']['reference']['year'])

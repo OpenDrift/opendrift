@@ -1518,7 +1518,7 @@ class OpenOil(OceanDrift):
         Sets the oil type by specifing a JSON file. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
 
         >>> o = OpenOil()
-        >>> o.set_oiltype_from_file('opendrift/models/openoil/adios/extra_oils/AD03128.json')
+        >>> o.set_oiltype_from_file('opendrift/models/openoil/adios/extra_oils/NO00128.json')
         """
         if self.oil_weathering_model == 'noaa':
             import json
