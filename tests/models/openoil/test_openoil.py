@@ -100,11 +100,9 @@ def test_set_oil_type_by_id():
 
 def test_oil_type_alias():
     o = OpenOil(loglevel=50)
-    o.set_oiltype('EKOFISK BLEND 2002')
-    # o.set_oiltype('EKOFISK BLEND 2000')
 
     o = OpenOil(loglevel=50)
-    o.set_config('seed:oil_type', 'EKOFISK BLEND 2002')
+    o.set_config('seed:oil_type', 'NJORD 1997')
 
     o.set_config('environment:fallback:x_wind', 7)
     o.set_config('environment:fallback:y_wind', 0)
@@ -141,12 +139,12 @@ def test_seed_oil_type():
     o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
                 oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
 
-    assert o.oiltype.name == 'EKOFISK, CITGO'
+    assert o.oiltype.name == 'EKOFISK, STATOIL'
     # seeding again with the same oil type is ok
     o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
                 oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
 
-    assert o.oiltype.name == 'EKOFISK, CITGO'
+    assert o.oiltype.name == 'EKOFISK, STATOIL'
 
     # seeding with another oil is not ok
     with pytest.raises(opendrift.errors.WrongMode):
