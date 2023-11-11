@@ -33,7 +33,7 @@ o.set_config('vertical_mixing:timestep',  5)
 time = reader_arome.start_time
 oil_type = 'GULLFAKS, EXXON'
 oil_type = 'ARABIAN MEDIUM, API'
-oil_type = 'ALGERIAN CONDENSATE'
+oil_type = 'ALGERIAN CONDENSATE, STATOIL'
 o.seed_elements(lon=4.9, lat=60.1, radius=3000, number=2000,
                 time=time, z=0, oil_type=oil_type)
 
