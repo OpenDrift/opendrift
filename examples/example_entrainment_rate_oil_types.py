@@ -24,7 +24,7 @@ o2.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (20
 o2.set_config('processes:evaporation', False)
 o2.set_config('processes:dispersion', False)
 o2.seed_elements(lon=4, lat=60, time=datetime.utcnow(), number=1000,
-                radius=100, z=0, oil_type='TIA JUANA HEAVY, OIL & GAS')
+                radius=100, z=0, oil_type='TIA JUANA HEAVY')
 o2.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
 
 o3 = OpenOil(loglevel=20, weathering_model='noaa')
@@ -40,7 +40,7 @@ o3.set_config('wave_entrainment:droplet_size_distribution', 'Johansen et al. (20
 o3.set_config('processes:evaporation', False)
 o3.set_config('processes:dispersion', False)
 o3.seed_elements(lon=4, lat=60, time=datetime.utcnow(), number=1000,
-                 radius=100, z=0, oil_type='TIA JUANA LIGHT, OIL & GAS') #'EKOFISK BLEND, STATOIL' similar ent.
+                 radius=100, z=0, oil_type='TIA JUANA LIGHT') #'EKOFISK BLEND, STATOIL' similar ent.
 o3.run(duration=timedelta(hours=12), time_step=900, time_step_output=3600)
 
 #%%
