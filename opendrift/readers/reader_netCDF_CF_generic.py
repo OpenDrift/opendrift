@@ -173,9 +173,9 @@ class Reader(StructuredReader, BaseReader):
                     self.unitfactor = 100000
                 var_data = var.values
                 y = var_data*self.unitfactor
-            if standard_name == 'depth' or axis == 'Z':
+            if (standard_name == 'depth' or axis == 'Z') and var.ndim==1:
                 var_data = var.values
-                if var_data.ndim == 1:
+                if var_data.ndim == 1:  # Earlier this was not a requirement above
                     if 'positive' not in var.attrs or \
                             var.attrs['positive'] == 'up':
                         self.z = var_data
