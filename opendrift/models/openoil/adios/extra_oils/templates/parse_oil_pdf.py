@@ -94,7 +94,7 @@ class ParseOilPDF(tk.Tk):
         if not os.path.exists(b+'.zip'):
             print('Parsing %s, this may take some minutes...' % f)
             import camelot.io as camelot
-            tables = camelot.read_pdf(f, pages='all')
+            tables = camelot.read_pdf(f, pages='all', backend='poppler')
             print('Total tables extracted: %s\n' % tables.n)
             tables.export(b+'.csv', f='csv', compress=True)
 
