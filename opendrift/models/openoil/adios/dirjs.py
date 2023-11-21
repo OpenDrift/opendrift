@@ -53,12 +53,19 @@ def __get_archive__():
     for o in oils:
         # For Norwegian oils, we add year to the name
         if o['data']['_id'][0:2] == 'NO':
-            if o['data']['attributes']['metadata']['name'][-4:].isnumeric():
-                # Removing year if already in name
-                o['data']['attributes']['metadata']['name'] = o['data']['attributes']['metadata']['name'][0:-4].strip()
+            yearstring = str(o['data']['attributes']['metadata']['reference']['year'])
+            # Override with sample_date, if available
+            if 'sample_data' in o['data']['attributes']['metadata']:
+                sd = o['data']['attributes']['metadata']['sample_date']
+                if sd.isnumeric():
+                    yearstring = sample_date
+                elif sd[0:4].isnumeric():
+                    yearstring = sd[0:4]
+                else:
+                    raise Exception(f'Sample date could not be parsed: {sd}')
             o['data']['attributes']['metadata']['name'] = \
-                    o['data']['attributes']['metadata']['name'] + ' ' + \
-                    str(o['data']['attributes']['metadata']['reference']['year'])
+                    f"{o['data']['attributes']['metadata']['name']} {yearstring}"
+
     return oils
 
 def get_oil_names(location=None):
