@@ -2510,6 +2510,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   vmin=None,
                   vmax=None,
                   drifter=None,
+                  shapefiles=None,
                   skip=None,
                   scale=None,
                   color=False,
@@ -2689,6 +2690,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     drifter_line[drnum].set_data(dr['x'][0:i], dr['y'][0:i])
                     ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
+
+            if shapefiles is not None:
+                import geopandas as gpd
+                for sf in shapefiles:
+                    shdf = gpd.read_file(sf)
+                    shdf = shdf.to_crs("EPSG:4326")
+                    ax.add_geometries(shdf.geometry, gcrs, edgecolor='g', linewidth=2, facecolor='none')
 
             if show_elements is True:
                 if compare is not None:
