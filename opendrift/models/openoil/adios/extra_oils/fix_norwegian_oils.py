@@ -1,21 +1,25 @@
 import glob
 from datetime import datetime
 import numpy as np
+import argparse
 import adios_db
 from adios_db.scripting import Concentration
 from adios_db.models.oil.metadata import MetaData, ChangeLogEntry, ChangeLog
 from adios_db.models.oil.oil import Oil
 from adios_db.models.oil.physical_properties import DynamicViscosityList
 
-#oils = glob.glob('NO*.json')
-folder_in = '/home/knutfd/software/noaa-oil-data/data/oil/NO/'
-folder_out = '/home/knutfd/software/noaa-oil-data/data/oil/NO/new/'
-folder_in = '/home/knutfd/software/orignoaa/noaa-oil-data/data/oil/NO/'
-folder_out = '/home/knutfd/software/orignoaa/noaa-oil-data/data/oil/NO/new/'
-folder_in = '/home/knutfd/software/opendrift/opendrift/models/openoil/adios/extra_oils/'
-folder_out = '/home/knutfd/software/opendrift/opendrift/models/openoil/adios/extra_oils/new/'
+parser = argparse.ArgumentParser(description='Fix JSON oil files')
+parser.add_argument('-i', metavar='--input', type=str, help='Input folder with json files', default='none')
+parser.add_argument('-o', metavar='--output', type=str, help='Output folder to save updated json files', default='none')
+args = parser.parse_args()
+if args.i == 'none':
+    parser.print_help()
 
-#folder_out = None
+folder_in = args.i + '/'
+folder_out = args.o + '/'
+
+print(folder_in, folder_out)
+
 prefix = 'NO*.json'
 oils = glob.glob(folder_in + prefix)
 
@@ -69,11 +73,7 @@ for oil in oils:
     for s in o.sub_samples:
         s.distillation_data.fraction_recovered = Concentration(max_value=1.0, unit="fraction")
         for cut in s.distillation_data.cuts:
-            if cut.vapor_temp.unit == 'K':
-                off = .15
-            else:
-                off = 0
-            cut.vapor_temp.value = np.floor(cut.vapor_temp.value) + off
+            cut.vapor_temp.value = np.round(cut.vapor_temp.value, 1)
         pp = s.physical_properties.pour_point
         if pp is not None:
             if pp.measurement.unit == 'K':
@@ -131,3 +131,6 @@ for oil in oils:
         print('No writing')
     else:
         o.to_file(folder_out + o.oil_id + '.json')
+
+if __name__ == '__main__':
+    pass
