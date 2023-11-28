@@ -52,6 +52,9 @@ def __get_archive__():
 
     for o in oils:
         # For Norwegian oils, we add year to the name
+        print(o)
+        print(o['oil_id'])
+        continue
         if o['data']['_id'][0:2] == 'NO':
             yearstring = str(o['data']['attributes']['metadata']['reference']['year'])
             # Override with sample_date, if available
@@ -66,6 +69,7 @@ def __get_archive__():
             o['data']['attributes']['metadata']['name'] = \
                     f"{o['data']['attributes']['metadata']['name']} {yearstring}"
 
+    flopp
     return oils
 
 def get_oil_names(location=None):
