@@ -1616,6 +1616,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if D == 0:
             logger.debug('Horizontal diffusivity is 0, no random walk.')
             return
+        if self.num_elements_active() == 0:
+            logger.debug('No active elements, skipping horizontal diffusivity.')
+            return
         dt = np.abs(self.time_step.total_seconds())
         x_vel = self.elements.moving * np.sqrt(2 * D / dt) * np.random.normal(
             scale=1, size=self.num_elements_active())
