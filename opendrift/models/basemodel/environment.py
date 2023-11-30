@@ -7,6 +7,7 @@ import pyproj
 from opendrift.timer import Timeable
 from opendrift.config import CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 from opendrift.readers.basereader import BaseReader, standard_names
+from opendrift.readers.reader_lazy import Reader
 from opendrift.readers import reader_from_url, reader_global_landmask
 from opendrift.errors import NotCoveredError
 from opendrift.models import physics_methods as pm
@@ -298,6 +299,8 @@ class Environment(Timeable, Configurable):
         if isinstance(variables, str):
             variables = [variables]
         if isinstance(readers, BaseReader):
+            readers = [readers]
+        if isinstance(readers, Reader):
             readers = [readers]
 
         for reader in readers:
