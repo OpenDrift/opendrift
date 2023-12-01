@@ -63,13 +63,19 @@ class OpendriftOil:
     def __init__(self, o):
         self.data = o
 
-        data = o['data']
-        meta = data['attributes']['metadata']
-        self.id = data['_id']
-        self.name = meta['name']
+        data = o
+        meta = o['metadata']
+        self.id = o['oil_id']
+        self.name = o['metadata']['name']
+
+        #data = o['data']
+        #meta = data['attributes']['metadata']
+        #self.id = data['_id']
+        #self.name = meta['name']
 
         logger.debug(f'Parsing Oil: {self.id} / {self.name}')
-        self.oil = AdiosOil.from_py_json(data['attributes'])
+        #self.oil = AdiosOil.from_py_json(data['attributes'])
+        self.oil = AdiosOil.from_py_json(data)
 
         if not self.oil.metadata.gnome_suitable:
             logger.error(f'{self.id} / {self.name}: is not GNOME suitable')

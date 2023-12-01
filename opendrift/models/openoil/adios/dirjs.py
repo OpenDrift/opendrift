@@ -44,47 +44,48 @@ def __get_archive__():
     for f in resources.contents('opendrift.models.openoil.adios.extra_oils'):
         if Path(f).suffix == '.json':
             o = json.loads(resources.read_text('opendrift.models.openoil.adios.extra_oils', f))
-            o = { 'data': { 'attributes' : o } }
-            o['data']['_id'] = o['data']['attributes']['oil_id']
-            o['data']['attributes']['metadata']['location'] = 'NORWAY'
-            logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
+            #o = { 'data': { 'attributes' : o } }
+            #o['data']['_id'] = o['data']['attributes']['oil_id']
+            #o['data']['attributes']['metadata']['location'] = 'NORWAY'
+            #logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
             oils.append(o)
 
     for o in oils:
         # For Norwegian oils, we add year to the name
         print(o)
-        print(o['oil_id'])
-        continue
-        if o['data']['_id'][0:2] == 'NO':
-            yearstring = str(o['data']['attributes']['metadata']['reference']['year'])
+        #if o['data']['_id'][0:2] == 'NO':
+        if o['oil_id'][0:2] == 'NO':
+            #yearstring = str(o['data']['attributes']['metadata']['reference']['year'])
+            yearstring = str(o['metadata']['reference']['year'])
             # Override with sample_date, if available
-            if 'sample_data' in o['data']['attributes']['metadata']:
-                sd = o['data']['attributes']['metadata']['sample_date']
+            print('\n\n')
+            print(o.keys())
+            if 'sample_data' in o['metadata']:
+                sd = o['metadata']['sample_date']
                 if sd.isnumeric():
                     yearstring = sample_date
                 elif sd[0:4].isnumeric():
                     yearstring = sd[0:4]
                 else:
                     raise Exception(f'Sample date could not be parsed: {sd}')
-            o['data']['attributes']['metadata']['name'] = \
-                    f"{o['data']['attributes']['metadata']['name']} {yearstring}"
+            o['metadata']['name'] = \
+                    f"{o['metadata']['name']} {yearstring}"
 
-    flopp
     return oils
 
 def get_oil_names(location=None):
     a = __get_archive__()
 
     if location is not None:
-        a = [o for o in a if 'location' in o['data']['attributes']['metadata']
-                and o['data']['attributes']['metadata']['location'].lower() == location.lower()]
+        a = [o for o in a if 'location' in o['metadata']
+                and o['metadata']['location'].lower() == location.lower()]
 
-    return [o['data']['attributes']['metadata']['name'] for o in a]
+    return [o['metadata']['name'] for o in a]
 
 
 def oils(limit=50, query=''):
     oils = filter(
-        lambda o: query in o['data']['attributes']['metadata']['name'],
+        lambda o: query in o['metadata']['name'],
         __get_archive__())
     return list(OpendriftOil(o) for o in itertools.islice(oils, limit))
 
