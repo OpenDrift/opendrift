@@ -27,7 +27,7 @@ import xarray as xr
 
 class Reader(StructuredReader, BaseReader):
     """
-    A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, or a file pattern.
+    A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, a file pattern, a URL or an xarray Dataset.
 
     Args:
         :param filename: A single netCDF file, a pattern of files, or a xr.Dataset. The
@@ -54,14 +54,19 @@ class Reader(StructuredReader, BaseReader):
        from opendrift.readers.reader_netCDF_CF_generic import Reader
        r = Reader("*.nc")
 
-    or an OPeNDAP URL can be used:
+    An OPeNDAP URL can be used:
 
     .. code::
 
        from opendrift.readers.reader_netCDF_CF_generic import Reader
        r = Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
 
+    A xr.Dataset or a zarr dataset in an object store with auth can be used:
 
+    .. code::
+
+        from opendrift.readers.reader_netCDF_CF_generic import Reader
+        r = Reader(ds, zarr_storage_options)
     """
 
     def __init__(self, filename=None, zarr_storage_options=None, name=None, proj4=None,
