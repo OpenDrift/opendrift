@@ -29,6 +29,7 @@ class Reader:
         self._kwargs = kwargs
         self.initialised = False
 
+        # Interpret if argument is a string (url, filename) or a prepared dataset
         if isinstance(args[0], str):
             self._lazyname = 'LazyReader: ' + args[0]
         else:
@@ -54,13 +55,12 @@ class Reader:
 
     def initialise(self):
         logger.debug('Initialising: ' + self._lazyname)
-
         self.reader = None
 
+        # Zarr is a special case, handle netCDF_CF_generic a prepared dataset and credentials
         if 'zarr_credentials' in self._kwargs:
             logger.debug('Lazy reader seems to be zarr, calling reader_netCDF_CF_generic')
             self.reader = reader_netCDF_CF_generic.Reader(filename=self._dataset, zarr_storage_options=self._kwargs['zarr_credentials'], name=self._lazyname)
-
         else:
             self.reader = reader_from_url(self._args[0])
 
