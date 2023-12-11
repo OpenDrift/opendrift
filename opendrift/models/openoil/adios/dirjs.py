@@ -52,14 +52,11 @@ def __get_archive__():
 
     for o in oils:
         # For Norwegian oils, we add year to the name
-        print(o)
         #if o['data']['_id'][0:2] == 'NO':
         if o['oil_id'][0:2] == 'NO':
             #yearstring = str(o['data']['attributes']['metadata']['reference']['year'])
             yearstring = str(o['metadata']['reference']['year'])
             # Override with sample_date, if available
-            print('\n\n')
-            print(o.keys())
             if 'sample_data' in o['metadata']:
                 sd = o['metadata']['sample_date']
                 if sd.isnumeric():
@@ -106,6 +103,7 @@ def find_full_oil_from_name(name) -> 'OpendriftOil':
 
 def get_full_oil_from_id(_id) -> 'OpendriftOil':
     logger.debug(f"Fetching full oil: {_id}")
-    oils = filter(lambda o: _id == o['data']['_id'], __get_archive__())
+    #oils = filter(lambda o: _id == o['data']['_id'], __get_archive__())
+    oils = filter(lambda o: _id == o['oil_id'], __get_archive__())
     oil = next(OpendriftOil(o) for o in oils)
     return oil
