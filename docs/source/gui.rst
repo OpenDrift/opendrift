@@ -16,7 +16,7 @@ script may be launched by a double-click.
 
 Choosing a model and parameters
 -----------------------------------
-The :mod:`Leeway model (Search and Rescue) <opendrift.models.leeway>`, :mod:`OpenOil (oil drift) <opendrift.models.openoil>`, :mod:`ShipDrift model <opendrift.models.ShipDrift>` and :mod:`OpenBerg model <opendrift.models.openberg>` are available in the GUI.
+The :mod:`Leeway model (Search and Rescue) <opendrift.models.leeway>`, :mod:`OpenOil (oil drift) <opendrift.models.openoil>`, :mod:`ShipDrift model <opendrift.models.ShipDrift>` and :mod:`OpenBergOld model <opendrift.models.openberg_old>` are available in the GUI.
 
 The first step is to select the model of interest from the upper menu.
 If Leeway or OpenOil are chosen, the second dropdown-menu will allow you to select either
@@ -26,7 +26,7 @@ If Leeway or OpenOil are chosen, the second dropdown-menu will allow you to sele
 
 If the ShipDrift model is selected, the dimensions of the ship can be selected (beam, length, draft and height).
 
-The ice berg drift simulation has parameters `wind_drift_factor`, `water_line_length` and `keel_depth`. The `wind_drift_factor` is unlikely that you need to change, while the other parameters describe the geometry of the ice berg. These are described in more detail in the :mod:`OpenBerg reference <opendrift.models.openberg>` at :ref:`openberg_parameters`.
+The ice berg drift simulation has parameters `wind_drift_factor`, `water_line_length` and `keel_depth`. The `wind_drift_factor` is unlikely that you need to change, while the other parameters describe the geometry of the ice berg. These are described in more detail in the :mod:`OpenBergOld reference <opendrift.models.openberg_old>` at :ref:`openberg_parameters`.
 
 The following steps are the same for all models:
 

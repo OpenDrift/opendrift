@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Openberg - statistical mode
+OpenBergOld - statistical mode
 ==============================
 """
 
 from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_current_from_track
-from opendrift.models.openberg import OpenBerg
+from opendrift.models.openberg_old import OpenBergOld
 
 #%%
 # Create observation of iceberg track
@@ -18,7 +18,7 @@ obstime = [datetime(2015, 11, 16, 0), datetime(2015, 11, 16, 6)]
 #%%
 # Initialize model
 steps = 60   # This is the number of forecast steps
-o = OpenBerg(loglevel=30)  # Basic drift model suitable for icebergs
+o = OpenBergOld(loglevel=30)  # Basic drift model suitable for icebergs
 
 #%%
 # Preparing Readers

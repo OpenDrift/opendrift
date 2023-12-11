@@ -45,7 +45,7 @@ The table below shows an overview of the advection processes within the main mod
      - yes
      - empirical-statistical depth, exponential decrease with depth, depending on turbulence/wind
 
-   * - :mod:`OpenBerg <opendrift.models.openberg>`
+   * - :mod:`OpenBergOld <opendrift.models.openberg_old>`
      - yes
      - yes
      - implicit in wind

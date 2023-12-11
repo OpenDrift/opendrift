@@ -5,13 +5,13 @@ Ice berg (openberg) deterministic
 """
 
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.openberg import OpenBerg
+from opendrift.models.openberg_old import OpenBergOld
 
 #%%
 # Initialize model
 steps = 60  # This is the number of forecast steps
 
-o = OpenBerg()  # Basic drift model suitable for icebergs
+o = OpenBergOld()  # Basic drift model suitable for icebergs
 
 #%%
 # Preparing Readers

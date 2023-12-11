@@ -31,7 +31,7 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
-from opendrift.models.openberg import OpenBerg
+from opendrift.models.openberg_old import OpenBergOld
 from opendrift.models.larvalfish import LarvalFish
 
 import opendrift
@@ -152,7 +152,7 @@ class TestModels(unittest.TestCase):
     def test_openberg(self):
         """Check if weighting array is set correctly
         and if model returns expected positions"""
-        o = OpenBerg()
+        o = OpenBergOld()
         o.set_config('drift:current_uncertainty', 0)
         o.set_config('drift:wind_uncertainty', 0)
 

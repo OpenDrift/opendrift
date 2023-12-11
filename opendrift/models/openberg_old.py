@@ -13,11 +13,12 @@
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2019, Ole Baadshaug, MET Norway & Ron Saper, Carleton University Canada.
+# Dec 2023 KFD:  Renamed to OpenBergOld, to give place for a new full-fledged ice berg drift model including thermodynamics.
 #
-# Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBerg
+# Caveat: This copyright will not interfere with the open nature of OpenDrift and OpenBergOld
 
 """
-OpenBerg is an iceberg drift module bundled within the OpenDrift framework. It is a 2D- drift model, but utilizes 3D current data. The latest version of the module is an improved version of a model initially created by Ron Saper at the Carleton University as a part of a larger project funded by the MITACS Organization.
+OpenBergOld is an iceberg drift module bundled within the OpenDrift framework. It is a 2D- drift model, but utilizes 3D current data. The latest version of the module is an improved version of a model initially created by Ron Saper at the Carleton University as a part of a larger project funded by the MITACS Organization.
 
 See :ref:`sphx_glr_gallery_example_openberg_det.py` for an example of a deterministic simulation.
 
@@ -26,7 +27,7 @@ Statistical modeling of current velocity
 
 The reader :mod:`opendrift.readers.reader_current_from_track` is designed specifically for iceberg drift modeling. The reader uses observed positions and (if available) wind data to extrapolate the current velocity. The reader creates a uniform current field equal to the average residual speed (after subtracting wind component) of the iceberg between two observations.
 
-This reader allows for a statistical or partly statistical modeling of iceberg drift when used with the OpenBerg module. An example script utilizing this reader can be found in :ref:`sphx_glr_gallery_example_openberg_stat.py`.
+This reader allows for a statistical or partly statistical modeling of iceberg drift when used with the OpenBergOld module. An example script utilizing this reader can be found in :ref:`sphx_glr_gallery_example_openberg_stat.py`.
 
 .. _openberg_parameters:
 
@@ -86,7 +87,7 @@ class IcebergObj(LagrangianArray):
                         'units': 'm',
                         'default': 60.})])
 
-class OpenBerg(OpenDriftSimulation):
+class OpenBergOld(OpenDriftSimulation):
     """The Deterministic iceberg model in the OpenDrift framework.
 
         Advects an iceberg with the current at all available depths and
@@ -112,14 +113,14 @@ class OpenBerg(OpenDriftSimulation):
 
     # Configuration
     def __init__(self, d=None, label=None, *args, **kwargs):
-        self.name = 'OpenBerg'
+        self.name = 'OpenBergOld'
         self.label=label
 
         #self.required_profiles = ['x_sea_water_velocity',
         #                          'y_sea_water_velocity']  # Get vertical current profiles
 
         # Calling general constructor of parent class
-        super(OpenBerg, self).__init__(*args, **kwargs)
+        super(OpenBergOld, self).__init__(*args, **kwargs)
 
         self._add_config({
             'seed:wind_drift_factor': {'type': 'float', 'min': 0, 'max': 1,
@@ -144,7 +145,7 @@ class OpenBerg(OpenDriftSimulation):
             if var not in kwargs:
                 kwargs[var] = self.get_config('seed:' + var)
 
-        super(OpenBerg, self).seed_elements(*args, **kwargs)
+        super(OpenBergOld, self).seed_elements(*args, **kwargs)
 
     def update(self):
         """Update positions and properties of icebergs."""
@@ -176,7 +177,7 @@ class OpenBerg(OpenDriftSimulation):
         	Proceedings of The Fourteenth (2004) International Offshore and
         	Polar Engineering Conference.
 
-        	NB! This version of OpenBerg does not allow for seeding of iceberg elements
+        	NB! This version of OpenBergOld does not allow for seeding of iceberg elements
         	of different sizes.
 
         	Also controles that the model handles readers without block data correctly.
@@ -246,7 +247,7 @@ class OpenBerg(OpenDriftSimulation):
         if normalized_weight.all():
             self.uw_weighting = normalized_weight
 
-        super(OpenBerg, self).prepare_run()
+        super(OpenBergOld, self).prepare_run()
 
     def composite_iceberg(self, water_line_length=90.5, depth=60):
 
@@ -272,7 +273,7 @@ class OpenBerg(OpenDriftSimulation):
 
     	if d > len(a_param):
     		d = len(a_param)
-    		print('##### OpenBerg does not support icebergs with keel depths greater than 200m!\n' +
+    		print('##### OpenBergOld does not support icebergs with keel depths greater than 200m!\n' +
 				'Using a composite iceberg with given waterline length and keel depth 200m')
 
     	area_list=[]

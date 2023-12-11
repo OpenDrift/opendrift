@@ -21,7 +21,7 @@ _available_models = \
      'larvalfish.LarvalFish',
      'plastdrift.PlastDrift',
      'shipdrift.ShipDrift',
-     'openberg.OpenBerg']
+     'openberg_old.OpenBergOld']
 
 def get_model_names():
     return [m.split('.')[-1] for m in _available_models]
