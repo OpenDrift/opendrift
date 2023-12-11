@@ -638,8 +638,6 @@ class OpenOil(OceanDrift):
     def prepare_run(self):
 
         if self.oil_weathering_model == 'noaa':
-            self.Density = Density(self.oiltype)
-            self.KinematicViscosity = KinematicViscosity(self.oiltype)
             self.noaa_mass_balance = {}
             # Populate with seeded mass spread on oiltype.mass_fraction
             mass_oil = np.atleast_1d(self.elements_scheduled.mass_oil)
@@ -676,8 +674,7 @@ class OpenOil(OceanDrift):
             'main loop:updating elements:oil weathering:updating viscosities')
         self.timer_start(
             'main loop:updating elements:oil weathering:updating densities')
-        oil_density = self.Density(at_temp(
-                self.environment.sea_water_temperature)
+        oil_density = self.Density.at_temp(self.environment.sea_water_temperature)
         self.timer_end(
             'main loop:updating elements:oil weathering:updating densities')
 
@@ -1504,11 +1501,11 @@ class OpenOil(OceanDrift):
         Sets the oil type by specifing a JSON dict. The format should be the same as the ADIOS database. See the `ADIOS database <https://adios.orr.noaa.gov/oils>`_ for a list.
         """
         if self.oil_weathering_model == 'noaa':
-            o = { 'data': { 'attributes' : json } }
-            o['data']['_id'] = o['data']['attributes']['oil_id']
-            o['data']['attributes']['metadata']['location'] = 'Norway'
+            #o = { 'data': { 'attributes' : json } }
+            #o['data']['_id'] = o['data']['attributes']['oil_id']
+            #o['data']['attributes']['metadata']['location'] = 'Norway'
 
-            self.oiltype = adios.oil.OpendriftOil(o)
+            self.oiltype = adios.oil.OpendriftOil(json)
             self.oil_name = self.oiltype.name
             if not self.oiltype.valid():
                 logger.error(
@@ -1657,6 +1654,9 @@ class OpenOil(OceanDrift):
         self.set_oiltype(self.get_config('seed:oil_type'))
 
         if self.oil_weathering_model == 'noaa':
+            print(self.oiltype, 'OT')
+            self.Density = Density(self.oiltype.oil)
+            self.KinematicViscosity = KinematicViscosity(self.oiltype.oil)
             oil_density = self.Density.at_temp(285)
             oil_viscosity = self.KinematicViscosity.at_temp(285)
             logger.info(

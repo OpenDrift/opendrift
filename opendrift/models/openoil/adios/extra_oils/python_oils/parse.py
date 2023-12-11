@@ -47,8 +47,7 @@ cutl = DistCutList.from_data_arrays(temps=cut_temps, temp_unit='C',
                                     fractions=cut_frac, frac_unit='%')
 oil.sub_samples[0].distillation_data.cuts = cutl
 oil.sub_samples[0].distillation_data.type = 'volume fraction'
-oil.sub_samples[0].distillation_data.fraction_recovered = ads.Concentration(max_value=1.0, unit="fraction")
-
+oil.sub_samples[0].distillation_data.fraction_recovered = ads.Concentration(value=1.0, unit="fraction")
 
 print(oil)
 oil.status = oil.validate()
@@ -60,3 +59,6 @@ print('\n')
 for s in oil.status:
     print(s)
 
+print(oil.status)
+print(oil.metadata.gnome_suitable)
+oil.to_file('test.json')

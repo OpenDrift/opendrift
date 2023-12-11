@@ -139,12 +139,12 @@ def test_seed_oil_type():
     o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
                 oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
 
-    assert o.oiltype.name == 'EKOFISK, STATOIL'
+    assert o.oiltype.name == 'EKOFISK'
     # seeding again with the same oil type is ok
     o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],
                 oil_type='EKOFISK', radius=[100, 800], number=10000, time=[time])
 
-    assert o.oiltype.name == 'EKOFISK, STATOIL'
+    assert o.oiltype.name == 'EKOFISK'
 
     # seeding with another oil is not ok
     with pytest.raises(opendrift.errors.WrongMode):
