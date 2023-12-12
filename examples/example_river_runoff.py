@@ -128,7 +128,7 @@ ax4.margins(x=0)
 for ax in [ax1, ax2, ax3]:
     ax.margins(x=0)
     ax.legend()
-    ax.set_xticks([])
+    #ax.set_xticks([])
     ax.set_xlabel(None)
 ax4.set_title('Density of water at Station')
 # TODO disabling due to recent problem with dateformatter

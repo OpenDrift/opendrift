@@ -1,7 +1,7 @@
 History
 =======
 
-Next release
+2023-12-12 / Release v1.10.8
 ----------------------------
 * Order of initializing a simulation is now strict: configuration and adding readers must be done before seeding elements and starting simulation. Internally this is regulated by *modes*: ['Config', 'Ready', 'Run', 'Result'] and use of decorators for when methods are applicable.
 * Related restructuring, including new Config and Environment classes, and renaming basemodel.py to basemodel/__init__.py. reset method is removed, and a clone method is intruduced instead.
