@@ -577,7 +577,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.metadata_dict = OrderedDict()
         self.metadata_dict[key] = value
 
-    @require_mode(mode=Mode.Config)
+    @require_mode(mode=[Mode.Config, Mode.Result])
     def add_reader(self, readers, variables=None, first=False):
         self.env.add_reader(readers, variables, first)
 
