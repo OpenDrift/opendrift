@@ -9,12 +9,12 @@ def test_get_oils(benchmark):
 
 def test_get_all_oils(benchmark):
     oils = benchmark(adios.dirjs.oils, None)
-    assert len(oils) >= 1301
+    assert len(oils) >= 1269
 
 
 def test_get_all_oil_names(benchmark):
     oils = benchmark(adios.dirjs.get_oil_names)
-    assert len(oils) >= 1301
+    assert len(oils) >= 1269
 
 
 def test_get_all_oil_names_location(benchmark):

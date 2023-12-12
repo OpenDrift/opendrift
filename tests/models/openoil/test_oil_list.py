@@ -20,6 +20,7 @@ def test_get_openoil_list_norway(test_data):
     # Oils in NOAA database with incomplete data, e.g. condensates without cuts. Should be updated
     to_be_fixed = ['LILLEFRIGG KONDENSAT 1996', 'SMORBUKK KONDENSAT 2003',
                    'GENERIC JET FUEL', 'GENERIC KEROSENE', 'MARINE DIESEL OIL, ESSO']
+    to_be_fixed = []
     # Oils where name of sample is different from oil of reference
     # https://github.com/NOAA-ORR-ERD/noaa-oil-data/issues/1
     wrong_year = ['EKOFISK BLEND 2011', 'NORNE 1997', 'MIDGARD 1991']

@@ -47,14 +47,13 @@ def __get_archive__():
             #o = { 'data': { 'attributes' : o } }
             #o['data']['_id'] = o['data']['attributes']['oil_id']
             #o['data']['attributes']['metadata']['location'] = 'NORWAY'
+            o['metadata']['location'] = 'NORWAY'
             #logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
             oils.append(o)
 
     for o in oils:
         # For Norwegian oils, we add year to the name
-        #if o['data']['_id'][0:2] == 'NO':
         if o['oil_id'][0:2] == 'NO':
-            #yearstring = str(o['data']['attributes']['metadata']['reference']['year'])
             yearstring = str(o['metadata']['reference']['year'])
             # Override with sample_date, if available
             if 'sample_data' in o['metadata']:
