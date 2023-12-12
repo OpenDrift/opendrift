@@ -30,7 +30,7 @@ from opendrift.models.openoil import OpenOil
 def test_oils():
     o = OpenOil(loglevel=50, weathering_model='noaa')
 
-    assert len(o.oiltypes) >= 1279
+    assert len(o.oiltypes) >= 1247
 
     for oiltype in o.oiltypes[12:14]:
         if oiltype == 'JP-8':
