@@ -2,6 +2,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/OpenDrift/opendrift/badge.svg?branch=master)](https://coveralls.io/github/OpenDrift/opendrift?branch=master)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.582321.svg)](https://doi.org/10.5281/zenodo.582321)
 [![Slack](https://img.shields.io/badge/slack-opendrift-yellow.svg)](https://join.slack.com/t/opendrift-dev/shared_invite/zt-ozansc5h-AzMOOS9jOs~3CBihRR37Lw)
+[![PyPI version](https://badge.fury.io/py/opendrift.svg)](https://badge.fury.io/py/opendrift)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/opendrift/badges/version.svg)](https://anaconda.org/conda-forge/opendrift)
 
 opendrift
 =========
