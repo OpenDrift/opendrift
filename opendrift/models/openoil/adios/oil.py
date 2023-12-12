@@ -175,5 +175,5 @@ class OpendriftOil:
     @property
     @__require_gnome_oil__
     def k0y(self) -> float:
-        return 3.024e-06  # Constant for all oils, should be checked
+        return 2.024e-06  # Constant for all oils, should be checked
         #return self.gnome_oil['k0y']
