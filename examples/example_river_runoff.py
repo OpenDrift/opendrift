@@ -131,7 +131,8 @@ for ax in [ax1, ax2, ax3]:
     ax.set_xticks([])
     ax.set_xlabel(None)
 ax4.set_title('Density of water at Station')
-ax4.xaxis.set_major_formatter(DateFormatter("%d %b %H"))
+# TODO disabling due to recent problem with dateformatter
+#ax4.xaxis.set_major_formatter(DateFormatter("%d %b %H"))
 plt.show()
 
 #%%
