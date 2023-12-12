@@ -55,7 +55,7 @@ sharded-gallery:
 	@echo "Building example: $(F)"
 	@mkdir -p source/gallery
 	@touch "source/gallery/$@"
-	sphinx-build -D "sphinx_gallery_conf.filename_pattern=$(F)" -D extensions=sphinx_gallery.gen_gallery -b html source build/html "source/gallery/$@"
+	sphinx-build $(SPHINXOPTS) -D "sphinx_gallery_conf.filename_pattern=$(F)" -D extensions=sphinx_gallery.gen_gallery -b html source build/html "source/gallery/$@"
 
 checksum-plots:
 	@find source -type f -exec md5sum {} \; | sort -k 2  | md5sum
