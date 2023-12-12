@@ -1,8 +1,13 @@
 History
 =======
 
-2023-12-12 / Release v1.10.8
+2023-12-12 / Release v1.11.0
 ----------------------------
+
+* Norwegian oil data (json files) are moved from OpenDrift repository to https://github.com/OpenDrift/noaa-oil-data, from where they are harvested to oils.xz.
+* adios_db is new dependency, and old oil methods are removed from openoil.py and companion scripts.
+* lazy_reader can now pass zarr auth info
+* Renamed OpenBerg to OpenBergOld, to give place for a new full-fledged ice berg drift model which includes thermodynamics
 * Order of initializing a simulation is now strict: configuration and adding readers must be done before seeding elements and starting simulation. Internally this is regulated by *modes*: ['Config', 'Ready', 'Run', 'Result'] and use of decorators for when methods are applicable.
 * Related restructuring, including new Config and Environment classes, and renaming basemodel.py to basemodel/__init__.py. reset method is removed, and a clone method is intruduced instead.
 * drift:max_speed is now a config value. fallback_values it not anymore a cached dict, but must be retrieved from config. Updated all examples and tests to seed elements after config and readers
