@@ -76,7 +76,9 @@ class LarvalFish(OceanDrift):
         'ocean_vertical_diffusivity': {'fallback': 0.01, 'profiles': True},
         'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
-        'sea_water_salinity': {'fallback': 34, 'profiles': True}
+        'sea_water_salinity': {'fallback': 34, 'profiles': True},
+        'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
+        'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
     }
 
     required_profiles_z_range = [0, -50]  # The depth range (in m) which profiles should cover
@@ -252,6 +254,10 @@ class LarvalFish(OceanDrift):
 
         self.update_fish_larvae()
         self.advect_ocean_current()
+
+        # Stokes drift
+        self.stokes_drift()
+
         self.update_terminal_velocity()
         self.vertical_mixing()
         self.larvae_vertical_migration()
