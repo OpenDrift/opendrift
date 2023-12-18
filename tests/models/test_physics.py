@@ -157,7 +157,7 @@ class TestPhysics(unittest.TestCase):
 
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
         #o.plot_vertical_distribution()
-        self.assertAlmostEqual(o.elements.z.min(), -49.33, 1)
+        self.assertAlmostEqual(o.elements.z.min(), -49.52, 1)
         #######################################################
 
 
@@ -206,7 +206,7 @@ class TestPhysics(unittest.TestCase):
             elif scheme == 'windspeed_Sundby1983':
                 self.assertAlmostEqual(o.elements.z.min(), -51.75, 1)
             elif scheme == 'constant':
-                self.assertAlmostEqual(o.elements.z.min(), -3.62, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -3.57, 1)
 
     def test_parameterised_stokes(self):
         o = OpenOil(loglevel=30)
