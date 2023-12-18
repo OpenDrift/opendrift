@@ -84,6 +84,8 @@ from datetime import datetime
 import pyproj
 import matplotlib.pyplot as plt
 import logging
+import json
+from importlib import resources
 
 logger = logging.getLogger(__name__)
 
@@ -313,12 +315,6 @@ class OpenOil(OceanDrift):
                   'SLEIPNER CONDENSATE, STATOIL',
                   'STATFJORD BLEND, STATOIL', 'VARG, STATOIL']
 
-    # Workaround as ADIOS oil library uses
-    # max water fraction of 0.9 for all crude oils
-    max_water_fraction = {
-        'MARINE GAS OIL 500 ppm S 2017': 0.1,
-        'FENJA (PIL) 2015': .75
-    }
 
     def __init__(self, weathering_model='noaa', *args, **kwargs):
         self.oil_weathering_model = weathering_model
@@ -335,6 +331,9 @@ class OpenOil(OceanDrift):
             other_oiltypes = [o for o in self.oiltypes if o[0:7] != 'GENERIC']
             self.oiltypes = sorted([o for o in generic_oiltypes]) + sorted([o for o in other_oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
+
+            # For Norwegian oils, max water fraction from Sintef is overriding NOAA value
+            self.max_water_fraction = None
         else:
             raise ValueError('Weathering model unknown: ' + weathering_model)
 
@@ -653,6 +652,21 @@ class OpenOil(OceanDrift):
                 self.oiltype.oil_water_surface_tension()
             logger.info('Oil-water surface tension is %f Nm' %
                         self.oil_water_interfacial_tension)
+        try:
+            max_water_fractions = json.loads(
+                    resources.read_text('opendrift.models.openoil.adios', 'max_water_fraction.json'))
+            if self.oil_name in max_water_fractions:
+                self.max_water_fraction = max_water_fractions[self.oil_name]
+                T = self.max_water_fraction['temperatures']
+                wf = self.max_water_fraction['max_water_fraction']
+                logger.info(f'Using max water fractions {wf} for temperatures {T} for oiltype {self.oil_name}')
+                logger.info('Corresponding max water fraction from GNOME is '
+                            f'{self.oiltype.gnome_oil["emulsion_water_fraction_max"]}')
+            else:
+                logger.info(f'Max water fraction not available for {self.oil_name}, using default')
+        except Exception as e:
+            logger.warning('Could not load max water content file')
+            print(e)
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:
@@ -792,28 +806,12 @@ class OpenOil(OceanDrift):
 
     def emulsification_noaa(self):
         #############################################
-        # Emulsification (surface only?)
+        # Emulsification (surface only)
         #############################################
         logger.debug('    Calculating emulsification - NOAA')
         emul_time = self.oiltype.bulltime
         emul_constant = self.oiltype.bullwinkle
-        # max water content fraction - get from database
-        Y_max = self.oiltype.emulsion_water_fraction_max
-        if self.oil_name in self.max_water_fraction:
-            max_water_fraction = self.max_water_fraction[self.oil_name]
-            logger.debug(
-                'Overriding max water fraxtion with value %f instead of default %f'
-                % (max_water_fraction, Y_max))
-            Y_max = max_water_fraction
-        # emulsion
-        if Y_max <= 0:
-            logger.debug('Oil does not emulsify, returning.')
-            return
-        # Constants for droplets
-        drop_min = 1.0e-6
-        drop_max = 1.0e-5
-        S_max = (6. / drop_min) * (Y_max / (1.0 - Y_max))
-        S_min = (6. / drop_max) * (Y_max / (1.0 - Y_max))
+
         # Emulsify...
         fraction_evaporated = self.elements.mass_evaporated / (
             self.elements.mass_evaporated + self.elements.mass_oil)
@@ -827,6 +825,34 @@ class OpenOil(OceanDrift):
             logger.debug('        Emulsification not yet started')
             return
 
+        # max water content fraction - get from database
+        Y_max = np.atleast_1d(self.oiltype.emulsion_water_fraction_max)
+        if self.max_water_fraction is not None:
+            wf = self.max_water_fraction['max_water_fraction']
+            wft = self.max_water_fraction['temperatures']
+            if len(wf) == 1:
+                wf = [wf, wf]
+                wft = [wft, wft]
+            swt = self.environment.sea_water_temperature[start_emulsion] - 273.15  # to Celcius
+            weights = (wft[1] - swt) / (wft[1] - wft[0])
+            weights[swt>wft[1]] = 0
+            weights[swt<=wft[0]] = 1
+            max_water_fraction_sintef = weights*wf[0] + (1-weights)*wf[1]
+
+            if (Y_max - max_water_fraction_sintef).min() > 0:
+                logger.debug(
+                    f'Overriding max water fraction {Y_max} with linear fit to SINTEF max values:'
+                    f' T: {wft}, Fraction: {wf}')
+                Y_max = np.array(np.minimum(Y_max, max_water_fraction_sintef))
+        # emulsion
+        if Y_max.max() <= 0:
+            logger.debug('Oil does not emulsify, returning.')
+            return
+        # Constants for droplets
+        drop_min = 1.0e-6
+        drop_max = 1.0e-5
+        S_max = (6. / drop_min) * (Y_max / (1.0 - Y_max))
+        S_min = (6. / drop_max) * (Y_max / (1.0 - Y_max))
         if self.oiltype.bulltime > 0:  # User has set value
             start_time = self.oiltype.bulltime * np.ones(len(start_emulsion))
         else:
@@ -835,23 +861,17 @@ class OpenOil(OceanDrift):
             start_time[self.elements.age_seconds[start_emulsion] >=
                        0] = self.elements.bulltime[start_emulsion]
         # Update droplet interfacial area
-        k_emul = noaa.water_uptake_coefficient(
-            self.oiltype,
-            self.wind_speed()[start_emulsion])
+        k_emul = noaa.water_uptake_coefficient(self.oiltype, self.wind_speed()[start_emulsion])
         self.elements.interfacial_area[start_emulsion] = \
             self.elements.interfacial_area[start_emulsion] + \
-            (k_emul*self.time_step.total_seconds()*
-             np.exp((-k_emul/S_max)*(
+            (k_emul*self.time_step.total_seconds()* np.exp((-k_emul/S_max)*(
                 self.elements.age_seconds[start_emulsion] - start_time)))
-        self.elements.interfacial_area[
-            self.elements.interfacial_area > S_max] = S_max
+        self.elements.interfacial_area[start_emulsion] = np.minimum(self.elements.interfacial_area[start_emulsion], S_max)
         # Update water fraction
         self.elements.water_fraction[start_emulsion] = (
-            self.elements.interfacial_area[start_emulsion] * drop_max /
-            (6.0 +
+            self.elements.interfacial_area[start_emulsion] * drop_max / (6.0 +
              (self.elements.interfacial_area[start_emulsion] * drop_max)))
-        self.elements.water_fraction[self.elements.interfacial_area >= (
-            (6.0 / drop_max) * (Y_max / (1.0 - Y_max)))] = Y_max
+        self.elements.water_fraction[start_emulsion] = np.minimum(self.elements.water_fraction[start_emulsion], Y_max)
 
     def update_terminal_velocity(self,
                                  Tprofiles=None,

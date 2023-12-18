@@ -13,20 +13,23 @@ def aasgard():
     return f
 
 def test_max_water_fraction():
-    from opendrift.models.openoil import OpenOil
-    oiltype='FENJA (PIL) 2015'
-    for wf, expected in zip([.5, .9], [.48, .84]):
+    # Check that max water fraction is saturated to max values from Sintef model
+    # Max water_fraction 0.317 for SST=0 from Sintef, for SST=10,20 from NOAA
+    for sst,expected_fraction in zip([0, 10, 20], [0.317, 0.443, 0.443]):
         o = OpenOil(loglevel=50)
-        o.max_water_fraction[oiltype] = wf
-        o.set_config('environment:constant:land_binary_mask', 0)
-        o.set_config('environment:constant:x_sea_water_velocity', 0)
-        o.set_config('environment:constant:y_sea_water_velocity', 0)
-        o.set_config('environment:constant:x_wind', 10)
-        o.set_config('environment:constant:y_wind', 10)
-        o.seed_elements(lon=0, lat=60, time=datetime.now(), number=1000, oiltype=oiltype)
-        o.run(duration=timedelta(hours=24))
-        wfa = o.history['water_fraction'].mean()
-        assert np.isclose(wfa, expected, atol=.01)
+        o.set_config('environment:constant',
+            {
+            'x_wind': 10,
+            'y_wind': 0,
+            'x_sea_water_velocity': 0,
+            'y_sea_water_velocity': 0,
+            'sea_water_temperature': sst,
+            'land_binary_mask': 0
+            })
+        o.seed_elements(lon=3, lat=60, time=datetime.now(), number=100,
+                        oil_type='DUVA 2021')
+        o.run(duration=timedelta(hours=6))
+        assert np.isclose(o.elements.water_fraction.max(), expected_fraction, atol=.001)
 
 def test_open_aasgard(aasgard):
     print(aasgard)
