@@ -60,6 +60,11 @@ class Configurable:
         return configspec
 
     def set_config(self, key, value):
+        if isinstance(value, dict):  # Recursive call with items in dictionary
+            for subkey,subvalue in value.items():
+                self.set_config(f'{key}:{subkey}', subvalue)
+                logger.info(f'set_config(\'{key}:{subkey}\', {subvalue})')
+            return
         if not key in self._config:
             self.list_config()
             raise ValueError('No config setting named %s' % key)
