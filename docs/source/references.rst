@@ -3,6 +3,8 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Pärt S, Björkqvist J-V., Alari V., Maljutenko I., Uiboupin R., An ocean–wave–trajectory forecasting system for the eastern Baltic Sea: Validation against drifting buoys and implementation for oil spill modeling, Marine Pollution Bulletin Volume 195, October 2023, https://doi.org/10.1016/j.marpolbul.2023.115497
+
 Aghito, M., Calgaro, L., Dagestad, K.-F., Ferrarin, C., Marcomini, A., Breivik, Ø., and Hole, L. R.: ChemicalDrift 1.0: an open-source Lagrangian chemical-fate and transport model for organic aquatic pollutants, Geosci. Model Dev., 16, 2477–2494, https://doi.org/10.5194/gmd-16-2477-2023, 2023.
 
 Nguyen DM, Hole LR, Breivik Ø, Nguyen TB, Pham NK. Marine Plastic Drift from the Mekong River to Southeast Asia. Journal of Marine Science and Engineering. 2023; 11(5):925. https://doi.org/10.3390/jmse11050925
