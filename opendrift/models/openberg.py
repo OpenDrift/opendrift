@@ -69,8 +69,6 @@ class OpenBerg(OceanDrift):
     # Configuration
     def __init__(self, *args, **kwargs):
 
-        # Read Iceberg properties from external file    # AO #  This part will be added later
-
         # The constructor of parent class must always be called
         # to perform some necessary common initialisation tasks:
         super(OpenBerg, self).__init__(*args, **kwargs)
@@ -80,7 +78,7 @@ class OpenBerg(OceanDrift):
         pass  # not yet implemented
   
     def update(self):
-        """Update positions and properties of ice bergs"""
+        """Update positions and properties of icebergs"""
 
         self.thermodynamics()
 
@@ -89,14 +87,14 @@ class OpenBerg(OceanDrift):
         rho_air = 1.293
         rho_ice = 917
         rho_iceb = 900
-        #mass = self.elements.weight_coeff*rhoiceb*self.elements.length*self.elements.width*(self.elements.height+self.elements.draft)
+
         
         # Areas exposed     
         Ao = abs(self.elements.draft) * self.elements.length  # Area_wet
         Aa = self.elements.draft  * self.elements.length      # Area_dry
 
-        # See KFD presentation
-        # https://docs.google.com/presentation/d/1m7e0BRilnLF6I16w9FbnG8nwJ1_uJNsKh7CA0jYRd38/edit#slide=id.g106ed0ddb81_0_0
+        # See ACCIBERG presentation
+        # https://docs.google.com/presentation/d/1O5C2v7PA3PW8a93IAGU-aS6BSKt3s-Fw/edit#slide=id.p1
         k = rho_air*self.elements.wind_drag_coeff*Aa / (rho_water*self.elements.water_drag_coeff*Ao)
         f = np.sqrt(k)/(1+np.sqrt(k))
         vx = (1-f)*self.environment.x_sea_water_velocity + f*self.environment.x_wind
