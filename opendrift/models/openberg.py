@@ -91,7 +91,7 @@ class OpenBerg(OceanDrift):
         
         # Areas exposed     
         Ao = abs(self.elements.draft) * self.elements.length  # Area_wet
-        Aa = self.elements.draft  * self.elements.length      # Area_dry
+        Aa = self.elements.sail * self.elements.length        # Area_dry
 
         # See ACCIBERG presentation
         # https://docs.google.com/presentation/d/1O5C2v7PA3PW8a93IAGU-aS6BSKt3s-Fw/edit#slide=id.p1
