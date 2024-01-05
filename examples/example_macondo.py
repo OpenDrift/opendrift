@@ -19,7 +19,7 @@ reader_globcurrent = None
 
 try:
     reader_globcurrent = reader_netCDF_CF_generic.Reader(
-        'http://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_HS-ALT_SUM-V03.0',
+        'https://tds0.ifremer.fr/thredds/dodsC/GLOBCURRENT-L4-CUREUL_HS-ALT_SUM-V03.0',
         standard_name_mapping={'eastward_eulerian_current_velocity': 'x_sea_water_velocity',
                                'northward_eulerian_current_velocity': 'y_sea_water_velocity'})
 except:
