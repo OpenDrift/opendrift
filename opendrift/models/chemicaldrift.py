@@ -2932,7 +2932,8 @@ class ChemicalDrift(OceanDrift):
                   mass_unit='g',
                   time_unit='hours',
                   title=None,
-                  filename=None):
+                  filename=None,
+                  start_date=None):
         """Plot chemical mass distribution between the different species
             legend      list of specie labels, for example ['dissolved','SPM','sediment']
             mass_unit   'g','mg','ug'
@@ -2961,6 +2962,8 @@ class ChemicalDrift(OceanDrift):
             mass_conversion_factor=1e-3
         if mass_unit=='ug' and self.elements.variables['mass']['units']=='ug':
             mass_conversion_factor=1
+        if mass_unit=='kg' and self.elements.variables['mass']['units']=='ug':
+            mass_conversion_factor=1e-9
 
         time_conversion_factor = self.time_step_output.total_seconds() / (60*60)
         if time_unit=='seconds':
@@ -2979,26 +2982,38 @@ class ChemicalDrift(OceanDrift):
                      np.sum(mass[0][i,:]*(sp[0][i,:]==2))*mass_conversion_factor,
                      np.sum(mass[0][i,:]*(sp[0][i,:]==3))*mass_conversion_factor,
                      np.sum(mass[0][i,:]*(sp[0][i,:]==4))*mass_conversion_factor]
-
         bottom=np.zeros_like(bars[:,0])
         if 'dissolved' in legend:
             ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.25,color='midnightblue')
             bottom=bars[:,self.num_lmm]
+            print('dissolved' + ' : ' + str(bars[-1,self.num_lmm]) + mass_unit +' ('+ str(100*bars[-1,self.num_lmm]/np.sum(bars[-1,:]))+'%)')
         if 'DOC' in legend:
             ax.bar(np.arange(steps),bars[:,self.num_humcol],bottom=bottom,width=1.25,color='royalblue')
             bottom=bottom+bars[:,self.num_humcol]
+            print('DOC' + ' : ' + str(bars[-1,self.num_humcol]) + mass_unit +' ('+ str(100*bars[-1,self.num_humcol]/np.sum(bars[-1,:]))+'%)')
         if 'SPM' in legend:
             ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.25,color='palegreen')
             bottom=bottom+bars[:,self.num_prev]
+            print('SPM' + ' : ' + str(bars[-1,self.num_prev]) + mass_unit +' ('+ str(100*bars[-1,self.num_prev]/np.sum(bars[-1,:]))+'%)')
         if 'sediment' in legend:
             ax.bar(np.arange(steps),bars[:,self.num_srev],bottom=bottom,width=1.25,color='orange')
             bottom=bottom+bars[:,self.num_srev]
+            print('sediment' + ' : ' + str(bars[-1,self.num_srev]) + mass_unit +' ('+ str(100*bars[-1,self.num_srev]/np.sum(bars[-1,:]))+'%)')
 
         ax.legend(list(filter(None, legend)))
-        ax.set_ylabel('mass [' + mass_unit + ']')
-        ax.axes.get_xaxis().set_ticklabels(ax.axes.get_xticks() * time_conversion_factor)
-        ax.set_xlabel('time [' + time_unit + ']')
+        ax.set_ylabel('mass (' + mass_unit + ')')
+        if start_date is None:
+            ax.axes.get_xaxis().set_ticklabels(np.round(ax.axes.get_xticks() * time_conversion_factor))
+            ax.set_xlabel('time (' + time_unit + ')')
+        else:
+            date_values = [datetime.strptime(start_date,"%Y-%m-%d") + i*self.time_step for i in range(steps)]
+
+            # Set a fraction of datetime values as labels for the x-axis
+            fraction = 24*7  # Show every second datetime value
+            ax.set_xticks(np.arange(0, steps, fraction))
+            ax.set_xticklabels([date.strftime('%m-%d') for date in date_values[::fraction]])
+            ax.set_xlabel('time (month-day)')
         fig.show()
 
         if filename is not None:
-            plt.savefig(filename, format=filename[-3:], transparent=True)
+            plt.savefig(filename, format=filename[-3:], transparent=True, bbox_inches="tight", dpi=300)
