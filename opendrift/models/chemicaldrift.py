@@ -2027,11 +2027,6 @@ class ChemicalDrift(OceanDrift):
             landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
         else:
             landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
-        Landmask=np.zeros_like(H)
-        for zi in range(len(z_array)-1):
-            for sp in range(self.nspecies):
-                for ti in range(H.shape[0]):
-                        Landmask[ti,sp,zi,:,:] = landmask
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
@@ -2097,6 +2092,12 @@ class ChemicalDrift(OceanDrift):
             odt = int(cshape[0]/ndt)
             logger.debug ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
             logger.debug ('odt '+ str(odt))   # number of average slices
+
+            Landmask=np.zeros_like(H[0:odt,:,:,:,:])
+            for zi in range(len(z_array)-1):
+                for sp in range(self.nspecies):
+                    for ti in range(odt):
+                        Landmask[ti,sp,zi,:,:] = landmask
 
 
             # This may probably be written more efficiently!
