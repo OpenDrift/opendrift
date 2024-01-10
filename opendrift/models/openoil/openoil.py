@@ -116,7 +116,7 @@ class Oil(Lagrangian3DArray):
                 'dtype': np.float32,
                 'units': 'm2/s',
                 'seed': False,  # Taken from NOAA database
-                'description': 'Kinematic viscosity of oil',
+                'description': 'Kinematic viscosity of oil (emulsion)',
                 'default': 0.005
             }),
         (
@@ -704,11 +704,13 @@ class OpenOil(OceanDrift):
         kv1 = np.sqrt(oil_viscosity) * visc_curvfit_param
         kv1[kv1 < 1] = 1
         kv1[kv1 > 10] = 10
+        # NB: neglecting dispersed and biodegraded in calculation of fraction_evaporated
         self.elements.fraction_evaporated = self.elements.mass_evaporated / (
             self.elements.mass_oil + self.elements.mass_evaporated)
+
         self.elements.viscosity = (
-            oil_viscosity * np.exp(kv1 * self.elements.fraction_evaporated) *
-            (1 + (fw_d_fref / (1.187 - fw_d_fref)))**2.49)
+            oil_viscosity * np.exp(kv1 * self.elements.fraction_evaporated) * 
+                (1 + (fw_d_fref / (1.187 - fw_d_fref)))**2.49)
 
         if self.get_config('processes:evaporation') is True:
             self.timer_start(
@@ -813,13 +815,11 @@ class OpenOil(OceanDrift):
         emul_constant = self.oiltype.bullwinkle
 
         # Emulsify...
-        fraction_evaporated = self.elements.mass_evaporated / (
-            self.elements.mass_evaporated + self.elements.mass_oil)
         # f ((le_age >= emul_time && emul_time >= 0.) || frac_evap[i] >= emul_C && emul_C > 0.)
 
         start_emulsion = np.where((
             (self.elements.age_seconds >= emul_time) & (emul_time >= 0))
-                                  | ((fraction_evaporated >= emul_constant)
+                                  | ((self.elements.fraction_evaporated >= emul_constant)
                                      & (emul_constant > 0)))[0]
         if len(start_emulsion) == 0:
             logger.debug('        Emulsification not yet started')
@@ -1452,14 +1452,14 @@ class OpenOil(OceanDrift):
                 dyn_viscosity_mean,
                 'g',
                 lw=2,
-                label='Dynamical viscosity')
+                label='Emulsion viscosity')
         ax.fill_between(time,
                         dyn_viscosity_mean - dyn_viscosity_std,
                         dyn_viscosity_mean + dyn_viscosity_std,
                         color='g',
                         alpha=0.5)
         ax.set_ylim([0, max(dyn_viscosity_mean + dyn_viscosity_std)])
-        ax.set_ylabel(r'Dynamical viscosity  [cPoise] / [mPas]', color='g')
+        ax.set_ylabel(r'Emulsion viscosity  [cPoise] / [mPas]', color='g')
         ax.tick_params(axis='y', colors='g')
 
         axb = ax.twinx()
