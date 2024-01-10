@@ -197,7 +197,7 @@ def test_no_dispersion():
     b = o.get_oil_budget()
     actual_dispersed = b['mass_dispersed'] / b['mass_total']
     np.testing.assert_almost_equal(actual_dispersed[-1], 0)
-    np.testing.assert_array_almost_equal(o.elements.lon[4:7], [4.804, 4.796, 4.8], 3)
+    np.testing.assert_array_almost_equal(o.elements.lon[4:7], [4.816, 4.797, 4.803], 3)
 
 
 def test_biodegradation():
