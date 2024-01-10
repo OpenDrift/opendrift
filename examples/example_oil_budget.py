@@ -48,7 +48,7 @@ o.seed_elements(lon=4.8, lat=60.0, z=0, radius=3000, number=1000,
 # Running model
 o.run(duration=timedelta(hours=24), time_step=1800)
 
-o.plot_oil_budget(show_density_viscosity=True, show_wind_and_current=True)
+o.plot_oil_budget(show_watercontent_and_viscosity=True, show_wind_and_current=True)
 
 o.animation(color='viscosity')
 

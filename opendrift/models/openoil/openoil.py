@@ -1275,7 +1275,7 @@ class OpenOil(OceanDrift):
     def plot_oil_budget(self,
                         filename=None,
                         ax=None,
-                        show_density_viscosity=True,
+                        show_watercontent_and_viscosity=True,
                         show_wind_and_current=True):
 
         if self.time_step.days < 0:  # Backwards simulation
@@ -1305,7 +1305,7 @@ class OpenOil(OceanDrift):
         if ax is None:
             # Left axis showing oil mass
             nrows = 1
-            if show_density_viscosity is True:
+            if show_watercontent_and_viscosity is True:
                 nrows = nrows + 1
             if show_wind_and_current is True:
                 nrows = nrows + 1
@@ -1317,8 +1317,8 @@ class OpenOil(OceanDrift):
                 ax1 = axs
             elif nrows >= 2:
                 ax1 = axs[0]
-                if show_density_viscosity is True:
-                    self.plot_oil_density_and_viscosity(ax=axs[1], show=False)
+                if show_watercontent_and_viscosity is True:
+                    self.plot_oil_watercontent_and_viscosity(ax=axs[1], show=False)
                 if show_wind_and_current is True:
                     self.plot_environment(ax=axs[nrows - 1], show=False)
         else:
@@ -1397,12 +1397,12 @@ class OpenOil(OceanDrift):
                    self.start_time.strftime('%Y-%m-%d %H:%M'),
                    self.time.strftime('%Y-%m-%d %H:%M')))
         # Shrink current axis's height by 10% on the bottom
-        box = ax1.get_position()
-        ax1.set_position(
-            [box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
-        ax2.set_position(
-            [box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
-        ax1.legend(bbox_to_anchor=(0., -0.10, 1., -0.03),
+        #box = ax1.get_position()
+        #ax1.set_position(
+        #    [box.x0, box.y0 + box.height * 0.15, box.width, box.height * 0.85])
+        #ax2.set_position(
+        #    [box.x0, box.y0 + box.height * 0.5, box.width, box.height * 0.6])
+        ax1.legend(bbox_to_anchor=(0., -0.1, 1., -0.04),
                    loc=1,
                    ncol=6,
                    mode="expand",
@@ -1434,7 +1434,7 @@ class OpenOil(OceanDrift):
         cumulative_fraction_entrained = np.sum(z, 1) / z.shape[1]
         return cumulative_fraction_entrained
 
-    def plot_oil_density_and_viscosity(self, ax=None, show=True):
+    def plot_oil_watercontent_and_viscosity(self, ax=None, show=True):
         if ax is None:
             fig, ax = plt.subplots()
         import matplotlib.dates as mdates
@@ -1447,6 +1447,8 @@ class OpenOil(OceanDrift):
         dyn_viscosity_std = dyn_viscosity.std(axis=0)
         density = self.history['density'].mean(axis=0)
         density_std = self.history['density'].std(axis=0)
+        watercontent = self.history['water_fraction'].mean(axis=0)*100
+        watercontent_std = self.history['water_fraction'].std(axis=0)*100
 
         ax.plot(time,
                 dyn_viscosity_mean,
@@ -1463,19 +1465,19 @@ class OpenOil(OceanDrift):
         ax.tick_params(axis='y', colors='g')
 
         axb = ax.twinx()
-        axb.plot(time, density, 'b', lw=2, label='Density')
+        axb.plot(time, watercontent, 'b', lw=2, label='Water content')
         axb.fill_between(time,
-                         density - density_std,
-                         density + density_std,
-                         color='b',
-                         alpha=0.5)
+                         watercontent - watercontent_std,
+                         watercontent + watercontent_std,
+                         color='b', alpha=0.5)
         ax.set_xlim([0, time.max()])
         ax.set_xlabel('Time [hours]')
-        axb.set_ylabel(r'Density  [kg/m3]', color='b')
+        axb.set_ylim([0, 100])
+        axb.set_ylabel(r'Water content  [%]', color='b')
         axb.tick_params(axis='y', colors='b')
 
         ax.legend(loc='upper left')
-        axb.legend(loc='lower right')
+        axb.legend(loc='upper center')
         if show is True:
             plt.show()
 
