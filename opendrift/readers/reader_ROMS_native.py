@@ -28,6 +28,49 @@ from opendrift.readers.roppy import depth
 
 
 class Reader(BaseReader, StructuredReader):
+    """
+    A reader for ROMS Output files. It can take a single file, a file pattern, a URL or an xarray Dataset.
+
+    Args:
+        :param filename: A single netCDF file, a pattern of files, or a xr.Dataset. The
+                         netCDF file can also be an URL to an OPeNDAP server.
+        :type filename: string, xr.Dataset (required).
+
+        :param name: Name of reader
+        :type name: string, optional
+
+        :param proj4: PROJ.4 string describing projection of data.
+        :type proj4: string, optional
+
+    Example:
+
+    .. code::
+
+       from opendrift.readers.reader_ROMS_native import Reader
+       r = Reader("roms.nc")
+
+    Several files can be specified by using a pattern:
+
+    .. code::
+
+       from opendrift.readers.reader_ROMS_native import Reader
+       r = Reader("*.nc")
+
+    An OPeNDAP URL can be used:
+
+    .. code::
+
+       from opendrift.readers.reader_ROMS_native import Reader
+       r = Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
+
+    A xr.Dataset can be used:
+
+    .. code::
+
+        from opendrift.readers.reader_ROMS_native import Reader
+        ds = xr.open_dataset(filename, decode_times=False)
+        r = Reader(ds)
+    """
 
     def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={}):
 
@@ -79,35 +122,44 @@ class Reader(BaseReader, StructuredReader):
 
         gls_param = ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']
 
-        filestr = str(filename)
-        if name is None:
-            self.name = filestr
-        else:
-            self.name = name
-
-        try:
-            # Open file, check that everything is ok
-            logger.info('Opening dataset: ' + filestr)
-            if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                logger.info('Opening files with MFDataset')
-                def drop_non_essential_vars_pop(ds):
-                    dropvars = [v for v in ds.variables if v not in
-                                list(self.ROMS_variable_mapping.keys()) + gls_param +
-                                ['ocean_time', 'time', 'bulk_time', 's_rho',
-                                 'Cs_r', 'hc', 'angle', 'Vtransform']
-                                and v[0:3] not in ['lon', 'lat', 'mas']]
-                    logger.debug('Dropping variables: %s' % dropvars)
-                    ds = ds.drop_vars(dropvars)
-                    return ds
-                self.Dataset = xr.open_mfdataset(filename,
-                    chunks={'ocean_time': 1}, compat='override', decode_times=False,
-                    preprocess=drop_non_essential_vars_pop,
-                    data_vars='minimal', coords='minimal')
+        if isinstance(filename, xr.Dataset):
+            self.Dataset = filename
+            if name is not None:
+                self.name = name
             else:
-                logger.info('Opening file with Dataset')
-                self.Dataset = xr.open_dataset(filename, decode_times=False)
-        except Exception as e:
-            raise ValueError(e)
+                import re
+                self.name = re.sub('[^0-9a-zA-Z]+', '_', filename.attrs['title'])
+        else:
+
+            filestr = str(filename)
+            if name is None:
+                self.name = filestr
+            else:
+                self.name = name
+
+            try:
+                # Open file, check that everything is ok
+                logger.info('Opening dataset: ' + filestr)
+                if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+                    logger.info('Opening files with MFDataset')
+                    def drop_non_essential_vars_pop(ds):
+                        dropvars = [v for v in ds.variables if v not in
+                                    list(self.ROMS_variable_mapping.keys()) + gls_param +
+                                    ['ocean_time', 'time', 'bulk_time', 's_rho',
+                                     'Cs_r', 'hc', 'angle', 'Vtransform']
+                                    and v[0:3] not in ['lon', 'lat', 'mas']]
+                        logger.debug('Dropping variables: %s' % dropvars)
+                        ds = ds.drop_vars(dropvars)
+                        return ds
+                    self.Dataset = xr.open_mfdataset(filename,
+                        chunks={'ocean_time': 1}, compat='override', decode_times=False,
+                        preprocess=drop_non_essential_vars_pop,
+                        data_vars='minimal', coords='minimal')
+                else:
+                    logger.info('Opening file with Dataset')
+                    self.Dataset = xr.open_dataset(filename, decode_times=False)
+            except Exception as e:
+                raise ValueError(e)
 
         if gridfile is not None:  # Merging gridfile dataset with main dataset
             gf = xr.open_dataset(gridfile)
