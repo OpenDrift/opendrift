@@ -1,6 +1,13 @@
 History
 =======
 
+2024-01-25 / Release v1.11.1
+----------------------------
+* ROMS reader can take xarray datasets (Rich Signell)
+* Norwegian oils: maximum water fractions are overriden with Sintef values.
+* set_config can take dictionary as input for faster setting of multiple options.
+* New example to illustrate new Copernicus Marine Client.
+
 2023-12-12 / Release v1.11.0
 ----------------------------
 
