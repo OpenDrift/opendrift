@@ -16,7 +16,7 @@ dependencies:
   - pygrib
   - xhistogram
   - requests
-  - pytest
+  - pytest<8
   - pytest-cov
   - pytest-benchmark
   - pytest-mpl
