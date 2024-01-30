@@ -2130,6 +2130,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 else:
                     self.add_metadata(keyword, self.env.priority_list[var])
 
+        self.timer_end('cleaning up')
+        self.timer_end('total time')
         if outfile is not None:
             logger.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
@@ -2159,9 +2161,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if hasattr(self, 'environment_profiles'):
                 del self.environment_profiles
             self.io_import_file(outfile)
-
-        self.timer_end('cleaning up')
-        self.timer_end('total time')
 
     def increase_age_and_retire(self):
         """Increase age of elements, and retire if older than config setting."""

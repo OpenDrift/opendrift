@@ -161,8 +161,7 @@ def close(self):
     self.outfile.geospatial_lon_max = self.history['lon'].max()
     self.outfile.geospatial_lon_units = 'degrees_east'
     self.outfile.geospatial_lon_resolution = 'point'
-    self.outfile.runtime = str(datetime.now() -
-                               self.timers['total time'])
+    self.outfile.runtime = str(self.timing['total time'])
 
     self.outfile.close()  # Finally close file
 
