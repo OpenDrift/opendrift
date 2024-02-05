@@ -316,6 +316,15 @@ class Reader(StructuredReader, BaseReader):
 
         self.variables = list(self.variable_mapping.keys())
 
+        # Workaround for datasets with unnecessary ensemble dimension for static variables
+        for vn, va in self.variable_mapping.items():
+            if vn == 'sea_floor_depth_below_sea_level':
+                var = self.Dataset.variables[va]
+                if 'ensemble_member' in var.dims:
+                    logger.info(f'Removing ensemble dimension from {vn}')
+                    var = var.isel(ensemble_member=0).squeeze()
+                    self.Dataset[va] = var
+
         # Run constructor of parent Reader class
         super().__init__()
 
