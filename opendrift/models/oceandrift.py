@@ -199,11 +199,38 @@ class OceanDrift(OpenDriftSimulation):
         # Optional machine learning correction
         self.machine_learning_correction()
 
+    def simulate_trajectories(self, outfile, trajectories,
+                              wind_drift_factors=None, current_drift_factors=None,
+                              time_step=None, time_step_output=None,
+                              simulation_duration=None, simulation_interval=None):
+
+        import pandas as pd
+        time_step_output = pd.Timedelta(time_step_output)
+        simulation_interval = pd.Timedelta(simulation_interval)
+        # Interpolate trajectories to output time step
+        trajectories = trajectories.traj.gridtime(time_step_output)
+        # Find all seed combinations: position, time, wdf, cdf
+        #  Loop også over trajektorier -> origin_marker
+        step = int(simulation_interval / time_step_output)
+        tind = np.arange(0, trajectories.sizes['time'], step)
+        start_lons = trajectories.isel(time=tind).isel(trajectory=0).lon.values
+        start_lats = trajectories.isel(time=tind).isel(trajectory=0).lat.values
+        start_times = trajectories.time[tind]
+        self.set_config('drift:max_age_seconds', simulation_duration.total_seconds())
+        for (lo,la,ti) in zip(start_lons, start_lats, start_times):
+            if np.isnan(lo):
+                continue
+            ti = pd.Timestamp(ti.values).to_pydatetime()
+            self.seed_elements(lon=lo, lat=la, time=ti)
+        print(self)
+        self.run(outfile=outfile, end_time=pd.Timestamp(start_times[-1].values).to_pydatetime()+simulation_duration)
+        # Simulate and save to file
+
     def wind_drift_factor_from_trajectory_lw(self, drifters, wind_drift_factors,
                                              simulation_length, simulation_interval):
         """Perform simulations and use skillscore to optimize wind_drift_factor
 
-        drifters: list of disctionaries with numpy arrays of 'lon' and 'lat'
+        drifters: list of dictionaries with numpy arrays of 'lon' and 'lat'
                     and list of datetimes
         wind_drift_factors: the wind_drift_factors to use for simulations/optimalizations
         """
