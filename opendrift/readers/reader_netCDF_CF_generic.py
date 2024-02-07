@@ -475,7 +475,7 @@ class Reader(StructuredReader, BaseReader):
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
                 num_ensembles = variables[par].shape[ensemble_dim]
-                logger.debug('Num ensembles: %i ' % num_ensembles)
+                logger.debug(f'Num ensembles for {par}: {num_ensembles}')
                 newvar = [0]*num_ensembles
                 for ensemble_num in range(num_ensembles):
                     newvar[ensemble_num] = \
@@ -511,7 +511,7 @@ class Reader(StructuredReader, BaseReader):
                 from opendrift.readers.basereader import vector_pairs_xy
                 for vectorpair in vector_pairs_xy:
                     if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
-                        logger.debug(f'Rotating vector from east/north to xy orientation: {vectorpair}')
+                        logger.debug(f'Rotating vector from east/north to xy orientation: {vectorpair[0:2]}')
                         variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
                             lon, lat, variables[vectorpair[0]], variables[vectorpair[1]],
                             pyproj.Proj('+proj=latlong'), self.proj)

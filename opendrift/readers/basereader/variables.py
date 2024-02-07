@@ -58,6 +58,15 @@ class ReaderDomain(Timeable):
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
+        if isinstance(u_component, list):  # Looping recursively over ensemble members
+            uout = []
+            vout = []
+            for ucomp, vcomp in zip(u_component, v_component):
+                ucomprot, vcomprot = self.rotate_vectors(
+                    reader_x, reader_y, ucomp, vcomp, proj_from, proj_to)
+                uout.append(ucomprot)
+                vout.append(vcomprot)
+            return uout, vout
         """Rotate vectors from one crs to another."""
 
         if type(proj_from) is str:
