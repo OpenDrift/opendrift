@@ -199,7 +199,7 @@ class OceanDrift(OpenDriftSimulation):
         # Optional machine learning correction
         self.machine_learning_correction()
 
-    def simulate_trajectories(self, outfile, trajectories,
+    def simulate_trajectories(self, outfile, trajectories, number=1,
                               wind_drift_factors=None, current_drift_factors=None,
                               time_step=None, time_step_output=None,
                               simulation_duration=None, simulation_interval=None):
@@ -208,7 +208,7 @@ class OceanDrift(OpenDriftSimulation):
         time_step_output = pd.Timedelta(time_step_output)
         simulation_interval = pd.Timedelta(simulation_interval)
         # Interpolate trajectories to output time step
-        trajectories = trajectories.traj.gridtime(time_step_output)
+        #trajectories = trajectories.traj.gridtime(time_step_output)
         # Find all seed combinations: position, time, wdf, cdf
         #  Loop også over trajektorier -> origin_marker
         step = int(simulation_interval / time_step_output)
@@ -217,11 +217,13 @@ class OceanDrift(OpenDriftSimulation):
         start_lats = trajectories.isel(time=tind).isel(trajectory=0).lat.values
         start_times = trajectories.time[tind]
         self.set_config('drift:max_age_seconds', simulation_duration.total_seconds())
+        kwargs = {'wind_drift_factor': wind_drift_factors[0],
+                  'current_drift_factor': current_drift_factors[0]}
         for (lo,la,ti) in zip(start_lons, start_lats, start_times):
             if np.isnan(lo):
                 continue
             ti = pd.Timestamp(ti.values).to_pydatetime()
-            self.seed_elements(lon=lo, lat=la, time=ti)
+            self.seed_elements(lon=lo, lat=la, time=ti, number=number, **kwargs)
         print(self)
         self.run(outfile=outfile, end_time=pd.Timestamp(start_times[-1].values).to_pydatetime()+simulation_duration)
         # Simulate and save to file
