@@ -39,9 +39,6 @@ class Reader(BaseReader, StructuredReader):
         :param name: Name of reader
         :type name: string, optional
 
-        :param proj4: PROJ.4 string describing projection of data.
-        :type proj4: string, optional
-
     Example:
 
     .. code::
