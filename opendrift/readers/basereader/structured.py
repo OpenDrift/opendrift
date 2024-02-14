@@ -1,7 +1,9 @@
+import pickle
 import numpy as np
 import pyproj
 from scipy.ndimage import map_coordinates
 from abc import abstractmethod
+from pathlib import Path
 
 from opendrift.readers.interpolation.structured import ReaderBlock
 from .variables import Variables
@@ -56,7 +58,7 @@ class StructuredReader(Variables):
             self.proj4 = 'None'
             self.proj = fakeproj.fakeproj()
             self.projected = False
-            logger.info('Making interpolator for lon,lat to x,y conversion...')
+            
             self.xmin = self.ymin = 0.
             self.delta_x = self.delta_y = 1.
             self.xmax = self.lon.shape[1] - 1
@@ -65,22 +67,49 @@ class StructuredReader(Variables):
             self.numy = self.ymax
             self.x = np.arange(0, self.xmax+1)
             self.y = np.arange(0, self.ymax+1)
-
-            block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
-                                        self.ymin:self.ymax + 1]
-            block_x, block_y = block_x.T, block_y.T
-
+    
             # Making interpolator (lon, lat) -> x
-            self.spl_x = LinearNDInterpolator(
-                (self.lon.ravel(), self.lat.ravel()),
-                block_x.ravel(),
-                fill_value=np.nan)
-            # Reusing x-interpolator (deepcopy) with data for y
-            self.spl_y = copy.deepcopy(self.spl_x)
-            self.spl_y.values[:, 0] = block_y.ravel()
-            # Call interpolator to avoid threading-problem:
-            # https://github.com/scipy/scipy/issues/8856
-            self.spl_x((0, 0)), self.spl_y((0, 0))
+            # save to speed up next time
+            if hasattr(self, "save_interpolator") and self.save_interpolator and hasattr(self, "interpolator_filename"):
+                interpolator_filename = Path(self.interpolator_filename).with_suffix('.pickle')
+            else:
+                interpolator_filename = f'{self.name}_interpolators.pickle'
+            
+            if hasattr(self, "save_interpolator") and self.save_interpolator and Path(interpolator_filename).is_file():
+                logger.info('Loading interpolator for lon,lat to x,y conversion...')
+                with open(interpolator_filename, 'rb') as file_handle:
+                    interp_dict = pickle.load(file_handle)
+                    spl_x = interp_dict["spl_x"]
+                    spl_y = interp_dict["spl_y"]
+            
+            else:
+                logger.info('Making interpolator for lon,lat to x,y conversion...')
+
+                block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
+                                            self.ymin:self.ymax + 1]
+                block_x, block_y = block_x.T, block_y.T
+            
+                spl_x = LinearNDInterpolator(
+                    (self.lon.ravel(), self.lat.ravel()),
+                    block_x.ravel(),
+                    fill_value=np.nan)
+                # Reusing x-interpolator (deepcopy) with data for y
+                spl_y = copy.deepcopy(spl_x)
+                spl_y.values[:, 0] = block_y.ravel()
+                # Call interpolator to avoid threading-problem:
+                # https://github.com/scipy/scipy/issues/8856
+                spl_x((0, 0)), spl_y((0, 0))
+                
+                if hasattr(self, "save_interpolator") and self.save_interpolator:
+
+                    interp_dict = {"spl_x": spl_x, "spl_y": spl_y}
+                    with open(interpolator_filename, 'wb') as f:
+                        pickle.dump(interp_dict, f)
+            
+            self.spl_x = spl_x
+            self.spl_y = spl_y
+
+
         else:
             self.projected = True
 

@@ -39,8 +39,12 @@ class Reader(BaseReader, StructuredReader):
         :param name: Name of reader
         :type name: string, optional
 
-        :param proj4: PROJ.4 string describing projection of data.
-        :type proj4: string, optional
+        :param save_interpolator: Whether or not to save the interpolator that goes from lon/lat to x/y (calculated in structured.py)
+        :type save_interpolator: bool
+
+        :param interpolator_path: If save_interpolator is True, user can input this string to control where interpolator is saved.
+        :type interpolator_path: Path, str, optional
+
 
     Example:
 
@@ -72,7 +76,8 @@ class Reader(BaseReader, StructuredReader):
         r = Reader(ds)
     """
 
-    def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={}):
+    def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={},
+                 save_interpolator=False, interpolator_path=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -121,21 +126,14 @@ class Reader(BaseReader, StructuredReader):
             -6500, -7000, -7500, -8000])
 
         gls_param = ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']
+        
+        self.name = name or 'roms native'
 
         if isinstance(filename, xr.Dataset):
             self.Dataset = filename
-            if name is not None:
-                self.name = name
-            else:
-                import re
-                self.name = re.sub('[^0-9a-zA-Z]+', '_', filename.attrs['title'])
         else:
 
             filestr = str(filename)
-            if name is None:
-                self.name = filestr
-            else:
-                self.name = name
 
             try:
                 # Open file, check that everything is ok
@@ -160,6 +158,10 @@ class Reader(BaseReader, StructuredReader):
                     self.Dataset = xr.open_dataset(filename, decode_times=False)
             except Exception as e:
                 raise ValueError(e)
+
+        # this is an opporunity to save interpolators to pickle to save sim time
+        self.save_interpolator = save_interpolator
+        self.interpolator_path = interpolator_path or f'{self.name}_interpolators'
 
         if gridfile is not None:  # Merging gridfile dataset with main dataset
             gf = xr.open_dataset(gridfile)
@@ -258,8 +260,6 @@ class Reader(BaseReader, StructuredReader):
             self.time_step = self.times[1] - self.times[0]
         else:
             self.time_step = None
-
-        self.name = 'roms native'
 
         self.precalculate_s2z_coefficients = True
 
