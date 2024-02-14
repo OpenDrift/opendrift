@@ -45,7 +45,6 @@ class Reader(BaseReader, StructuredReader):
         :param interpolator_path: If save_interpolator is True, user can input this string to control where interpolator is saved.
         :type interpolator_path: Path, str, optional
 
-
     Example:
 
     .. code::

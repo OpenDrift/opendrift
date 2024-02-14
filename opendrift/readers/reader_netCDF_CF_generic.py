@@ -247,12 +247,12 @@ class Reader(StructuredReader, BaseReader):
             # We load lon and lat arrays into memory
             lon_var = self.Dataset.variables[lon_var_name]
             lat_var = self.Dataset.variables[lat_var_name]
+            self.xname = lon_var_name
+            self.yname = lat_var_name
             if lon_var.ndim == 1:
                 logger.debug('Lon and lat are 1D arrays - using as projection coordinates')
                 x = lon_var.data
                 y = lat_var.data
-                self.xname = lon_var_name
-                self.yname = lat_var_name
                 self.dimensions['x'] = lon_var.dims[0]
                 self.dimensions['y'] = lat_var.dims[0]
                 if self.proj4 is None:
@@ -261,11 +261,15 @@ class Reader(StructuredReader, BaseReader):
                 logger.debug('Lon and lat are 2D arrays - dataset is unprojected')
                 self.lon = lon_var.data
                 self.lat = lat_var.data
+                self.dimensions['x'] = lon_var.dims[0]
+                self.dimensions['y'] = lat_var.dims[1]
                 self.projected = False
             elif lon_var.ndim == 3:
                 logger.debug('Lon lat are 3D arrays, reading first time')
                 self.lon = lon_var[0,:,:].data
                 self.lat = lat_var[0,:,:].data
+                self.dimensions['x'] = lon_var.dims[1]
+                self.dimensions['y'] = lat_var.dims[2]
                 self.projected = False
         else:
             if self.proj4 is None:
@@ -511,6 +515,9 @@ class Reader(StructuredReader, BaseReader):
                 from opendrift.readers.basereader import vector_pairs_xy
                 for vectorpair in vector_pairs_xy:
                     if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
+                        if self.proj.__class__.__name__ == 'fakeproj':
+                            logger.warning('Rotation from fakeproj is not yet implemented, skipping.')
+                            continue
                         logger.debug(f'Rotating vector from east/north to xy orientation: {vectorpair[0:2]}')
                         variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
                             lon, lat, variables[vectorpair[0]], variables[vectorpair[1]],
