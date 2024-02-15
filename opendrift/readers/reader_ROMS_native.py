@@ -77,6 +77,15 @@ class Reader(BaseReader, StructuredReader):
 
     def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={},
                  save_interpolator=False, interpolator_filename=None):
+        
+        self._mask_rho = None
+        self._mask_u = None
+        self._mask_v = None
+        self.land_binary_mask = None
+        self.sea_floor_depth_below_sea_level = None
+        self.z_rho_tot = None
+        self.s2z_A = None
+        self.angle_xi_east = None
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -200,6 +209,8 @@ class Reader(BaseReader, StructuredReader):
                 self.hc = self.Dataset.variables['hc'][:]
             except:
                 self.hc = self.Dataset.variables['hc'].data  # scalar
+            else:
+                self.hc = None
 
             self.num_layers = len(self.sigma)
         else:
@@ -294,7 +305,7 @@ class Reader(BaseReader, StructuredReader):
         If this mask is 2D, read it in this one time and use going forward in simulation. If 3D,
         will read in parts of the mask each loop.
         """
-        if not hasattr(self, '_mask_rho'):
+        if self._mask_rho is None:
             if 'wetdry_mask_rho' in self.Dataset.data_vars:
                 self._mask_rho = self.Dataset.variables['wetdry_mask_rho']
                 logger.info("Using wetdry_mask_rho for mask_rho")
@@ -302,7 +313,7 @@ class Reader(BaseReader, StructuredReader):
                 # Read landmask for whole domain, for later re-use
                 self._mask_rho = self.Dataset.variables['mask_rho'][:]
                 # load in once if static mask
-                if hasattr(self._mask_rho, "chunks"):  # to see if dask array
+                if self._mask_rho.chunks is not None:  # to see if dask array
                     self._mask_rho = self._mask_rho.compute()
                 logger.info("Using mask_rho for mask_rho")
         return self._mask_rho
@@ -315,7 +326,7 @@ class Reader(BaseReader, StructuredReader):
         If this mask is 2D, read it in this one time and use going forward in simulation. If 3D,
         will read in parts of the mask each loop.
         """
-        if not hasattr(self, '_mask_u'):
+        if self._mask_u is None:
             if 'wetdry_mask_u' in self.Dataset.data_vars:
                 self._mask_u = self.Dataset.variables['wetdry_mask_u']
                 logger.info("Using wetdry_mask_u for mask_u")
@@ -323,7 +334,7 @@ class Reader(BaseReader, StructuredReader):
                 # Read landmask for whole domain, for later re-use
                 self._mask_u = self.Dataset.variables['mask_u'][:]
                 # load in once if static mask
-                if hasattr(self._mask_u, "chunks"):  # to see if dask array
+                if self._mask_u.chunks is not None:  # to see if dask array
                     self._mask_u = self._mask_u.compute()
                 logger.info("Using mask_u for mask_u")
         return self._mask_u
@@ -336,7 +347,7 @@ class Reader(BaseReader, StructuredReader):
         If this mask is 2D, read it in this one time and use going forward in simulation. If 3D,
         will read in parts of the mask each loop.
         """
-        if not hasattr(self, '_mask_v'):
+        if self._mask_v is None:
             if 'wetdry_mask_v' in self.Dataset.data_vars:
                 self._mask_v = self.Dataset.variables['wetdry_mask_v']
                 logger.info("Using wetdry_mask_v for mask_v")
@@ -344,7 +355,7 @@ class Reader(BaseReader, StructuredReader):
                 # Read landmask for whole domain, for later re-use
                 self._mask_v = self.Dataset.variables['mask_v'][:]
                 # load in once if static mask
-                if hasattr(self._mask_v, "chunks"):  # to see if dask array
+                if self._mask_v.chunks is not None:  # to see if dask array
                     self._mask_v = self._mask_v.compute()
                 logger.info("Using mask_v for mask_v")
         return self._mask_v
@@ -356,11 +367,10 @@ class Reader(BaseReader, StructuredReader):
             requested_variables, time, x, y, z)
 
         # land_binary_mask should be based on the rho grid
-        if 'land_binary_mask' in requested_variables and not hasattr(self, 'land_binary_mask'):
+        if 'land_binary_mask' in requested_variables and self.land_binary_mask is None:
             self.land_binary_mask = 1 - self.mask_rho
 
-        if 'sea_floor_depth_below_sea_level' in requested_variables and not hasattr(
-                    self, 'sea_floor_depth_below_sea_level'):
+        if 'sea_floor_depth_below_sea_level' in requested_variables and self.sea_floor_depth_below_sea_level is None:
             self.sea_floor_depth_below_sea_level = self.Dataset.variables['h'][:]
 
         # If one vector component is requested, but not the other
@@ -382,7 +392,7 @@ class Reader(BaseReader, StructuredReader):
             z = np.atleast_1d(0)
 
         # Find horizontal indices corresponding to requested x and y
-        if hasattr(self, 'clipped'):
+        if self.clipped is not None:
             clipped = self.clipped
         else: clipped = 0
         indx = np.floor((x-self.xmin)/self.delta_x).astype(int) + clipped
@@ -401,18 +411,18 @@ class Reader(BaseReader, StructuredReader):
                             np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
         # Find depth levels covering all elements
-        if z.min() == 0 or not hasattr(self, 'hc'):
+        if z.min() == 0 or self.hc is None:
             indz = self.num_layers - 1  # surface layer
             variables['z'] = 0
 
         else:
             # Find the range of indices covering given z-values
-            if not hasattr(self, 'sea_floor_depth_below_sea_level'):
+            if self.sea_floor_depth_below_sea_level is None:
                 logger.debug('Reading sea floor depth...')
                 self.sea_floor_depth_below_sea_level = \
                     self.Dataset.variables['h'][:]
 
-            if not hasattr(self, 'z_rho_tot'):
+            if self.z_rho_tot is None:
                 Htot = self.sea_floor_depth_below_sea_level
                 self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
                                               Vtransform=self.Vtransform)
@@ -511,7 +521,7 @@ class Reader(BaseReader, StructuredReader):
                         M = self.sea_floor_depth_below_sea_level.shape[0]
                         N = self.sea_floor_depth_below_sea_level.shape[1]
                         O = len(self.z_rho_tot)
-                        if not hasattr(self, 's2z_A'):
+                        if self.s2z_A is None:
                             logger.debug('Calculating sigma2z-coefficients for whole domain')
                             starttime = datetime.now()
                             dummyvar = np.ones((O, M, N))
@@ -634,7 +644,7 @@ class Reader(BaseReader, StructuredReader):
             'sea_ice_x_velocity' not in self.do_not_rotate and \
             'x_wind' not in self.do_not_rotate:
             # We must rotate current vectors
-            if not hasattr(self, 'angle_xi_east'):
+            if self.angle_xi_east is None:
                 if 'angle' in self.Dataset.variables:
                     logger.debug('Reading angle between xi and east...')
                     self.angle_xi_east = self.Dataset.variables['angle'][:]
