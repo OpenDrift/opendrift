@@ -34,6 +34,10 @@ class StructuredReader(Variables):
     y = None
     interpolation = 'linearNDFast'
     convolve = None  # Convolution kernel or kernel size
+    # set these in reader to save interpolators to file
+    save_interpolator = None
+    interpolator_filename = None
+    
 
     # Used to enable and track status of parallel coordinate transformations.
     __lonlat2xy_parallel__ = None
@@ -70,12 +74,12 @@ class StructuredReader(Variables):
     
             # Making interpolator (lon, lat) -> x
             # save to speed up next time
-            if hasattr(self, "save_interpolator") and self.save_interpolator and hasattr(self, "interpolator_filename"):
+            if self.save_interpolator and self.interpolator_filename is not None:
                 interpolator_filename = Path(self.interpolator_filename).with_suffix('.pickle')
             else:
                 interpolator_filename = f'{self.name}_interpolators.pickle'
             
-            if hasattr(self, "save_interpolator") and self.save_interpolator and Path(interpolator_filename).is_file():
+            if self.save_interpolator and Path(interpolator_filename).is_file():
                 logger.info('Loading previously saved interpolator for lon,lat to x,y conversion.')
                 with open(interpolator_filename, 'rb') as file_handle:
                     interp_dict = pickle.load(file_handle)
@@ -100,7 +104,7 @@ class StructuredReader(Variables):
                 # https://github.com/scipy/scipy/issues/8856
                 spl_x((0, 0)), spl_y((0, 0))
                 
-                if hasattr(self, "save_interpolator") and self.save_interpolator:
+                if self.save_interpolator:
                     logger.info('Saving interpolator for lon,lat to x,y conversion.')
 
                     interp_dict = {"spl_x": spl_x, "spl_y": spl_y}
