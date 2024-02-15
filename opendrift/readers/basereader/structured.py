@@ -76,7 +76,7 @@ class StructuredReader(Variables):
                 interpolator_filename = f'{self.name}_interpolators.pickle'
             
             if hasattr(self, "save_interpolator") and self.save_interpolator and Path(interpolator_filename).is_file():
-                logger.info('Loading interpolator for lon,lat to x,y conversion...')
+                logger.info('Loading previously saved interpolator for lon,lat to x,y conversion.')
                 with open(interpolator_filename, 'rb') as file_handle:
                     interp_dict = pickle.load(file_handle)
                     spl_x = interp_dict["spl_x"]
@@ -101,6 +101,7 @@ class StructuredReader(Variables):
                 spl_x((0, 0)), spl_y((0, 0))
                 
                 if hasattr(self, "save_interpolator") and self.save_interpolator:
+                    logger.info('Saving interpolator for lon,lat to x,y conversion.')
 
                     interp_dict = {"spl_x": spl_x, "spl_y": spl_y}
                     with open(interpolator_filename, 'wb') as f:

@@ -42,8 +42,8 @@ class Reader(BaseReader, StructuredReader):
         :param save_interpolator: Whether or not to save the interpolator that goes from lon/lat to x/y (calculated in structured.py)
         :type save_interpolator: bool
 
-        :param interpolator_path: If save_interpolator is True, user can input this string to control where interpolator is saved.
-        :type interpolator_path: Path, str, optional
+        :param interpolator_filename: If save_interpolator is True, user can input this string to control where interpolator is saved.
+        :type interpolator_filename: Path, str, optional
 
     Example:
 
@@ -76,7 +76,7 @@ class Reader(BaseReader, StructuredReader):
     """
 
     def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={},
-                 save_interpolator=False, interpolator_path=None):
+                 save_interpolator=False, interpolator_filename=None):
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -160,7 +160,7 @@ class Reader(BaseReader, StructuredReader):
 
         # this is an opporunity to save interpolators to pickle to save sim time
         self.save_interpolator = save_interpolator
-        self.interpolator_path = interpolator_path or f'{self.name}_interpolators'
+        self.interpolator_filename = interpolator_filename or f'{self.name}_interpolators'
 
         if gridfile is not None:  # Merging gridfile dataset with main dataset
             gf = xr.open_dataset(gridfile)
@@ -203,6 +203,7 @@ class Reader(BaseReader, StructuredReader):
 
             self.num_layers = len(self.sigma)
         else:
+            logger.warning("2D dataset, so deleting u and v from ROMS_variable_mapping")
             self.num_layers = 1
             self.ROMS_variable_mapping['ubar'] = 'x_sea_water_velocity'
             self.ROMS_variable_mapping['vbar'] = 'y_sea_water_velocity'
