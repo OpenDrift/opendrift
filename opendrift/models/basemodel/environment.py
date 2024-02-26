@@ -851,14 +851,13 @@ class Environment(Timeable, Configurable):
                     env_profiles['sea_water_temperature'][:,t_kelvin] = \
                       env_profiles['sea_water_temperature'][:,t_kelvin] - 273.15
 
-        #######################################################
+        ############################################################
         # Parameterisation of unavailable variables
-        #######################################################
+        # TODO: use instead "environment mapping" mechanism for this
+        #############################################################
         if 'drift:use_tabularised_stokes_drift' in self._config and self.get_config(
                 'drift:use_tabularised_stokes_drift') is True:
-            if 'x_wind' not in variables:
-                logger.debug('No wind available to calculate Stokes drift')
-            else:
+            if 'x_wind' in variables:
                 if 'sea_surface_wave_stokes_drift_x_velocity' not in variables or (
                         env['sea_surface_wave_stokes_drift_x_velocity'].max()
                         == 0 and
