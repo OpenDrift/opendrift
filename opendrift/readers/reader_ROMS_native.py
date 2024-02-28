@@ -495,11 +495,11 @@ class Reader(BaseReader, StructuredReader):
 
                 # make sure that var has matching horizontal dimensions with the mask
                 # make sure coord names also match
-                if self.mask_rho.shape[-2:] == var.shape[-2:] and set(self.mask_rho.dims).issubset(var.dims):
+                if self.mask_rho.shape[-2:] == var.shape[-2:] and self.mask_rho.dims[-2:] == var.dims[-2:]:
                     mask, mask_name = get_mask("mask_rho", imask)
-                elif self.mask_u.shape[-2:] == var.shape[-2:] and set(self.mask_u.dims).issubset(var.dims):
+                elif self.mask_u.shape[-2:] == var.shape[-2:] and self.mask_u.dims[-2:] == var.dims[-2:]:
                     mask, mask_name = get_mask("mask_u", imask)
-                elif self.mask_v.shape[-2:] == var.shape[-2:] and set(self.mask_v.dims).issubset(var.dims):
+                elif self.mask_v.shape[-2:] == var.shape[-2:] and self.mask_v.dims[-2:] == var.dims[-2:]:
                     mask, mask_name = get_mask("mask_v", imask)
                 else:
                     raise Exception('No mask found for ' + par)
