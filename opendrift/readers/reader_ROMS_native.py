@@ -424,11 +424,13 @@ class Reader(BaseReader, StructuredReader):
 
             if self.z_rho_tot is None:
                 Htot = self.sea_floor_depth_below_sea_level
-                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
+                zeta = self.Dataset.variables["zeta"][indxTime]
+                self.z_rho_tot = depth.sdepth(Htot, zeta, self.hc, self.Cs_r,
                                               Vtransform=self.Vtransform)
 
             H = self.sea_floor_depth_below_sea_level[indy, indx]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r,
+            zeta = self.Dataset.variables["zeta"][indxTime, indy, indx]
+            z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
                                  Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
