@@ -24,11 +24,14 @@
 
 import numpy as np
 
-def sdepth(H, Hc, C, stagger="rho", Vtransform=1):
+def sdepth(H, zeta, Hc, C, stagger="rho", Vtransform=1):
     """Depth of s-levels
 
     *H* : arraylike
       Bottom depths [meter, positive]
+    
+    *zeta* : scalar, arraylike
+      Surface elevation [meter]
 
     *Hc* : scalar
        Critical depth
@@ -51,14 +54,16 @@ def sdepth(H, Hc, C, stagger="rho", Vtransform=1):
 
         fid = Dataset(roms_file)
         H = fid.variables['h'][:, :]
+        zeta = fid.variables['zeta'][:, :]
         C = fid.variables['Cs_r'][:]
         Hc = fid.variables['hc'].getValue()
-        z_rho = sdepth(H, Hc, C)
+        z_rho = sdepth(H, zeta, Hc, C)
 
     """
     H = np.asarray(H)
+    zeta = np.asarray(zeta)
     Hshape = H.shape      # Save the shape of H
-    H = H.ravel()         # and make H 1D for easy shape maniplation
+    Hflat = H.ravel()         # and make H 1D for easy shape manipulation
     C = np.asarray(C)
     N = len(C)
     outshape = (N,) + Hshape       # Shape of output
@@ -69,15 +74,20 @@ def sdepth(H, Hc, C, stagger="rho", Vtransform=1):
     else:
         raise ValueError("stagger must be 'rho' or 'w'")
 
+    # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#_ocean_s_coordinate_generic_form_1
     if Vtransform == 1:         # Default transform by Song and Haidvogel
         A = Hc * (S - C)[:, None]
         B = np.outer(C, H)
-        return (A + B).reshape(outshape)
+        Zo_rho = (A + B).reshape(outshape)
+        z_rho = Zo_rho + zeta * (1 + Zo_rho / H)
+        return z_rho
 
+    # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.8/cf-conventions.html#_ocean_s_coordinate_generic_form_2
     elif Vtransform == 2:       # New transform by Shchepetkin
-        N = Hc*S[:, None] + np.outer(C, H)
-        D = (1.0 + Hc/H)
-        return (N/D).reshape(outshape)
+        N = Hc*S[:, None] + np.outer(C, Hflat)
+        D = (Hflat + Hc)
+        z_rho = zeta + (zeta + H) * (N/D).reshape(outshape)
+        return z_rho
 
     else:
         raise ValueError("Unknown Vtransform")
