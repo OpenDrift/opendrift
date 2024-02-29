@@ -2537,6 +2537,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   lscale=None,
                   fast=False,
                   blit=False,
+                  frames=None,
                   **kwargs):
         """Animate last run."""
 
@@ -2977,7 +2978,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                               drawedges=False)
             cb.set_label(clabel)
 
-        frames = x.shape[0]
+        frames = x.shape[0] if frames is None else frames
 
         if compare is not None:
             frames = min(x.shape[0], cd['x_other'].shape[1])
@@ -4555,7 +4556,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if writer is not None:
             with writer.saving(fig, filename, None):
-                for i in range(frames):
+                print(frames)
+                for i in frames if isinstance(frames, (list, range)) else range(frames):
                     plot_timestep(i)
                     writer.grab_frame()
 

@@ -48,6 +48,7 @@ if reader_globcurrent is not None:
     o.plot(fast=True)
     o.plot_oil_budget()
     o.animation(fast=True)
+    o.animation(fast=True, frames = range(0, 120, 4), fps = 1)
 
 #%%
 # .. image:: /gallery/animations/example_macondo_0.gif
