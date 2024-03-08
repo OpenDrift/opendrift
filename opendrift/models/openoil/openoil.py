@@ -167,7 +167,7 @@ class Oil(Lagrangian3DArray):
         }),
         ('mass_biodegraded', {
             'dtype': np.float32,
-            'units': 'fraction',
+            'units': 'kg',
             'seed': False,
             'default': 0
         }),

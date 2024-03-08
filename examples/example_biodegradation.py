@@ -27,7 +27,7 @@ o.set_config('biodegradation:method', 'decay_rate')
 # Fast decay for droplets, and slow decay for slick 
 decay = {'biodegradation_decay_rate_slick': np.log(2)/timedelta(days=100).total_seconds(),
          'biodegradation_decay_rate_droplet': np.log(2)/timedelta(days=3).total_seconds(),
-         'oil_type': 'GENERIC MEDIUM CRUDE'}
+         'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5}
 
 #%%
 # Seed 5000 oil elements at surface, and 5000 elements at 100m depth
@@ -41,6 +41,3 @@ o.run(duration=timedelta(hours=24), time_step=900)
 #%%
 # Print and plot results
 o.plot_oil_budget(show_watercontent_and_viscosity=False, show_wind_and_current=False)
-
-#%%
-# .. image:: /gallery/animations/example_biodegradation_0.gif
