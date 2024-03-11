@@ -212,8 +212,8 @@ class Reader(BaseReader,UnstructuredReader):
                 self.numy = var.shape[0]
             if standard_name == 'depth' or axis == 'Z':
                 var_data = var.values
-                if 'positive' not in var.ncattrs() or \
-                        var.__dict__['positive'] == 'up':
+                if 'positive' not in var.attrs or \
+                        var.attrs['positive'] == 'up':
                     self.z = var_data
                 else:
                     self.z = -var_data
