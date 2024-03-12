@@ -1971,12 +1971,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
                 if self.num_elements_active(
                 ) == 0 and self.num_elements_scheduled() > 0:
-                    self.steps_calculation += 1
                     logger.info(
                         'No active but %s scheduled elements, skipping timestep %s (%s)'
                         % (self.num_elements_scheduled(),
-                           self.steps_calculation, self.time))
+                           self.steps_calculation + 1 , self.time)) # LH correction : +1 to be consistent with the line 2048
                     self.state_to_buffer()  # Append status to history array
+                    self.steps_calculation += 1  # LH correction : Move from line 2020 to 2030 to propagate the step calculation after the state_to_buffer and to be consistent with the line 2106
                     if self.time is not None:
                         self.time = self.time + self.time_step
                     continue
