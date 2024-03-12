@@ -2628,6 +2628,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         lscale=None,
         fast=False,
         blit=False,
+                  frames=None,
         frames=None,
         **kwargs,
     ):
@@ -3156,6 +3157,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             )
             cb.set_label(clabel)
 
+        frames = x.shape[0] if frames is None else frames
         frames = x.shape[0] if frames is None else frames
 
         if compare is not None:
@@ -4837,6 +4839,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if writer is not None:
             with writer.saving(fig, filename, None):
+                print(frames)
+                for i in frames if isinstance(frames, (list, range)) else range(frames):
                 print(frames)
                 for i in frames if isinstance(frames, (list, range)) else range(frames):
                     plot_timestep(i)

@@ -171,9 +171,13 @@ class Oil(Lagrangian3DArray):
             'seed': False,
             'default': 0
         }),
+        ('biodegradation_decay_rate_droplet',  # TODO: should have valid_min and valid_max for element properties
+                {'dtype': np.float32, 'units': 'kg', 'seed': False, 'default': np.log(2)/(3600*24)}),  # 1 day default
+        ('biodegradation_decay_rate_slick',
+                {'dtype': np.float32, 'units': 'kg', 'seed': False, 'default': np.log(2)/(3600*24*3)}),  # 3 days default
         ('fraction_evaporated', {
             'dtype': np.float32,
-            'units': '%',
+            'units': '%',  # TODO: should be fraction and not percent
             'seed': False,
             'default': 0
         }),
@@ -430,6 +434,12 @@ class OpenOil(OceanDrift):
                 'description': 'Oil mass is biodegraded (eaten by bacteria).',
                 'level': CONFIG_LEVEL_BASIC
             },
+            'biodegradation:method': {
+                'type': 'enum',
+                'enum': ['Adcroft', 'decay_rate'],
+                'default': 'Adcroft', 'level': CONFIG_LEVEL_ADVANCED,
+                'description': 'Alogorithm to be used for biodegradation of oil'
+            },
             'processes:update_oilfilm_thickness': {
                 'type': 'bool',
                 'default': False,
@@ -538,32 +548,57 @@ class OpenOil(OceanDrift):
 
     def biodegradation(self):
         if self.get_config('processes:biodegradation') is True:
-            '''
-            Oil biodegradation function based on the article:
-            Adcroft et al. (2010), Simulations of underwater plumes of
-            dissolved oil in the Gulf of Mexico.
-            '''
-            logger.debug('Calculating: biodegradation')
+            method = self.get_config('biodegradation:method')
+            logger.debug(f'Calculating: biodegradation ({method})')
+            if method == 'Adcroft':
+                self.biodegradation_adcroft()
+            elif method == 'decay_rate':
+                self.biodegradation_decay_rate()
 
-            swt = self.environment.sea_water_temperature.copy()
-            swt[swt > 100] -= 273.15  # K to C
-            age0 = self.time_step.total_seconds() / (3600 * 24)
+    def biodegradation_decay_rate(self):
+        '''Oil biodegradation with exponential decay'''
 
-            # Decay rate in days (temperature in Celsius)
-            tau = (12) * (3**((20 - swt) / 10))
+        surface = np.where(self.elements.z == 0)[0]  # of active elements
+        age0 = self.time_step.total_seconds()
 
-            fraction_biodegraded = (1 - np.exp(-age0 / tau))
-            biodegraded_now = self.elements.mass_oil * fraction_biodegraded
+        half_time = np.log(2) / self.elements.biodegradation_decay_rate_droplet
+        half_time[surface] = np.log(2) / self.elements.biodegradation_decay_rate_slick[surface]
 
-            self.elements.mass_biodegraded = \
-                self.elements.mass_biodegraded + biodegraded_now
-            self.elements.mass_oil = \
-                self.elements.mass_oil - biodegraded_now
-            if self.oil_weathering_model == 'noaa':
-                self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
-                self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
-            else:
-                pass
+        fraction_biodegraded = (1 - np.exp(-age0 / half_time))
+        biodegraded_now = self.elements.mass_oil * fraction_biodegraded
+
+        self.elements.mass_biodegraded = \
+            self.elements.mass_biodegraded + biodegraded_now
+        self.elements.mass_oil = \
+            self.elements.mass_oil - biodegraded_now
+        if self.oil_weathering_model == 'noaa':
+            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
+            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
+
+    def biodegradation_adcroft(self):
+        '''
+        Oil biodegradation function based on the article:
+        Adcroft et al. (2010), Simulations of underwater plumes of
+        dissolved oil in the Gulf of Mexico.
+        '''
+
+        swt = self.environment.sea_water_temperature.copy()
+        swt[swt > 100] -= 273.15  # K to C
+        age0 = self.time_step.total_seconds() / (3600 * 24)
+
+        # Decay rate in days (temperature in Celsius)
+        tau = (12) * (3**((20 - swt) / 10))
+
+        fraction_biodegraded = (1 - np.exp(-age0 / tau))
+        biodegraded_now = self.elements.mass_oil * fraction_biodegraded
+
+        self.elements.mass_biodegraded = \
+            self.elements.mass_biodegraded + biodegraded_now
+        self.elements.mass_oil = \
+            self.elements.mass_oil - biodegraded_now
+        if self.oil_weathering_model == 'noaa':
+            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
+            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
 
     def disperse(self):
         if self.get_config('processes:dispersion') is True:
