@@ -2529,6 +2529,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   lcs=None,
                   surface_only=False,
                   markersize=20,
+                  markersize_scaling=1,
                   origin_marker=None,
                   legend=None,
                   legend_loc='best',
@@ -2551,16 +2552,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             compare_list, compare_args = self._get_comparison_xy_for_plots(
                 compare)
             kwargs.update(compare_args)
-
-        markersizebymass = False
-        if isinstance(markersize, str):
-            if markersize.startswith('mass'):
-                markersizebymass = True
-                if markersize[len('mass'):] == '':
-                    # default initial size if not specified
-                    markersize = 100
-                else:
-                    markersize = int(markersize[len('mass'):])
 
         start_time = datetime.now()
         if cmap is None:
@@ -2660,22 +2651,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     np.c_[x_deactive[index_of_last_deactivated < i],
                           y_deactive[index_of_last_deactivated < i]])
 
-                if markersizebymass:
-                    if 'chemicaldrift' in self.__module__:
-                        points.set_sizes(
-                            markersize *
-                            (self.history['mass'][:, i] /
-                             (self.history['mass'][:, i] +
-                              self.history['mass_degraded'][:, i] +
-                              self.history['mass_volatilized'][:, i])))
-                    elif 'openoil' in self.__module__:
-                        points.set_sizes(
-                            markersize *
-                            (self.history['mass_oil'][:, i] /
-                             (self.history['mass_oil'][:, i] +
-                              self.history['mass_biodegraded'][:, i] +
-                              self.history['mass_dispersed'][:, i] +
-                              self.history['mass_evaporated'][:, i])))
+                if isinstance(markersize, str):
+                    points.set_sizes(markersize_scaling *
+                            (self.history[markersize][:, i] / self.history[markersize].compressed()[0]))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
@@ -2801,7 +2779,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             c = []
 
-        if markersizebymass:
+        if isinstance(markersize, str):
             points = ax.scatter([], [],
                                 c=c,
                                 zorder=10,
@@ -2843,13 +2821,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             ax.legend(markers, legend, loc=legend_loc)
 
         # Plot deactivated elements, with transparency
-        if markersizebymass:
+        if isinstance(markersize, str):
             points_deactivated = ax.scatter([], [],
                                             c=c,
                                             zorder=9,
                                             vmin=vmin,
                                             vmax=vmax,
-                                            s=markersize,
+                                            s=markersize_scaling,
                                             cmap=cmap,
                                             edgecolor=[],
                                             alpha=0,

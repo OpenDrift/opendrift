@@ -100,6 +100,7 @@ o.animation_profile(color='specie',
 
 o.animation(color='specie',
             markersize='mass',
+            markersize_scaling=100,
             vmin=0,vmax=o.nspecies-1,
             colorbar=False,
             fast = True,
