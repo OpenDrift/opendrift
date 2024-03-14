@@ -2508,6 +2508,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   compare=None,
                   compare_marker='o',
                   background=None,
+                  alpha=1,
                   bgalpha=.5,
                   vmin=None,
                   vmax=None,
@@ -2529,7 +2530,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   lcs=None,
                   surface_only=False,
                   markersize=20,
-                  markersize_scaling=1,
+                  markersize_scaling=None,
                   origin_marker=None,
                   legend=None,
                   legend_loc='best',
@@ -2652,8 +2653,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                           y_deactive[index_of_last_deactivated < i]])
 
                 if isinstance(markersize, str):
-                    points.set_sizes(markersize_scaling *
-                            (self.history[markersize][:, i] / self.history[markersize].compressed()[0]))
+                    points.set_sizes(markersize_scaling * np.abs(self.history[markersize][:, i]))
+                    #points.set_sizes(markersize_scaling *
+                    #                 np.abs((self.history[markersize][:, i] / self.history[markersize].compressed()[0])))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
@@ -2780,12 +2782,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             c = []
 
         if isinstance(markersize, str):
+            if markersize_scaling is None:
+                markersize_scaling = 20
+            markersize_scaling = markersize_scaling / np.abs(self.history[markersize]).max()
+
+        if isinstance(markersize, str):
             points = ax.scatter([], [],
                                 c=c,
                                 zorder=10,
                                 edgecolor=[],
                                 cmap=cmap,
-                                alpha=.4,
+                                alpha=alpha,
                                 vmin=vmin,
                                 vmax=vmax,
                                 label=legend[0],
@@ -2796,6 +2803,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                 zorder=10,
                                 edgecolor=[],
                                 cmap=cmap,
+                                alpha=alpha,
                                 s=markersize,
                                 vmin=vmin,
                                 vmax=vmax,
@@ -3005,13 +3013,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def animation_profile(self,
                           filename=None,
                           compare=None,
-                          legend=['', ''],
-                          markersize=5,
+                          markersize=20,
+                          markersize_scaling=None,
+                          alpha=1,
                           fps=20,
                           color=None,
                           cmap=None,
                           vmin=None,
                           vmax=None,
+                          legend=None,
                           legend_loc=None):
         """Animate vertical profile of the last run."""
 
@@ -3019,42 +3029,46 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         def plot_timestep(i):
             """Sub function needed for matplotlib animation."""
-            #plt.gcf().gca().set_title(str(i))
             ax.set_title('%s UTC' % times[i])
-            if PlotColors:
-                points.set_offsets(
-                    np.array(
-                        [x[range(x.shape[0]), i].T, z[range(x.shape[0]),
-                                                      i].T]).T)
+            points.set_offsets(np.c_[x[range(x.shape[0]), i], z[range(x.shape[0]), i]])
+            if color is not None and compare is None:
                 points.set_array(colorarray[:, i])
-            else:
-                points.set_data(x[range(x.shape[0]), i], z[range(x.shape[0]),
-                                                           i])
 
-            points_deactivated.set_data(
+            points_deactivated.set_offsets(np.c_[
                 x_deactive[index_of_last_deactivated < i],
-                z_deactive[index_of_last_deactivated < i])
+                z_deactive[index_of_last_deactivated < i]])
+
+            if isinstance(markersize, str):
+                points.set_sizes(np.abs(markersize_scaling * self.history[markersize][:, i]))
+                #points.set_sizes(np.abs(markersize_scaling *
+                #            (self.history[markersize][:, i] / self.history[markersize].compressed()[0])))
 
             if compare is not None:
-                points_other.set_data(x_other[range(x_other.shape[0]), i],
-                                      z_other[range(x_other.shape[0]), i])
-                points_other_deactivated.set_data(
-                    x_other_deactive[index_of_last_deactivated_other < i],
-                    z_other_deactive[index_of_last_deactivated_other < i])
+                points_other.set_offsets(np.c_[x_other[range(x_other.shape[0]), i],
+                                               z_other[range(x_other.shape[0]), i]])
+                points_other_deactivated.set_offsets(np.c_[
+                     x_other_deactive[index_of_last_deactivated_other < i],
+                     z_other_deactive[index_of_last_deactivated_other < i]])
                 return points, points_deactivated, points_other,
             else:
                 return points, points_deactivated,
 
-        PlotColors = (compare is None) and (legend != ['', ''])
-        if PlotColors:
-            if cmap is None:
-                cmap = 'jet'
-            if isinstance(cmap, str):
-                cmap = matplotlib.cm.get_cmap(cmap)
+        if cmap is None:
+            cmap = 'jet'
+        if isinstance(cmap, str):
+            cmap = matplotlib.cm.get_cmap(cmap)
+        if color is not False:
+            if isinstance(color, str):
+                colorarray = self.get_property(color)[0].T
+                if vmin is None:
+                    vmin = colorarray.min()
+                    vmax = colorarray.max()
 
-            if color is not False:
-                if isinstance(color, str):
-                    colorarray = self.get_property(color)[0].T
+        markercolor = self.plot_comparison_colors[0]
+        if color is None:
+            c = markercolor
+        else:
+            c = []
 
         # Set up plot
         index_of_first, index_of_last = \
@@ -3071,40 +3085,50 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID-1]
-        if PlotColors:
-            points = ax.scatter([], [],
-                                c=[],
-                                zorder=10,
-                                edgecolor=[],
-                                cmap=cmap,
-                                s=markersize,
-                                vmin=vmin,
-                                vmax=vmax)
+        if legend is None:
+            if compare is None:
+                legs = ['', '']
+        else:
+            legs = legend
+        if isinstance(markersize, str):
+            ms = None
+        else:
+            ms = markersize
+        if isinstance(markersize, str):
+            if markersize_scaling is None:
+                markersize_scaling = 20
+            markersize_scaling = markersize_scaling / np.abs(self.history[markersize]).max()
 
-            markers = []
+        points = ax.scatter([], [],
+                            c=c,
+                            zorder=10,
+                            edgecolor=[],
+                            alpha=alpha,
+                            cmap=cmap,
+                            s=ms,
+                            label=legs[0],
+                            vmin=vmin,
+                            vmax=vmax)
+
+        markers = []
+        if compare is None and legend is not None:  # Empty points to get legend
             for legend_index in np.arange(len(legend)):
                 if legend[legend_index] != '':
                     markers.append(
                         matplotlib.lines.Line2D(
-                            [0], [0],
-                            marker='o',
-                            linewidth=0,
-                            markeredgewidth=0,
-                            markerfacecolor=cmap(legend_index /
-                                                 (len(legend) - 1)),
-                            markersize=10,
-                            label=legend[legend_index]))
+                            [0], [0], marker='o', linewidth=0, markeredgewidth=0,
+                        markerfacecolor=cmap(legend_index /
+                                             (len(legend) - 1)),
+                        markersize=10,
+                        label=legend[legend_index]))
+
             legend = list(filter(None, legend))
             leg = ax.legend(markers, legend, loc=legend_loc)
             leg.set_zorder(20)
-        else:
-            points = plt.plot([], [],
-                              '.k',
-                              label=legend[0],
-                              markersize=markersize)[0]
 
         # Plot deactivated elements, with transparency
-        points_deactivated = plt.plot([], [], '.k', alpha=.3)[0]
+        points_deactivated = ax.scatter([], [], c=[], zorder=10, edgecolor=[],
+                                        cmap=cmap, s=ms, vmin=vmin, vmax=vmax)
         x_deactive = self.elements_deactivated.lon
         z_deactive = self.elements_deactivated.z
 
@@ -3118,13 +3142,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 other = compare
             z_other = other.get_property('z')[0].T
             x_other = self.get_property('lon')[0].T
-            points_other = plt.plot(x_other[0, 0],
-                                    z_other[0, 0],
-                                    '.r',
-                                    label=legend[1],
-                                    markersize=markersize)[0]
+            points_other = ax.scatter([], [],
+                            c='r',
+                            zorder=10,
+                            alpha=alpha,
+                            edgecolor=[],
+                            cmap=cmap,
+                            s=markersize,
+                            label=legs[1],
+                            vmin=vmin,
+                            vmax=vmax)
+
             # Plot deactivated elements, with transparency
-            points_other_deactivated = plt.plot([], [], '.r', alpha=.3)[0]
+            points_other_deactivated = ax.scatter([], [], c='r', cmap=cmap, s=markersize, alpha=.3)
             x_other_deactive = other.elements_deactivated.lon
             z_other_deactive = other.elements_deactivated.z
             firstlast = np.ma.notmasked_edges(x_other, axis=1)
@@ -3153,7 +3183,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                           -zmin,
                           color='cornflowerblue'))
 
-        if legend != ['', ''] and PlotColors is False:
+        if legend is not None and compare is not None:
             plt.legend(loc=4)
 
         self.__save_or_plot_animation__(plt.gcf(),
@@ -4534,7 +4564,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if writer is not None:
             with writer.saving(fig, filename, None):
-                print(frames)
                 for i in frames if isinstance(frames, (list, range)) else range(frames):
                     plot_timestep(i)
                     writer.grab_frame()
