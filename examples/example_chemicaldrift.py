@@ -85,11 +85,12 @@ print('mass preserved       : {:.3f}'.format(m_pre * 1e-6),' g   {:.3f}'.format(
 print('mass degraded        : {:.3f}'.format(m_deg * 1e-6),' g   {:.3f}'.format(m_deg/m_tot*100),'%')
 print('mass volatilized     : {:.3f}'.format(m_vol * 1e-6),' g   {:.3f}'.format(m_vol/m_tot*100),'%')
 
-
 legend=['dissolved', '', 'SPM', 'sediment', '']
 
 o.animation_profile(color='specie',
-            markersize=5,
+            markersize='mass',
+            markersize_scaling=30,
+            alpha=.5,
             vmin=0,vmax=o.nspecies-1,
             legend = legend,
             legend_loc = 3,
@@ -100,7 +101,8 @@ o.animation_profile(color='specie',
 
 o.animation(color='specie',
             markersize='mass',
-            markersize_scaling=100,
+            markersize_scaling=30,
+            alpha=.5,
             vmin=0,vmax=o.nspecies-1,
             colorbar=False,
             fast = True,
