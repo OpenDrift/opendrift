@@ -171,11 +171,11 @@ class Oil(Lagrangian3DArray):
             'seed': False,
             'default': 0
         }),
-        ('biodegradation_half_time_droplet',
-                {'dtype': np.float32, 'units': 'days', 'seed': False, 'default': 1,
+        ('biodegradation_half_time_droplet',  # Note: if unit is "days", Xarray tries to decode as datetime with error
+                {'dtype': np.float32, 'units': 'Days', 'seed': False, 'default': 1,
                  'description': 'Biodegradation half time in days for submerged oil droplets'}),
         ('biodegradation_half_time_slick',
-                {'dtype': np.float32, 'units': 'days', 'seed': False, 'default': 3,
+                {'dtype': np.float32, 'units': 'Days', 'seed': False, 'default': 3,
                  'description': 'Biodegradation half time in days for surface oil slick'}),
         ('fraction_evaporated', {
             'dtype': np.float32,
