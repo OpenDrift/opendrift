@@ -171,10 +171,12 @@ class Oil(Lagrangian3DArray):
             'seed': False,
             'default': 0
         }),
-        ('biodegradation_decay_rate_droplet',  # TODO: should have valid_min and valid_max for element properties
-                {'dtype': np.float32, 'units': 'kg', 'seed': False, 'default': np.log(2)/(3600*24)}),  # 1 day default
-        ('biodegradation_decay_rate_slick',
-                {'dtype': np.float32, 'units': 'kg', 'seed': False, 'default': np.log(2)/(3600*24*3)}),  # 3 days default
+        ('biodegradation_half_time_droplet',
+                {'dtype': np.float32, 'units': 'days', 'seed': False, 'default': 1,
+                 'description': 'Biodegradation half time in days for submerged oil droplets'}),
+        ('biodegradation_half_time_slick',
+                {'dtype': np.float32, 'units': 'days', 'seed': False, 'default': 3,
+                 'description': 'Biodegradation half time in days for surface oil slick'}),
         ('fraction_evaporated', {
             'dtype': np.float32,
             'units': '%',  # TODO: should be fraction and not percent
@@ -436,7 +438,7 @@ class OpenOil(OceanDrift):
             },
             'biodegradation:method': {
                 'type': 'enum',
-                'enum': ['Adcroft', 'decay_rate'],
+                'enum': ['Adcroft', 'half_time'],
                 'default': 'Adcroft', 'level': CONFIG_LEVEL_ADVANCED,
                 'description': 'Alogorithm to be used for biodegradation of oil'
             },
@@ -552,17 +554,17 @@ class OpenOil(OceanDrift):
             logger.debug(f'Calculating: biodegradation ({method})')
             if method == 'Adcroft':
                 self.biodegradation_adcroft()
-            elif method == 'decay_rate':
-                self.biodegradation_decay_rate()
+            elif method == 'half_time':
+                self.biodegradation_half_time()
 
-    def biodegradation_decay_rate(self):
+    def biodegradation_half_time(self):
         '''Oil biodegradation with exponential decay'''
 
         surface = np.where(self.elements.z == 0)[0]  # of active elements
-        age0 = self.time_step.total_seconds()
+        age0 = self.time_step.total_seconds()/(3600*24)  # days
 
-        half_time = np.log(2) / self.elements.biodegradation_decay_rate_droplet
-        half_time[surface] = np.log(2) / self.elements.biodegradation_decay_rate_slick[surface]
+        half_time = self.elements.biodegradation_half_time_droplet.copy()
+        half_time[surface] = self.elements.biodegradation_half_time_slick[surface]
 
         fraction_biodegraded = (1 - np.exp(-age0 / half_time))
         biodegraded_now = self.elements.mass_oil * fraction_biodegraded
