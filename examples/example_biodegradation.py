@@ -15,19 +15,19 @@ time = datetime.now()
 # No motion is needed for this test
 o.set_config('environment:constant', {k: 0 for k in
              ['x_wind', 'y_wind', 'x_sea_water_velocity', 'y_sea_water_velocity']})
-o.set_config('drift', {'current_uncertainty': 0, 'wind_uncertainty': 0, 'horizontal_diffusivity': 100})
+o.set_config('drift', {'current_uncertainty': 0, 'wind_uncertainty': 0, 'horizontal_diffusivity': 10})
 
 #%%
 # Seeding some particles
 o.set_config('drift:vertical_mixing', True)
 o.set_config('processes:biodegradation', True)
-o.set_config('biodegradation:method', 'decay_rate')
+o.set_config('biodegradation:method', 'half_time')
 
 #%%
 # Fast decay for droplets, and slow decay for slick 
-decay = {'biodegradation_decay_rate_slick': np.log(2)/timedelta(days=5).total_seconds(),
-         'biodegradation_decay_rate_droplet': np.log(2)/timedelta(days=1).total_seconds(),
-         'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5, 'diameter': 1e-9}  # small droplets
+decay = {'biodegradation_half_time_slick': 5, # days
+         'biodegradation_half_time_droplet': 1, # days,
+         'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5, 'diameter': 1e-5}  # small droplets
 
 #%%
 # Seed 500 oil elements at surface, and 500 elements at 50m depth

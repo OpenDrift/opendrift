@@ -101,7 +101,7 @@ o.animation_profile(color='specie',
 
 o.animation(color='specie',
             markersize='mass',
-            markersize_scaling=30,
+            markersize_scaling=100,
             alpha=.5,
             vmin=0,vmax=o.nspecies-1,
             colorbar=False,
