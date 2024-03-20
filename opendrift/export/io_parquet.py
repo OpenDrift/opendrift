@@ -51,7 +51,7 @@ def write_buffer(self):
 
 
 def close(self):
-    logger.warn("`.close` not strictly needed...?")
+    logger.warning("`.close` not strictly needed...?")
 
 def import_file(self, filename, times=None, elements=None, load_history=True):
     """Create OpenDrift object from imported file.
