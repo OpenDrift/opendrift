@@ -434,8 +434,6 @@ class Reader(BaseReader, StructuredReader):
         if z.min() == 0 or self.hc is None:
             indz = self.num_layers - 1  # surface layer
             variables['z'] = 0
-            # logger.info('Using zeta for surface drifters')
-            # variables['z'] = np.array(self.zeta[imask])
 
         else:
             # Find the range of indices covering given z-values
