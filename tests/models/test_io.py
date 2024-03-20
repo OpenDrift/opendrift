@@ -17,52 +17,40 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import unittest
+import os
 import pytest
 from datetime import datetime, timedelta
-import os
-import inspect
 
-import numpy as np
-
-from opendrift.readers import reader_ArtificialOceanEddy
-from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_ROMS_native
-from opendrift.readers import reader_oscillating
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.models.basemodel import Mode, WrongMode
-from opendrift.models.openoil import OpenOil
-from opendrift.models.leeway import Leeway
-from opendrift.models.pelagicegg import PelagicEggDrift
-from opendrift.models.plastdrift import PlastDrift
+try:
+    import fastparquet
+    has_fastparquet = True
+except:
+    has_fastparquet = False
+
+need_fastparquet = pytest.mark.skipif(has_fastparquet == False,
+        reason = 'fastparquet must be installed to use fastparquet writer')
 
 
-class TestIO(unittest.TestCase):
-    """Tests for file io"""
-
-    def test_io_parquet(self):
-        outfile = "test_io_parquet.nc"
-        o = OceanDrift(
-            loglevel=30,
-            iomodule="parquet",
-        )
-        norkyst = reader_netCDF_CF_generic.Reader(
-            o.test_data_folder()
-            + "16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc"
-        )
-        landmask = reader_global_landmask.Reader()
-        o.add_reader([landmask, norkyst])
-        o.seed_elements(4.96, 60.1, radius=10, number=10, time=norkyst.start_time)
-        o.run(
-            steps=10,
-            time_step=timedelta(minutes=30),
-            time_step_output=timedelta(minutes=30),
-            outfile=outfile,
-            export_buffer_length=2,
-        )
-        os.remove(outfile)
-
-
-if __name__ == "__main__":
-    unittest.main()
+@need_fastparquet
+def test_io_parquet(tmpdir):
+    outfile = tmpdir + "test_io_parquet.nc"
+    o = OceanDrift(
+        loglevel=30,
+        iomodule="parquet",
+    )
+    norkyst = reader_netCDF_CF_generic.Reader(
+        o.test_data_folder()
+        + "16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc"
+    )
+    o.add_reader(norkyst)
+    o.seed_elements(4.96, 60.1, radius=10, number=10, time=norkyst.start_time)
+    o.run(
+        steps=10,
+        time_step=timedelta(minutes=30),
+        time_step_output=timedelta(minutes=30),
+        outfile=outfile,
+        export_buffer_length=2,
+    )
+    os.remove(outfile)
