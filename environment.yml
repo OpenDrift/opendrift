@@ -34,4 +34,3 @@ dependencies:
   - pip
   - pip:
     - motuclient
-    - pytest-sphinx
