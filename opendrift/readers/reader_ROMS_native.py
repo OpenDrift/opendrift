@@ -422,13 +422,17 @@ class Reader(BaseReader, StructuredReader):
                             np.min([indx.max()+buffer, self.lon.shape[1]-1]))
         indy = np.arange(np.max([0, indy.min()-buffer]),
                             np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+
+        # define indices
+        ixy = (indy,indx)
+        itxy = (indxTime,indy,indx)
         
         # use these same indices for all mask subsetting since if one is
         # 3D they all should be
         if self.mask_rho.ndim == 2:
-            imask = (indy,indx)
+            imask = ixy
         elif self.mask_rho.ndim == 3:
-            imask = (indxTime,indy,indx)
+            imask = itxy
 
         # Find depth levels covering all elements
         if z.min() == 0 or self.hc is None:
@@ -449,7 +453,7 @@ class Reader(BaseReader, StructuredReader):
                                               Vtransform=self.Vtransform)
 
             H = self.sea_floor_depth_below_sea_level[indy, indx]
-            zeta = self.zeta[imask]
+            zeta = self.zeta[itxy]
             z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
                                  Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
@@ -475,6 +479,9 @@ class Reader(BaseReader, StructuredReader):
                              bisect_right(-np.array(self.zlevels),
                                           -z.min()) + self.verticalbuffer)
             variables['z'] = np.array(self.zlevels[zi1:zi2])
+        
+        # define another set of indices
+        itzxy = (indxTime, indz, indy, indx)
             
         def get_mask(mask_name, imask):
             if mask_name in masks_for_loop:
@@ -492,13 +499,13 @@ class Reader(BaseReader, StructuredReader):
             if par == 'land_binary_mask':
                 variables[par] = self.land_binary_mask[imask]
             elif par == 'sea_floor_depth_below_sea_level':
-                variables[par] = self.sea_floor_depth_below_sea_level[indy, indx]
+                variables[par] = self.sea_floor_depth_below_sea_level[ixy]
             elif var.ndim == 2:
-                variables[par] = var[indy, indx]
+                variables[par] = var[ixy]
             elif var.ndim == 3:
-                variables[par] = var[indxTime, indy, indx]
+                variables[par] = var[itxy]
             elif var.ndim == 4:
-                variables[par] = var[indxTime, indz, indy, indx]
+                variables[par] = var[itzxy]
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
