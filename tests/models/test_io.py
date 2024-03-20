@@ -42,6 +42,7 @@ class TestIO(unittest.TestCase):
     """Tests for file io"""
 
     def test_io_parquet(self):
+        outfile = "test_io_parquet.nc"
         o = OceanDrift(
             loglevel=30,
             iomodule="parquet",
@@ -57,10 +58,10 @@ class TestIO(unittest.TestCase):
             steps=10,
             time_step=timedelta(minutes=30),
             time_step_output=timedelta(minutes=30),
-            outfile="test_io_parquet.nc",
+            outfile=outfile,
             export_buffer_length=2,
         )
-        os.remove("test_time_step30.nc")
+        os.remove(outfile)
 
 
 if __name__ == "__main__":
