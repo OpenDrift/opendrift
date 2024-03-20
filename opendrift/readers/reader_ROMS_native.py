@@ -81,6 +81,7 @@ class Reader(BaseReader, StructuredReader):
         self._mask_rho = None
         self._mask_u = None
         self._mask_v = None
+        self._zeta = None
         self.land_binary_mask = None
         self.sea_floor_depth_below_sea_level = None
         self.z_rho_tot = None
@@ -359,6 +360,18 @@ class Reader(BaseReader, StructuredReader):
                     self._mask_v = self._mask_v.compute()
                 logger.info("Using mask_v for mask_v")
         return self._mask_v
+    
+    @property
+    def zeta(self):
+        """Sea surface height."""
+        if self._zeta is None:
+            if 'zeta' in self.Dataset.data_vars:
+                self._zeta = self.Dataset.variables['zeta']
+                logger.info("Using zeta for sea surface height")
+            else:
+                self._zeta = np.zeros(self.mask_rho.shape)
+                logger.info("No zeta found, using 0 array for sea surface height")
+        return self._zeta        
 
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None):
@@ -410,6 +423,17 @@ class Reader(BaseReader, StructuredReader):
         indy = np.arange(np.max([0, indy.min()-buffer]),
                             np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
+        # define indices
+        ixy = (indy,indx)
+        itxy = (indxTime,indy,indx)
+        
+        # use these same indices for all mask subsetting since if one is
+        # 3D they all should be
+        if self.mask_rho.ndim == 2:
+            imask = ixy
+        elif self.mask_rho.ndim == 3:
+            imask = itxy
+
         # Find depth levels covering all elements
         if z.min() == 0 or self.hc is None:
             indz = self.num_layers - 1  # surface layer
@@ -424,11 +448,13 @@ class Reader(BaseReader, StructuredReader):
 
             if self.z_rho_tot is None:
                 Htot = self.sea_floor_depth_below_sea_level
-                self.z_rho_tot = depth.sdepth(Htot, self.hc, self.Cs_r,
+                zeta = self.zeta[indxTime]
+                self.z_rho_tot = depth.sdepth(Htot, zeta, self.hc, self.Cs_r,
                                               Vtransform=self.Vtransform)
 
             H = self.sea_floor_depth_below_sea_level[indy, indx]
-            z_rho = depth.sdepth(H, self.hc, self.Cs_r,
+            zeta = self.zeta[itxy]
+            z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
                                  Vtransform=self.Vtransform)
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
@@ -454,12 +480,8 @@ class Reader(BaseReader, StructuredReader):
                                           -z.min()) + self.verticalbuffer)
             variables['z'] = np.array(self.zlevels[zi1:zi2])
         
-        # use these same indices for all mask subsetting since if one is
-        # 3D they all should be
-        if self.mask_rho.ndim == 2:
-            imask = (indy,indx)
-        elif self.mask_rho.ndim == 3:
-            imask = (indxTime,indy,indx)        
+        # define another set of indices
+        itzxy = (indxTime, indz, indy, indx)
             
         def get_mask(mask_name, imask):
             if mask_name in masks_for_loop:
@@ -477,13 +499,13 @@ class Reader(BaseReader, StructuredReader):
             if par == 'land_binary_mask':
                 variables[par] = self.land_binary_mask[imask]
             elif par == 'sea_floor_depth_below_sea_level':
-                variables[par] = self.sea_floor_depth_below_sea_level[indy, indx]
+                variables[par] = self.sea_floor_depth_below_sea_level[ixy]
             elif var.ndim == 2:
-                variables[par] = var[indy, indx]
+                variables[par] = var[ixy]
             elif var.ndim == 3:
-                variables[par] = var[indxTime, indy, indx]
+                variables[par] = var[itxy]
             elif var.ndim == 4:
-                variables[par] = var[indxTime, indz, indy, indx]
+                variables[par] = var[itzxy]
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.variable_mapping[par])
@@ -495,11 +517,11 @@ class Reader(BaseReader, StructuredReader):
 
                 # make sure that var has matching horizontal dimensions with the mask
                 # make sure coord names also match
-                if self.mask_rho.shape[-2:] == var.shape[-2:] and set(self.mask_rho.dims).issubset(var.dims):
+                if self.mask_rho.shape[-2:] == var.shape[-2:] and self.mask_rho.dims[-2:] == var.dims[-2:]:
                     mask, mask_name = get_mask("mask_rho", imask)
-                elif self.mask_u.shape[-2:] == var.shape[-2:] and set(self.mask_u.dims).issubset(var.dims):
+                elif self.mask_u.shape[-2:] == var.shape[-2:] and self.mask_u.dims[-2:] == var.dims[-2:]:
                     mask, mask_name = get_mask("mask_u", imask)
-                elif self.mask_v.shape[-2:] == var.shape[-2:] and set(self.mask_v.dims).issubset(var.dims):
+                elif self.mask_v.shape[-2:] == var.shape[-2:] and self.mask_v.dims[-2:] == var.dims[-2:]:
                     mask, mask_name = get_mask("mask_v", imask)
                 else:
                     raise Exception('No mask found for ' + par)
