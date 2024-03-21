@@ -22,6 +22,7 @@ from typing import Union, List
 import traceback
 import inspect
 import logging
+import psutil
 
 from opendrift.models.basemodel.environment import Environment
 from opendrift.readers import reader_global_landmask
@@ -1964,7 +1965,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.add_metadata('simulation_time', datetime.now())
         self.timer_end('preparing main loop')
         self.timer_start('main loop')
+        self.memory_usage = np.array([])
         for i in range(self.expected_steps_calculation):
+            self.memory_usage = np.append(self.memory_usage, psutil.virtual_memory().used / (1024.0**3))
             try:
                 # Release elements
                 self.release_elements()
@@ -4411,6 +4414,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.info('Invalid new coordinates:')
             logger.info(self.elements)
             sys.exit('Quitting')
+
+    def plot_memory_usage(self, filename=None):
+        plt.plot(self.memory_usage)
+        plt.ylabel('Virtual memory  [GB]')
+        plt.xlabel('Calculation time step')
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
+            plt.close()
 
     def __repr__(self):
         """String representation providing overview of model status."""

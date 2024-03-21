@@ -33,3 +33,6 @@ o.animation(fast=True, color=ensemble_number, legend=['Member ' + str(i) for i i
 
 #%%
 # .. image:: /gallery/animations/example_ensemble_0.gif
+
+#%% Finally, plot memory usage during simulation
+o.plot_memory_usage()
