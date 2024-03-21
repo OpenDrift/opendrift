@@ -390,9 +390,9 @@ class TestRun(unittest.TestCase):
             o.time = time
             o.time_step = timedelta(hours=2)
             o.release_elements()
-            o.environment = np.array(np.ones(N)*100,
-                            dtype=[('sea_floor_depth_below_sea_level',
-                                    np.float32)]).view(np.recarray)
+            o.environment = np.array([(100, 0) for _ in range(N)],
+                         dtype=[('sea_floor_depth_below_sea_level', np.float32),
+                                ('sea_surface_height', np.float32)]).view(np.recarray)
             o.environment_profiles = { 'z': z, 'ocean_vertical_diffusivity':
                                       np.tile(diffusivity, (N, 1)).T}
             o.env.finalize()
