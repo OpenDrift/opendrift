@@ -229,6 +229,7 @@ class OpenOil(OceanDrift):
         'y_wind': {
             'fallback': None
         },
+        'sea_surface_height': {'fallback': 0},
         'upward_sea_water_velocity': {
             'fallback': 0,
             'important': False

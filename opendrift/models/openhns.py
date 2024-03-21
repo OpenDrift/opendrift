@@ -109,6 +109,7 @@ class OpenHNS(OceanDrift):
         'y_sea_water_velocity': {
             'fallback': None
         },
+        'sea_surface_height': {'fallback': 0},
         'x_wind': {
             'fallback': None
         },

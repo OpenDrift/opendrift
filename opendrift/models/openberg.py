@@ -59,6 +59,7 @@ class OpenBerg(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': None},
         'y_sea_water_velocity': {'fallback': None},
+        'sea_surface_height': {'fallback': 0},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'x_wind': {'fallback': None},
         'y_wind': {'fallback': None},

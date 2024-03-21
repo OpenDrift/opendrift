@@ -84,6 +84,7 @@ class SeaLice(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0},
         # 'sea_surface_wave_significant_height': {'fallback': 0},
         # 'x_wind': {'fallback': 0},
         # 'y_wind': {'fallback': 0},
