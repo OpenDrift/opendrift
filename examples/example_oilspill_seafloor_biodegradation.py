@@ -18,7 +18,7 @@ o.add_readers_from_list(['https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0
 
 # No motion is needed for this test
 o.set_config('environment:constant', {k: 0 for k in ['x_wind', 'y_wind']})
-o.set_config('drift', {'current_uncertainty': 0, 'wind_uncertainty': 0, 'horizontal_diffusivity': 10})
+o.set_config('drift', {'current_uncertainty': 0, 'wind_uncertainty': 0, 'horizontal_diffusivity': 20})
 
 #%%
 # Seeding some particles
@@ -30,15 +30,15 @@ o.set_config('biodegradation:method', 'half_time')
 # Fast decay for droplets, and slow decay for slick 
 kwargs = {'biodegradation_half_time_slick': 3, # days
           'biodegradation_half_time_droplet': 1, # days
-          'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5, 'diameter': 1e-4}  # small droplets
+          'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5, 'diameter': 5e-4}  # small droplets
 
 #%%
 # Seed 500 oil elements at surface, and 500 elements at 50m depth
 time = datetime.today() - timedelta(days=5)
 lon = 23.4
 lat = 35.1
-o.seed_elements(lon=lon, lat=lat, z=0, number=2000, time=time, **kwargs)
-o.seed_elements(lon=lon, lat=lat, z=-50, number=2000, time=time, **kwargs)
+o.seed_elements(lon=lon, lat=lat, z=0, radius=100, number=3000, time=time, **kwargs)
+o.seed_elements(lon=lon, lat=lat, z=-250, radius=100, number=3000, time=time, **kwargs)
 
 #%%
 # Running model
