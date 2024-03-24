@@ -12,33 +12,35 @@ from opendrift.models.openoil import OpenOil
 o = OpenOil(loglevel=0)  # Set loglevel to 0 for debug information
 time = datetime.now()
 
-
-o.add_readers_from_list(['https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z'])
-
-
-# No motion is needed for this test
-o.set_config('environment:constant', {k: 0 for k in ['x_wind', 'y_wind']})
+#%%
+# Current from HYCOM and wind from NCEP GFS
+o.add_readers_from_list([
+    'https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z',
+    'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
+o.set_config('environment:constant:ocean_mixed_layer_thickness', 20)
 o.set_config('drift', {'current_uncertainty': 0, 'wind_uncertainty': 0, 'horizontal_diffusivity': 20})
 
 #%%
-# Seeding some particles
+# Configuration
+o.set_config('drift:vertical_mixing', True)
 o.set_config('drift:vertical_mixing', True)
 o.set_config('processes:biodegradation', True)
+o.set_config('processes:dispersion', False)
 o.set_config('biodegradation:method', 'half_time')
 
 #%%
 # Fast decay for droplets, and slow decay for slick 
 kwargs = {'biodegradation_half_time_slick': 3, # days
           'biodegradation_half_time_droplet': 1, # days
-          'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5, 'diameter': 5e-4}  # small droplets
+          'oil_type': 'GENERIC MEDIUM CRUDE', 'm3_per_hour': .5, 'diameter': 8e-5}  # small droplets
 
 #%%
-# Seed 500 oil elements at surface, and 500 elements at 50m depth
+# Seed oil at surface and at 150m depth
 time = datetime.today() - timedelta(days=5)
-lon = 23.4
-lat = 35.1
+lon = 23.5
+lat = 35.0
 o.seed_elements(lon=lon, lat=lat, z=0, radius=100, number=3000, time=time, **kwargs)
-o.seed_elements(lon=lon, lat=lat, z=-250, radius=100, number=3000, time=time, **kwargs)
+o.seed_elements(lon=lon, lat=lat, z=-150, radius=100, number=3000, time=time, **kwargs)
 
 #%%
 # Running model
@@ -46,7 +48,7 @@ o.run(duration=timedelta(days=5), time_step=3600, outfile='oil.nc')
 
 #%%
 # Plot and animate results
-o.animation(color='z', markersize='mass_oil')#, vmin=-60, vmax=-40)
+o.animation(color='z', markersize='mass_oil', markersize_scaling=80)
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_biodegradation_0.gif
 
@@ -70,6 +72,6 @@ plt.show()
 
 #%%
 # Animation of vertical behaviour
-o.animation_profile(markersize='mass_oil', markersize_scaling=50, color='z', alpha=.5)
+o.animation_profile(markersize='mass_oil', markersize_scaling=80, color='z', alpha=.5)
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_biodegradation_1.gif
