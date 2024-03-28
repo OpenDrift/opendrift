@@ -69,6 +69,7 @@ class OceanDrift(OpenDriftSimulation):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0},
         'x_wind': {'fallback': 0},
         'y_wind': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
@@ -157,6 +158,10 @@ class OceanDrift(OpenDriftSimulation):
             'general:seafloor_action': {'type': 'enum', 'default': 'lift_to_seafloor',
                 'enum': ['none', 'lift_to_seafloor', 'deactivate', 'previous'],
                 'description': '"deactivate": elements are deactivated; "lift_to_seafloor": elements are lifted to seafloor level; "previous": elements are moved back to previous position; "none"; seafloor is ignored.',
+                'level': CONFIG_LEVEL_ADVANCED},
+            'general:seafloor_action_dcrit': {'type': 'float', 'default': 0.0,
+                'min': 0.0, 'max': 10000, 'units': 'm',
+                'description': 'This parameter represents the amount of water left in a grid cell to keep it wet in a wet/dry simulation for numerical stability. The condition checked for seafloor_action is z < -(sea_floor_depth + sea_surface_height + `general:seafloor_action_dcrit`. It is 0 by default to assume that a wet/dry case is not being run, however, if it is and the correct value is not known 0.1 is a good default to use.',
                 'level': CONFIG_LEVEL_ADVANCED},
             'drift:truncate_ocean_model_below_m': {'type': 'float', 'default': None,
                 'min': 0, 'max': 10000, 'units': 'm',
@@ -411,13 +416,15 @@ class OceanDrift(OpenDriftSimulation):
             self.elements.z[in_ocean] = np.minimum(0,
                 self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
 
-        # check for minimum height/maximum depth for each particle
-        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        # check for minimum height/maximum depth for each particle accouting also for
+        # the sea surface height and the critical/min wet cell depth
+        Dcrit = self.get_config('general:seafloor_action_dcrit')
+        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height + Dcrit)
 
         # Let particles stick to bottom
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
-            logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+            logger.debug('%s elements reached seafloor, interacting with bottom' % len(bottom[0]))
             self.interact_with_seafloor()
             self.bottom_interaction(Zmin)
 
@@ -489,8 +496,10 @@ class OceanDrift(OpenDriftSimulation):
 
         dt_mix = self.get_config('vertical_mixing:timestep')
 
-        # minimum height/maximum depth for each particle
-        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        # minimum height/maximum depth for each particle accouting also for
+        # the sea surface height and the critical/min wet cell depth
+        Dcrit = self.get_config('general:seafloor_action_dcrit')
+        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height + Dcrit)
 
         # Eventual model specific preparions
         self.prepare_vertical_mixing()
@@ -609,6 +618,7 @@ class OceanDrift(OpenDriftSimulation):
                 self.elements.z[reflect] = -self.elements.z[reflect]
 
             # Reflect elements going below seafloor
+            # Zmin accounts for sea_surface_height
             bottom = np.where(np.logical_and(self.elements.z < Zmin, self.elements.moving == 1))
             if len(bottom[0]) > 0:
                 logger.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
@@ -629,7 +639,7 @@ class OceanDrift(OpenDriftSimulation):
             # Let particles stick to bottom
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
-                logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+                logger.debug('%s elements reached seafloor, interacting with bottom' % len(bottom[0]))
                 self.interact_with_seafloor()
                 self.bottom_interaction(Zmin)
 

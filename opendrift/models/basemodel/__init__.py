@@ -695,8 +695,25 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             return
         if 'sea_floor_depth_below_sea_level' not in self.env.priority_list:
             return
+
+        if not hasattr(self, 'environment') or not hasattr(
+                self.environment, 'sea_surface_height'):
+            logger.warning('Seafloor check not being run because sea_surface_height is missing. '
+                           'This will happen the first time the function is run but if it happens '
+                           'subsequently there is probably a problem.')
+            return
+
+        # the shape of these is different than the original arrays
+        # because it is for active drifters
         sea_floor_depth = self.sea_floor_depth()
-        below = np.where(self.elements.z < -sea_floor_depth)[0]
+        sea_surface_height = self.sea_surface_height()
+
+        # Check if any elements are below sea floor
+        # But remember that the water column is the sea floor depth + sea surface height + parameter Dcrit
+        Dcrit = self.get_config('general:seafloor_action_dcrit')
+        ibelow = self.elements.z < -(sea_floor_depth + sea_surface_height + Dcrit)
+        below = np.where(ibelow)[0]
+
         if len(below) == 0:
             logger.debug('No elements hit seafloor.')
             return
@@ -706,8 +723,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.debug('Lifting %s elements to seafloor.' % len(below))
             self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'deactivate':
-            self.deactivate_elements(self.elements.z < -sea_floor_depth,
-                                     reason='seafloor')
+            self.deactivate_elements(ibelow, reason='seafloor')
             self.elements.z[below] = -sea_floor_depth[below]
         elif i == 'previous':  # Go back to previous position (in water)
             logger.warning('%s elements hit seafloor, '

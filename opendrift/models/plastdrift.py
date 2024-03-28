@@ -44,6 +44,7 @@ class PlastDrift(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0},
         'sea_surface_wave_stokes_drift_x_velocity': {'fallback': 0},
         'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
         'sea_surface_wave_significant_height': {'fallback': 0},
