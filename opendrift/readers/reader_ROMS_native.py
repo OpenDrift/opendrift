@@ -96,7 +96,7 @@ class Reader(BaseReader, StructuredReader):
             # Removing (temoprarily) land_binary_mask from ROMS-variables,
             # as this leads to trouble with linearNDFast interpolation
             'mask_rho': 'land_binary_mask',
-            'mask_psi': 'land_binary_mask',
+            # 'mask_psi': 'land_binary_mask',  # don't want two variables mapping together - raises error now
             'h': 'sea_floor_depth_below_sea_level',
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
@@ -382,6 +382,9 @@ class Reader(BaseReader, StructuredReader):
             elif 'angle' in self.Dataset.data_vars:
                 self._angle = self.Dataset.variables['angle']
                 logger.info("Using angle from Dataset.")
+            # else:
+            #     self._angle = 0
+            #     logger.warning("No angle found, using 0 integer for angle.")
 
             if self._angle is None:
                 raise ValueError('No angle between xi and east found')
@@ -465,11 +468,23 @@ class Reader(BaseReader, StructuredReader):
                 zeta = self.zeta[indxTime]
                 self.z_rho_tot = depth.sdepth(Htot, zeta, self.hc, self.Cs_r,
                                               Vtransform=self.Vtransform)
+                # z_rho is positive relative to mean sea level but z is
+                # 0 at the surface.
+                # Transform z_rho to match convention of z.
+                self.z_rho_tot -= np.asarray(zeta)[np.newaxis]
 
             H = self.sea_floor_depth_below_sea_level[indy, indx]
             zeta = self.zeta[itxy]
             z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
                                  Vtransform=self.Vtransform)
+
+            # z_rho is positive relative to mean sea level but z is
+            # 0 at the surface.
+            # Transform z_rho to match convention of z.
+            z_rho -= np.asarray(zeta)[np.newaxis]
+
+            assert (z_rho <=0).all()
+
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
