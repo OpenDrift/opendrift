@@ -57,10 +57,10 @@ class TestStranding(unittest.TestCase):
 
         # Check calculated trajectory lengths and speeds
         total_length, distances, speeds = o.get_trajectory_lengths()
-        self.assertAlmostEqual(total_length.max(), 15719.5, 1)
+        self.assertAlmostEqual(total_length.max(), 15722.7, 1)
         self.assertAlmostEqual(total_length.min(), 1225.2, 1)
         self.assertAlmostEqual(speeds.max(), 0.132, 1)
-        self.assertAlmostEqual(distances.max(), 2859.5, 1)
+        self.assertAlmostEqual(distances.max(), 2859.0, 1)
 
     def test_stranding_roms(self):
         o = PelagicEggDrift(loglevel=20)

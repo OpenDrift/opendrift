@@ -25,7 +25,7 @@ class TestMyFunction(unittest.TestCase):
         
         expected_output = np.array([-0.98333333, -0.5, -0.01666667])        
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
         # zeta 0s array
         zeta = np.zeros((self.NY, self.NX))
@@ -33,7 +33,7 @@ class TestMyFunction(unittest.TestCase):
         
         expected_output = np.array([-0.98333333, -0.5, -0.01666667])
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
 
     def test_sdepth_zeta_zero_Vtransform2(self):
@@ -46,14 +46,14 @@ class TestMyFunction(unittest.TestCase):
         z_rho = depth.sdepth(self.Htot, zeta, self.hc, self.Cs_r, Vtransform=Vtransform)
         expected_output = np.array([-0.98484848, -0.5, -0.01515152])
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
         # zeta 0s array
         zeta = np.zeros((self.NY, self.NX))
         z_rho = depth.sdepth(self.Htot, zeta, self.hc, self.Cs_r, Vtransform=Vtransform)
         expected_output = np.array([-0.98484848, -0.5, -0.01515152])
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
     def test_sdepth_zeta_nonzero_Vtransform1(self):
         """test nonzero zeta in sdepth, Vtransform 1."""
@@ -65,14 +65,14 @@ class TestMyFunction(unittest.TestCase):
         z_rho = depth.sdepth(self.Htot, zeta, self.hc, self.Cs_r, Vtransform=Vtransform)
         expected_output = np.array([-0.96666667,  0.,  0.96666667])        
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
         # zeta 1s array
         zeta = np.ones((self.NY, self.NX))
         z_rho = depth.sdepth(self.Htot, zeta, self.hc, self.Cs_r, Vtransform=Vtransform)
         expected_output = np.array([-0.96666667,  0.,  0.96666667])
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
 
     def test_sdepth_zeta_nonzero_Vtransform2(self):
@@ -85,14 +85,14 @@ class TestMyFunction(unittest.TestCase):
         z_rho = depth.sdepth(self.Htot, zeta, self.hc, self.Cs_r, Vtransform=Vtransform)
         expected_output = np.array([-0.96969697,  0.,  0.96969697])
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
         # zeta 1s array
         zeta = np.ones((self.NY, self.NX))
         z_rho = depth.sdepth(self.Htot, zeta, self.hc, self.Cs_r, Vtransform=Vtransform)
         expected_output = np.array([-0.96969697,  0.,  0.96969697])
         assert z_rho.shape == (self.NZ, self.NY, self.NX)
-        np.allclose(z_rho[:,0,0], expected_output)
+        assert np.allclose(z_rho[:,0,0], expected_output)
 
 
 
