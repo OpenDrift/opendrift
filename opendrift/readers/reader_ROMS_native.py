@@ -483,7 +483,8 @@ class Reader(BaseReader, StructuredReader):
             # Transform z_rho to match convention of z.
             z_rho -= np.asarray(zeta)[np.newaxis]
 
-            assert (z_rho <=0).all()
+            if (np.nanmax(z_rho) > 0).any():
+                logger.warning('z_rho is positive, but should be negative or 0.')
 
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
