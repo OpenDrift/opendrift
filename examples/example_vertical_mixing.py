@@ -38,8 +38,9 @@ o.seed_elements(lon=4, lat=60, z=seed_depth, time=time, number=N, terminal_veloc
 o.time = time
 o.time_step = timedelta(hours=hours)
 o.release_elements()
-o.environment = np.array(np.ones(N)*sea_floor_depth,
-                dtype=[('sea_floor_depth_below_sea_level', np.float32)]).view(np.recarray)
+o.environment = np.array(list(zip(np.ones(N)*sea_floor_depth, np.zeros(N))),
+                dtype=[('sea_floor_depth_below_sea_level', np.float32),
+                       ('sea_surface_height', np.float32)]).view(np.recarray)
 o.environment_profiles = {
         'z': z,
         'ocean_vertical_diffusivity':
