@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "opendrift"
-version = "1.11.1"
+version = "1.11.2"
 description = "OpenDrift - a framework for ocean trajectory modeling"
 authors = ["Knut-Frode Dagestad <knutfd@met.no>", "Gaute Hope <gauteh@met.no>"]
 license = "GPLv2"

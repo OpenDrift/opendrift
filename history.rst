@@ -1,6 +1,27 @@
 History
 =======
 
+2024-04-02 / Release v1.11.2
+----------------------------
+* Proper handling of sea_surface_height implemented by Kristin Thyng. All subclasses of OceanDrift now have `sea_surface_height` (default 0) as new parameter. z=0 is always sea surface (including sea_surface_height), and seafloor is now where z = -(sea_floor_depth + sea_surface_height)
+* Improvements of ROMS reader by Kristin Thyng:
+  * Roppy-method `sdepth` (used by ROMS reader) now accounts for `sea_surface_height` (zeta).
+  * Improved handling of rotation of vectors.
+  * Interpolator can be saved/cached to file to save time on repeated simulations.
+  * Improved handling of landmasks, for wetting-drying-applications.
+* Added alternative biodegradation to OpenOil by specifying half_tiome [days], which can be different for slick and submerged droplets.
+* Memory usage is now logged once every timestep, and can be plotted after simulation with new method `o.plot_memory_usage()`
+* Exporting directly to parquet file is now an alternative to netCDF (#1259, Achim Randelhoff)
+* The size and color of particles of animation and animation_profile methods can now be scaled with any element or environment property by specifying marker=<property>. Sizes can eventually be scaled by spcifying markersize_scaling. Transparency (alpha) can also be provided. Some examples are updated.
+* Bugfix for cases with no active particles at the same timestep as exporting to file (#1251, Lenny Hucher)
+* Bugfix for attibute of vertical coordinate in SCISM raeder (Calvin Quigley)
+* Can make faster and smaller animation by selcting frames as range or list (Manuel Aghito)
+* Updates to reader_netCDF_CF_generic:
+  * Now also rotating ensemble vectors from east/north to x/y
+  * Now using dynamic instead of hardcoded order of dimensions
+  * Removing unnecessary ensemble dimension for seafloor depth
+* Now ending timer[total time] before finalizing output netCDF file, so that complete performance is included.
+
 2024-01-25 / Release v1.11.1
 ----------------------------
 * ROMS reader can take xarray datasets (Rich Signell)
