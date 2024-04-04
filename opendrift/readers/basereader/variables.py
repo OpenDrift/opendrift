@@ -439,7 +439,7 @@ class ReaderDomain(Timeable):
 # Methods to derive environment variables from others available
 ################################################################
 
-def land_binary_mask_from_ocean_depth(env):
+def land_binary_mask_from_ocean_depth(env,in_name=None,out_name=None):
     env['land_binary_mask'] = np.float32(env['sea_floor_depth_below_sea_level'] <= 0)
 
 def wind_from_speed_and_direction(env, in_name, out_name):
