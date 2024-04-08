@@ -74,7 +74,12 @@ class Reader(StructuredReader, BaseReader):
 
         if isinstance(filename, xr.Dataset):
             self.Dataset = filename
-            self.name = name if name is not None else str(filename)
+            if name is not None:
+                self.name = name
+            elif hasattr(self.Dataset, 'name'):
+                self.name = self.Dataset.name
+            else:
+                self.name = str(filename)
         else:
             if zarr_storage_options is not None:
                 self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)

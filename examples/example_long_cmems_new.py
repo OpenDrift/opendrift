@@ -8,7 +8,7 @@ with current data from CMEMS
 To run this example, you need a CMEMS account created at
 https://marine.copernicus.eu
 and the copernicus_marine_client installed from
-https://pypi.org/project/copernicus-marine-client/
+https://pypi.org/project/copernicusmarine
 """
 
 from datetime import datetime, timedelta
