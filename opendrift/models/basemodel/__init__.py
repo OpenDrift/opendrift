@@ -4669,14 +4669,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                 time=t + duration,
                                 z=z)
                 o.run(duration=duration, time_step=-time_step)
-                b_x1, b_y1 = proj(o.history['lon'].T[-1].reshape(X.shape),
-                                  o.history['lat'].T[-1].reshape(X.shape))
+                b_x1, b_y1 = proj(o.history['lon'].T[-1][::-1].reshape(X.shape),
+                                  o.history['lat'].T[-1][::-1].reshape(X.shape))
                 lcs['ALCS'][i, :, :] = ftle(b_x1 - X, b_y1 - Y, delta, T)
 
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
         lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
         # Flipping ALCS left-right. Not sure why this is needed
-        lcs['ALCS'] = lcs['ALCS'][:, ::-1, ::-1]
+        # >> not needed anymore now that re-ordering is done above
+        # lcs['ALCS'] = lcs['ALCS'][:, ::-1, ::-1]
 
         return lcs
 
