@@ -31,6 +31,5 @@ dependencies:
   - roaring-landmask>=0.7
   - trajan>=0.1.3
   - adios_db
+  - copernicusmarine
   - pip
-  - pip:
-    - motuclient

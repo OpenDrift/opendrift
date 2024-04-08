@@ -52,15 +52,17 @@ def reader_from_url(url, timeout=10):
         try:
             resp = requests.get(url, timeout=timeout)
         except requests.exceptions.MissingSchema:
-            logger.info('Neither a file or a URL: ' + url)
-            return None
+
+            logger.info('Neither a file or a URL, could still be a CMEMS product ID: ' + url)
+            #return None
         except:
             logger.info('Connection error for ' + url)
             return None
 
     reader_modules = ['reader_netCDF_CF_generic',
                       'reader_ROMS_native',
-                      'reader_grib']
+                      'reader_grib',
+                      'reader_copernicusmarine']
 
     for rm in reader_modules:
         reader_module = importlib.import_module('opendrift.readers.' + rm)
