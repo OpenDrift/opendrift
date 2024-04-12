@@ -223,6 +223,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         super().__init__()
 
+        self.profiles_depth = None
+
         self.show_continuous_performance = False
 
         self.origin_marker = None  # Dictionary to store named seeding locations
@@ -234,8 +236,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
 
-        self.env = Environment(self.required_variables,
-                               self.required_profiles_z_range, self._config)
+        self.env = Environment(self.required_variables, self._config)
 
         # Make copies of dictionaries so that they are private to each instance
         self.status_categories = ['active']  # Particles are active by default
@@ -409,6 +410,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'description': 'Add horizontal diffusivity (random walk)',
                 'level': CONFIG_LEVEL_BASIC
             },
+            'drift:profiles_depth': {'type': 'float', 'default': 50, 'min': 0, 'max': None,
+                'level': CONFIG_LEVEL_ADVANCED, 'units': 'meters', 'description':
+                'Environment profiles will be retrieved from surface and down to this depth'},
             'drift:wind_uncertainty': {
                 'type': 'float',
                 'default': 0,
@@ -592,8 +596,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         '''Make readers from a file containing list of URLs or paths to netCDF datasets'''
         self.env.add_readers_from_file(*args, **kwargs)
 
+    # To be overloaded by sublasses, but this parent method must be called
     def prepare_run(self):
-        pass  # to be overloaded when needed
+        # Copy profile_depth from config
+        self.profiles_depth = self.get_config('drift:profiles_depth')
 
     def store_present_positions(self, IDs=None, lons=None, lats=None):
         """Store present element positions, in case they shall be moved back"""
@@ -661,8 +667,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                      self.time,
                                      self.elements.lon,
                                      self.elements.lat,
-                                     self.elements.z,
-                                     None)
+                                     self.elements.z)
             self.environment.land_binary_mask = en.land_binary_mask
 
         if i == 'stranding':  # Deactivate elements on land, but not in air
@@ -748,10 +753,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     @abstractproperty
     def required_variables(self):
         """Any trajectory model implementation must list needed variables."""
-
-    @abstractproperty
-    def required_profiles_z_range(self):
-        """Any trajectory model implementation must list range or return None."""
 
     def test_data_folder(self):
         import opendrift
@@ -914,8 +915,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                      lon=lon,
                                      lat=lat,
                                      z=0 * lon,
-                                     time=land_reader.start_time,
-                                     profiles=None)[0]['land_binary_mask']
+                                     time=land_reader.start_time)[0]['land_binary_mask']
         if land.max() == 0:
             logger.info('All points are in ocean')
             return lon, lat
@@ -936,8 +936,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          lon=longrid,
                                          lat=latgrid,
                                          z=0 * longrid,
-                                         time=land_reader.start_time,
-                                         profiles=None)[0]['land_binary_mask']
+                                         time=land_reader.start_time)[0]['land_binary_mask']
         if landgrid.min() == 1 or np.isnan(landgrid.min()):
             logger.warning('No ocean pixels nearby, cannot move elements.')
             return lon, lat
@@ -1092,8 +1091,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     self.time = time[0]
                 env, env_profiles, missing = \
                     self.env.get_environment(['sea_floor_depth_below_sea_level'],
-                                         time=time[0], lon=lon, lat=lat,
-                                         z=0*lon, profiles=None)
+                                         time=time[0], lon=lon, lat=lat, z=0*lon)
             elif seafloor_fallback is not None:
                 env = {
                     'sea_floor_depth_below_sea_level':
@@ -2046,7 +2044,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          self.elements.lon,
                                          self.elements.lat,
                                          self.elements.z,
-                                         self.required_profiles)
+                                         self.required_profiles,
+                                         self.profiles_depth)
 
                 self.store_previous_variables()
 

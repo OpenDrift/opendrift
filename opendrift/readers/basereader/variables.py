@@ -860,7 +860,7 @@ class Variables(ReaderDomain):
 
             profiles: List of variable names that should be returned for the range in `profiles_depth`.
 
-            profiles_depth: A range [z-start, z-end] for which to return values for profile-variables. The exact z-depth are given by the reader and returned as `z` variable in `env_profiles`.
+            profiles_depth: Profiles variables will be retrieved from surface and down to this depth. The exact z-depth are given by the reader and returned as `z` variable in `env_profiles`.
 
             time: datetime or None, time at which data are requested.
                 Can be None (default) if reader/variable has no time

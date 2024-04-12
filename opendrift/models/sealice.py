@@ -96,7 +96,6 @@ class SeaLice(OceanDrift):
         'sea_water_salinity': {'fallback': 34}
     }
 
-    # required_profiles_z_range = [0, -50]  # The depth range (in m) which profiles should cover
 
     def __init__(self,*args, **kwargs):
 
@@ -183,6 +182,8 @@ class SeaLice(OceanDrift):
         self.new_born()
         self.population()
         self.ref_date = datetime(1,1,1,0,0)
+
+        super(SeaLice, self).prepare_run()
 
     def new_born(self):
         """

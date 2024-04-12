@@ -21,7 +21,6 @@ class Environment(Timeable, Configurable):
     readers: OrderedDict
     priority_list: OrderedDict
     required_variables: Dict
-    required_profiles_z_range: List[float]  # [min_depth, max_depth]
 
     discarded_readers: Dict
 
@@ -29,7 +28,7 @@ class Environment(Timeable, Configurable):
 
     __finalized__ = False
 
-    def __init__(self, required_variables, required_profiles_z_range, _config):
+    def __init__(self, required_variables, _config):
         super().__init__()
 
         self.readers = OrderedDict()
@@ -37,7 +36,6 @@ class Environment(Timeable, Configurable):
         self.discarded_readers = {}
 
         self.required_variables = required_variables
-        self.required_profiles_z_range = required_profiles_z_range
         self._config = _config # reference to simulation config
 
         # Add constant and fallback environment variables to config
@@ -521,7 +519,7 @@ class Environment(Timeable, Configurable):
             if var not in self.priority_list
         ]
 
-    def get_environment(self, variables, time, lon, lat, z, profiles):
+    def get_environment(self, variables, time, lon, lat, z, profiles=None, profiles_depth=None):
         '''Retrieve environmental variables at requested positions.
 
         Args:
@@ -536,7 +534,9 @@ class Environment(Timeable, Configurable):
 
             z: depth to get value for
 
-            profiles: ?
+            profiles: list of variables for which profiles are needed
+
+            profiles_depth: depth of profiles in meters, as a positive number
 
         Updates:
             Buffer (raw data blocks) for each reader stored for performance:
@@ -562,6 +562,8 @@ class Environment(Timeable, Configurable):
         for readername, reader in self.readers.copy().items():
             self.discard_reader_if_not_relevant(reader, time)
 
+        if profiles_depth is None:
+            profiles_depth = np.abs(z).max()
         if 'drift:truncate_ocean_model_below_m' in self._config:
             truncate_depth = self.get_config(
                 'drift:truncate_ocean_model_below_m')
@@ -570,12 +572,7 @@ class Environment(Timeable, Configurable):
                              truncate_depth)
                 z = z.copy()
                 z[z < -truncate_depth] = -truncate_depth
-                if self.required_profiles_z_range is not None:
-                    self.required_profiles_z_range = np.array(
-                        self.required_profiles_z_range)
-                    self.required_profiles_z_range[
-                        self.required_profiles_z_range <
-                        -truncate_depth] = -truncate_depth
+                profiles_depth = np.minimum(profiles_depth, truncate_depth)
 
         # Initialise more lazy readers if necessary
         missing_variables = ['missingvar']
@@ -631,7 +628,7 @@ class Environment(Timeable, Configurable):
                                 'Missing variables: calling get_environment recursively'
                             )
                             return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                                variables, time, lon, lat, z, profiles, profiles_depth)
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
@@ -648,7 +645,7 @@ class Environment(Timeable, Configurable):
                     env_tmp, env_profiles_tmp = \
                         reader.get_variables_interpolated(
                             variable_group, profiles_from_reader,
-                            self.required_profiles_z_range, time,
+                            profiles_depth, time,
                             lon[missing_indices], lat[missing_indices],
                             z[missing_indices], self.proj_latlon)
 
@@ -662,7 +659,7 @@ class Environment(Timeable, Configurable):
                                 'Missing variables: calling get_environment recursively'
                             )
                             return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                                variables, time, lon, lat, z, profiles, profiles_depth)
                     continue
 
                 except Exception as e:  # Unknown error
@@ -693,7 +690,7 @@ class Environment(Timeable, Configurable):
                                 'Missing variables: calling get_environment recursively'
                             )
                             return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                                variables, time, lon, lat, z, profiles, profiles_depth)
                     continue
 
                 # Copy retrieved variables to env array, and mask nan-values
@@ -806,9 +803,7 @@ class Environment(Timeable, Configurable):
                     logger.debug('Creating empty dictionary for profiles not '
                                  'profided by any reader: ' +
                                  str(self.required_profiles))
-                    env_profiles = {}
-                    env_profiles['z'] = \
-                        np.array(self.required_profiles_z_range)[::-1]
+                    env_profiles = {'z': [0, -profiles_depth]}
                 if var not in env_profiles:
                     logger.debug(
                         '      Using fallback value %s for %s for all profiles'

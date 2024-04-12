@@ -178,8 +178,6 @@ class OpenHNS(OceanDrift):
         },
     }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
 
     max_speed = 1.3  # m/s
 

@@ -233,7 +233,7 @@ class StructuredReader(Variables):
             # requested block has the depth range required for profiles
             mx = np.append(reader_x, [reader_x[-1], reader_x[-1]])
             my = np.append(reader_y, [reader_y[-1], reader_y[-1]])
-            mz = np.append(z, [profiles_depth[0], profiles_depth[1]])
+            mz = np.append(z, [0, -profiles_depth])
         else:
             mx = reader_x
             my = reader_y
@@ -322,7 +322,7 @@ class StructuredReader(Variables):
                            'cover element positions within timestep. '
                            'Buffer size (%s) must be increased. See `Variables.set_buffer_size`.' %
                            (self.name, str(self.buffer)))
-            # TODO; could add dynamic incraes of buffer size here
+            # TODO: could add dynamic increase of buffer size here
 
         ############################################################
         # Interpolate before/after blocks onto particles in space
@@ -389,7 +389,7 @@ class StructuredReader(Variables):
                     env_profiles = env_profiles_before
                 else:
                     # Copying data from environment to vertical profiles
-                    env_profiles = {'z': profiles_depth}
+                    env_profiles = {'z': [0, -profiles_depth]}
                     for var in profiles:
                         env_profiles[var] = np.ma.array([env[var], env[var]])
         self.timer_end('interpolation_time')

@@ -96,8 +96,6 @@ class OceanDrift(OpenDriftSimulation):
         'land_binary_mask': {'fallback': None},
         }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
 
     def __init__(self, *args, **kwargs):
 
@@ -115,6 +113,9 @@ class OceanDrift(OpenDriftSimulation):
             self.ml_predictors = [self.dict_normalization_params['predictors'][i]['content'] for i in self.dict_normalization_params['predictors']]
         else:
             logger.debug('No machine learning correction available.')
+
+        if hasattr(self, 'required_profiles_z_range'):
+            raise ValueError('self.required_profiles_z_range is obsolete, and replaced by config setting drift:profile_depth. Please update your model.')
 
         # Calling general constructor of parent class
         super(OceanDrift, self).__init__(*args, **kwargs)
@@ -138,9 +139,6 @@ class OceanDrift(OpenDriftSimulation):
             'vertical_mixing:TSprofiles': {'type': 'bool', 'default': False, 'level':
                 CONFIG_LEVEL_ADVANCED,
                 'description': 'Update T and S profiles within inner loop of vertical mixing. This takes more time, but may be slightly more accurate.'},
-            'drift:profiles_depth': {'type': 'float', 'default': 50, 'min': 0, 'max': None,
-                'level': CONFIG_LEVEL_ADVANCED, 'units': 'meters', 'description':
-                'Environment profiles will be retrieved from surface and down to this depth'},
             'drift:wind_drift_depth': {'type': 'float', 'default': 0.1,
                 'min': 0, 'max': 10, 'units': 'meters',
                 'description': 'The direct wind drift (windage) is linearly decreasing from the surface value (wind_drift_factor) until 0 at this depth.',
@@ -394,6 +392,9 @@ class OceanDrift(OpenDriftSimulation):
     def prepare_vertical_mixing(self):
         pass  # To be implemented by subclasses as needed
 
+    def prepare_run(self):
+        super(OceanDrift, self).prepare_run()
+
     def vertical_advection(self):
         """Move particles vertically according to vertical ocean current
 
@@ -520,7 +521,7 @@ class OceanDrift(OpenDriftSimulation):
                     diffusivity_fallback):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
-                mixing_z = self.environment_profiles['z']
+                mixing_z = self.environment_profiles['z'].copy()
                 logger.debug('Using diffusivity from ocean model')
             else:
                 logger.debug('Using diffusivity from Large1994 since model diffusivities not available')
@@ -528,7 +529,7 @@ class OceanDrift(OpenDriftSimulation):
                 Kprofiles = self.get_diffusivity_profile('windspeed_Large1994', np.abs(mixing_z))
         elif diffusivity_model == 'constant':
             logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (diffusivity_fallback))
-            mixing_z = self.environment_profiles['z']
+            mixing_z = self.environment_profiles['z'].copy()
             Kprofiles = diffusivity_fallback*np.ones(
                     self.environment_profiles['ocean_vertical_diffusivity'].shape) # keep constant value for ocean_vertical_diffusivity
         else:

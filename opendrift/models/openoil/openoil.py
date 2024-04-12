@@ -292,8 +292,6 @@ class OpenOil(OceanDrift):
         },
     }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
 
     max_speed = 1.3  # m/s
 
@@ -673,7 +671,6 @@ class OpenOil(OceanDrift):
         self.timer_end('main loop:updating elements:oil weathering')
 
     def prepare_run(self):
-
         if self.oil_weathering_model == 'noaa':
             self.noaa_mass_balance = {}
             # Populate with seeded mass spread on oiltype.mass_fraction
@@ -705,6 +702,8 @@ class OpenOil(OceanDrift):
         except Exception as e:
             logger.warning('Could not load max water content file')
             print(e)
+
+        super(OpenOil, self).prepare_run()
 
     def oil_weathering_noaa(self):
         '''Oil weathering scheme adopted from NOAA PyGNOME model:

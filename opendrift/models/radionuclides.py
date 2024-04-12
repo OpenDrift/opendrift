@@ -92,9 +92,6 @@ class RadionuclideDrift(OceanDrift):
         'conc3': {'fallback': 1.e-3},
         }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
-
 
     def specie_num2name(self,num):
         return self.name_species[num]
@@ -226,7 +223,7 @@ class RadionuclideDrift(OceanDrift):
         logger.info('nspecies: %s' % self.nspecies)
         logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
-
+        super(RadionuclideDrift, self).prepare_run()
 
 
     def init_species(self):
