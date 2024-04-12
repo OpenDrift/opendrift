@@ -422,7 +422,6 @@ class TestReaders(unittest.TestCase):
         assert o.environment_profiles['z'].min() == -75
 
         o = OpenOil()
-        o.required_profiles_depth = [-20, 0]
         o.set_config('drift:profiles_depth', 20)
         o.add_reader(r)
         o.set_config('environment:constant', {'land_binary_mask': 0, 'x_wind': 0, 'y_wind': 0})
