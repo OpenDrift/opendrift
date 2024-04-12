@@ -11,9 +11,9 @@ with username and password stored in a ``.netrc`` file with contents::
 
     machine copernicusmarine login <your username> password <your password>
 
-This file must be stored in your home folder or in the main OpenDrift folder
+This file must be stored in your home folder (and unreadable by others) or in the main OpenDrift folder
 
-Alternatively, an Xarray dataset can be created explicitly with the copoernicusmarine client, and provided to reader_netCDF_CF_generic:
+Alternatively, an Xarray dataset can be created explicitly with the copernicusmarine client, and provided to reader_netCDF_CF_generic:
 https://opendrift.github.io/gallery/example_long_cmems_new.html
 """
 

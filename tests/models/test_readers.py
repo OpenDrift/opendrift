@@ -381,9 +381,42 @@ class TestReaders(unittest.TestCase):
                                        time=norkyst3d.start_time,
                                        x=x, y=y, z=[0, -100])
         self.assertEqual(data['z'][4], -25)
-        self.assertEqual(data['z'][4], -25)
         self.assertAlmostEqual(data['sea_water_temperature'][:,0,0][7],
                          9.220000267028809)
+
+        # test also profiles depth
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
+                profiles_depth = [-100, 0],
+                time = norkyst3d.start_time,
+                lon=lon, lat=lat, z=0)
+        assert profiles['z'].min() == -150
+        # Request profiles with less depth
+        # NB TODO: must use later time, otherwise cache (with deeper profile) is reused
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
+                profiles_depth = [-30, 0],
+                time = norkyst3d.start_time + timedelta(hours=1),
+                lon=lon, lat=lat, z=0)
+        assert profiles['z'].min() == -75
+        # Setting vertical buffer to 0, and checking that now less extra layers are read in the vertical
+        norkyst3d.verticalbuffer=0
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
+                profiles_depth = [-30, 0],
+                time = norkyst3d.start_time + timedelta(hours=2),
+                lon=lon, lat=lat, z=0)
+        assert profiles['z'].min() == -50
+
+    def test_vertical_profile_from_simulation(self):
+        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        lon = np.array([4.73])
+        lat = np.array([62.35])
+        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
+                     'sea_water_temperature']
+        # TODO TO BE COMPLETED
+ 
 
     def test_vertical_interpolation(self):
         norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -406,10 +439,6 @@ class TestReaders(unittest.TestCase):
         # Check interpolated temperature at 33 m depth
         self.assertAlmostEqual(data['sea_water_temperature'][1],
                                8.32, 2)
-        #import matplotlib.pyplot as plt
-        #plt.plot(profiles['sea_water_temperature'][:,0])
-        #plt.plot(profiles['sea_water_temperature'][:,1], 'r')
-        #plt.show()
 
     def test_vertical_interpolation_sigma(self):
         nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +

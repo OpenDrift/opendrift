@@ -41,6 +41,7 @@ o.release_elements()
 o.environment = np.array(list(zip(np.ones(N)*sea_floor_depth, np.zeros(N))),
                 dtype=[('sea_floor_depth_below_sea_level', np.float32),
                        ('sea_surface_height', np.float32)]).view(np.recarray)
+o.environment.ocean_mixed_layer_thickness = np.ones(N)*50
 o.environment_profiles = {
         'z': z,
         'ocean_vertical_diffusivity':
