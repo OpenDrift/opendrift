@@ -387,7 +387,7 @@ class TestReaders(unittest.TestCase):
         # test also profiles depth
         data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles=['sea_water_temperature'],
-                profiles_depth = [-100, 0],
+                profiles_depth = 100,
                 time = norkyst3d.start_time,
                 lon=lon, lat=lat, z=0)
         assert profiles['z'].min() == -150
@@ -395,7 +395,7 @@ class TestReaders(unittest.TestCase):
         # NB TODO: must use later time, otherwise cache (with deeper profile) is reused
         data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles=['sea_water_temperature'],
-                profiles_depth = [-30, 0],
+                profiles_depth = 30,
                 time = norkyst3d.start_time + timedelta(hours=1),
                 lon=lon, lat=lat, z=0)
         assert profiles['z'].min() == -75
@@ -403,20 +403,31 @@ class TestReaders(unittest.TestCase):
         norkyst3d.verticalbuffer=0
         data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles=['sea_water_temperature'],
-                profiles_depth = [-30, 0],
+                profiles_depth = 30,
                 time = norkyst3d.start_time + timedelta(hours=2),
                 lon=lon, lat=lat, z=0)
         assert profiles['z'].min() == -50
 
     def test_vertical_profile_from_simulation(self):
-        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+        o = OpenOil()
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-        lon = np.array([4.73])
-        lat = np.array([62.35])
         variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
                      'sea_water_temperature']
-        # TODO TO BE COMPLETED
- 
+        N = 10
+        o.add_reader(r)
+        o.set_config('environment:constant', {'land_binary_mask': 0, 'x_wind': 0, 'y_wind': 0})
+        o.seed_elements(lon=np.linspace(4.5, 4.8, N), lat=np.linspace(63, 63.2, N), time=r.start_time)
+        o.run(steps=1)
+        assert o.environment_profiles['z'].min() == -75
+
+        o = OpenOil()
+        o.set_config('drift:profiles_depth', 20)
+        o.add_reader(r)
+        o.set_config('environment:constant', {'land_binary_mask': 0, 'x_wind': 0, 'y_wind': 0})
+        o.seed_elements(lon=np.linspace(4.5, 4.8, N), lat=np.linspace(63, 63.2, N), time=r.start_time)
+        o.run(steps=1)
+        assert o.environment_profiles['z'].min() == -50
 
     def test_vertical_interpolation(self):
         norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -430,7 +441,7 @@ class TestReaders(unittest.TestCase):
         # space (horizontally, vertically) and then in time
         data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles=['sea_water_temperature'],
-                profiles_depth = [-100, 0],
+                profiles_depth = 100,
                 time = norkyst3d.start_time + timedelta(seconds=900),
                 lon=lon, lat=lat, z=z)
         # Check surface value
@@ -486,7 +497,7 @@ class TestReaders(unittest.TestCase):
             o.env.get_environment(list(o.required_variables),
                               reader_nordic.start_time,
                               testlon, testlat, testz,
-                              o.required_profiles)
+                              o.required_profiles, profiles_depth=120)
         self.assertAlmostEqual(env['sea_water_temperature'][0], 4.251, 2)
         self.assertAlmostEqual(env['sea_water_temperature'][1], -0.148, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)

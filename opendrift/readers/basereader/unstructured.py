@@ -67,7 +67,7 @@ class UnstructuredReader(Variables):
         env_profiles = None
         if profiles is not None:
             # Copying data from environment to vertical profiles
-            env_profiles = {'z': profiles_depth}
+            env_profiles = {'z': [0, -profiles_depth]}
             for var in profiles:
                 env_profiles[var] = np.ma.array([env[var], env[var]])
 

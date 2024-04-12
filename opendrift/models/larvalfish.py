@@ -82,7 +82,6 @@ class LarvalFish(OceanDrift):
         'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0},
     }
 
-    required_profiles_z_range = [0, -50]  # The depth range (in m) which profiles should cover
 
     def __init__(self, *args, **kwargs):
 

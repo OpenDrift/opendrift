@@ -77,8 +77,6 @@ class PelagicEggDrift(OceanDrift):
         'upward_sea_water_velocity': {'fallback': 0},
       }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-120, 0]
 
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',

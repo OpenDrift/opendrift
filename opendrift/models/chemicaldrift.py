@@ -112,9 +112,6 @@ class ChemicalDrift(OceanDrift):
         'pH_sediment':{'fallback': 6.9, 'profiles': False}, # supplied by the user, with pH_sediment as standard name #
         }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
-
 
     def specie_num2name(self,num):
         return self.name_species[num]
@@ -374,6 +371,7 @@ class ChemicalDrift(OceanDrift):
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.DOC_vertical_levels_given = True
 
+        super(ChemicalDrift, self).prepare_run()
 
     def init_species(self):
         # Initialize specie types
