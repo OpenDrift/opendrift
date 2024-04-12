@@ -138,6 +138,9 @@ class OceanDrift(OpenDriftSimulation):
             'vertical_mixing:TSprofiles': {'type': 'bool', 'default': False, 'level':
                 CONFIG_LEVEL_ADVANCED,
                 'description': 'Update T and S profiles within inner loop of vertical mixing. This takes more time, but may be slightly more accurate.'},
+            'drift:profiles_depth': {'type': 'float', 'default': 50, 'min': 0, 'max': None,
+                'level': CONFIG_LEVEL_ADVANCED, 'units': 'meters', 'description':
+                'Environment profiles will be retrieved from surface and down to this depth'},
             'drift:wind_drift_depth': {'type': 'float', 'default': 0.1,
                 'min': 0, 'max': 10, 'units': 'meters',
                 'description': 'The direct wind drift (windage) is linearly decreasing from the surface value (wind_drift_factor) until 0 at this depth.',
@@ -445,8 +448,7 @@ class OceanDrift(OpenDriftSimulation):
 
         pass
 
-    def get_diffusivity_profile(self, model):
-        depths = np.abs(self.environment_profiles['z'])
+    def get_diffusivity_profile(self, model, depths):
         wind, depth = np.meshgrid(self.wind_speed(), depths)
         MLD = self.environment.ocean_mixed_layer_thickness
         background_diffusivity = self.get_config('vertical_mixing:background_diffusivity')
@@ -508,6 +510,8 @@ class OceanDrift(OpenDriftSimulation):
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         diffusivity_fallback = self.get_config('environment:fallback:ocean_vertical_diffusivity')
+        # Mixing levels to be used if analytical expression:
+        mixing_z_analytical = -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
         if diffusivity_model == 'environment':
             if 'ocean_vertical_diffusivity' in self.environment_profiles and not (
                     self.environment_profiles['ocean_vertical_diffusivity'].min() ==
@@ -516,26 +520,22 @@ class OceanDrift(OpenDriftSimulation):
                     diffusivity_fallback):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
+                mixing_z = self.environment_profiles['z']
                 logger.debug('Using diffusivity from ocean model')
             else:
                 logger.debug('Using diffusivity from Large1994 since model diffusivities not available')
-                # Using higher vertical resolution when analytical
-                self.environment_profiles['z'] = \
-                        -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
-                Kprofiles = self.get_diffusivity_profile('windspeed_Large1994')
+                mixing_z = mixing_z_analytical
+                Kprofiles = self.get_diffusivity_profile('windspeed_Large1994', np.abs(mixing_z))
         elif diffusivity_model == 'constant':
             logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (diffusivity_fallback))
+            mixing_z = self.environment_profiles['z']
             Kprofiles = diffusivity_fallback*np.ones(
                     self.environment_profiles['ocean_vertical_diffusivity'].shape) # keep constant value for ocean_vertical_diffusivity
         else:
             logger.debug('Using functional expression for diffusivity')
-            # Using higher vertical resolution when analytical
-            if self.environment_profiles is None:
-                self.environment_profiles = {}
-            self.environment_profiles['z'] = \
-                    -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
             # Note: although analytical functions, z is discretised
-            Kprofiles = self.get_diffusivity_profile(diffusivity_model)
+            mixing_z = mixing_z_analytical
+            Kprofiles = self.get_diffusivity_profile(diffusivity_model, np.abs(mixing_z))
 
         logger.debug('Diffusivities are in range %s to %s' %
                       (Kprofiles.min(), Kprofiles.max()))
@@ -561,12 +561,11 @@ class OceanDrift(OpenDriftSimulation):
             Tprofiles = None
 
         # prepare vertical interpolation coordinates
-        z_i = range(self.environment_profiles['z'].shape[0])
+        z_i = range(mixing_z.shape[0])
         if len(z_i) == 1:
             z_index = 0
         else:
-            z_index = interp1d(-self.environment_profiles['z'],
-                               z_i, bounds_error=False,
+            z_index = interp1d(-mixing_z, z_i, bounds_error=False,
                                fill_value=(0,len(z_i)-1))  # Extrapolation
 
         # Internal loop for fast time step of vertical mixing model.
@@ -583,7 +582,7 @@ class OceanDrift(OpenDriftSimulation):
             depths[0, :] = self.elements.z
 
         # Calculating dK/dz for all profiles before the loop
-        gradK = -np.gradient(Kprofiles, self.environment_profiles['z'], axis=0)
+        gradK = -np.gradient(Kprofiles, mixing_z, axis=0)
         gradK[np.abs(gradK)<1e-10] = 0
 
         for i in range(0, ntimes_mix):

@@ -393,7 +393,8 @@ class TestRun(unittest.TestCase):
             o.environment = np.array([(100, 0) for _ in range(N)],
                          dtype=[('sea_floor_depth_below_sea_level', np.float32),
                                 ('sea_surface_height', np.float32)]).view(np.recarray)
-            o.environment_profiles = { 'z': z, 'ocean_vertical_diffusivity':
+            o.environment.ocean_mixed_layer_thickness = np.ones(N)*50
+            o.environment_profiles = {'z': z, 'ocean_vertical_diffusivity':
                                       np.tile(diffusivity, (N, 1)).T}
             o.env.finalize()
             o.vertical_mixing()

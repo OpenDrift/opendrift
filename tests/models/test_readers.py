@@ -408,6 +408,16 @@ class TestReaders(unittest.TestCase):
                 lon=lon, lat=lat, z=0)
         assert profiles['z'].min() == -50
 
+    def test_vertical_profile_from_simulation(self):
+        norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        lon = np.array([4.73])
+        lat = np.array([62.35])
+        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
+                     'sea_water_temperature']
+        # TODO TO BE COMPLETED
+ 
+
     def test_vertical_interpolation(self):
         norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
