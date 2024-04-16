@@ -937,6 +937,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          lat=latgrid,
                                          z=0 * longrid,
                                          time=land_reader.start_time)[0]['land_binary_mask']
+        if landgrid.size == 0:
+            # Need to catch this before trying .min() on it...
+            logger.warning('Land grid has zero size, cannot move elements.')
+            return lon, lat
         if landgrid.min() == 1 or np.isnan(landgrid.min()):
             logger.warning('No ocean pixels nearby, cannot move elements.')
             return lon, lat
