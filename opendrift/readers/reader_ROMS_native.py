@@ -153,7 +153,7 @@ class Reader(BaseReader, StructuredReader):
                         dropvars = [v for v in ds.variables if v not in
                                     list(self.ROMS_variable_mapping.keys()) + gls_param +
                                     ['ocean_time', 'time', 'bulk_time', 's_rho',
-                                     'Cs_r', 'hc', 'Vtransform']
+                                     'Cs_r', 'hc', 'angle', 'Vtransform']
                                     and v[0:3] not in ['lon', 'lat', 'mas']]
                         logger.debug('Dropping variables: %s' % dropvars)
                         ds = ds.drop_vars(dropvars)
