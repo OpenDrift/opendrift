@@ -293,8 +293,6 @@ class OpenOil(OceanDrift):
     }
 
 
-    max_speed = 1.3  # m/s
-
     # Default colors for plotting
     status_colors = {
         'initial': 'green',
@@ -488,6 +486,7 @@ class OpenOil(OceanDrift):
         self._set_config_default('drift:vertical_mixing', True)
         self._set_config_default('drift:current_uncertainty', 0.05)
         self._set_config_default('drift:wind_uncertainty', 0.5)
+        self._set_config_default('drift:max_speed', 1.3)
 
     def update_surface_oilfilm_thickness(self):
         '''The mass of oil is summed within a grid of 100x100
