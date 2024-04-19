@@ -179,8 +179,6 @@ class OpenHNS(OceanDrift):
     }
 
 
-    max_speed = 1.3  # m/s
-
     hns_types = {
         'butyl': {'evaporation_rate': .03, 'dissolution_rate': .05},
         'acetone': {'evaporation_rate': .16, 'dissolution_rate': .01},
