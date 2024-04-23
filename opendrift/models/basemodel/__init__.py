@@ -2510,6 +2510,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if self.history is not None:
             lons = self.history['lon']
             lats = self.history['lat']
+            # mask values of 9.969209968386869e+36
+            lons = np.ma.array(lons, mask=lons == 9.969209968386869e+36)
+            lats = np.ma.array(lats, mask=lats == 9.969209968386869e+36)
         else:
             if self.steps_output > 0:
                 lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
