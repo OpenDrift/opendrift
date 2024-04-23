@@ -701,11 +701,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if 'sea_floor_depth_below_sea_level' not in self.env.priority_list:
             return
 
-        if not hasattr(self, 'environment') or not hasattr(
-                self.environment, 'sea_surface_height'):
-            logger.warning('Seafloor check not being run because sea_surface_height is missing. '
+        if not hasattr(self, 'environment'):
+            logger.warning('Seafloor check not being run because environment is missing. '
                            'This will happen the first time the function is run but if it happens '
                            'subsequently there is probably a problem.')
+            return
+
+        if not hasattr(self.environment, 'sea_surface_height'):
+            logger.warning('Seafloor check not being run because sea_surface_height is missing. ')
             return
 
         # the shape of these is different than the original arrays
@@ -714,9 +717,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         sea_surface_height = self.sea_surface_height()
 
         # Check if any elements are below sea floor
-        # But remember that the water column is the sea floor depth + sea surface height + parameter Dcrit
-        Dcrit = self.get_config('general:seafloor_action_dcrit')
-        ibelow = self.elements.z < -(sea_floor_depth + sea_surface_height + Dcrit)
+        # But remember that the water column is the sea floor depth + sea surface height
+        ibelow = self.elements.z < -(sea_floor_depth + sea_surface_height)
         below = np.where(ibelow)[0]
 
         if len(below) == 0:

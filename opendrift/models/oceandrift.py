@@ -160,10 +160,6 @@ class OceanDrift(OpenDriftSimulation):
                 'enum': ['none', 'lift_to_seafloor', 'deactivate', 'previous'],
                 'description': '"deactivate": elements are deactivated; "lift_to_seafloor": elements are lifted to seafloor level; "previous": elements are moved back to previous position; "none"; seafloor is ignored.',
                 'level': CONFIG_LEVEL_ADVANCED},
-            'general:seafloor_action_dcrit': {'type': 'float', 'default': 0.0,
-                'min': 0.0, 'max': 10000, 'units': 'm',
-                'description': 'This parameter represents the amount of water left in a grid cell to keep it wet in a wet/dry simulation for numerical stability. The condition checked for seafloor_action is z < -(sea_floor_depth + sea_surface_height + `general:seafloor_action_dcrit`. It is 0 by default to assume that a wet/dry case is not being run, however, if it is and the correct value is not known 0.1 is a good default to use.',
-                'level': CONFIG_LEVEL_ADVANCED},
             'drift:truncate_ocean_model_below_m': {'type': 'float', 'default': None,
                 'min': 0, 'max': 10000, 'units': 'm',
                 'description': 'Ocean model data are only read down to at most this depth, and extrapolated below. May be specified to read less data to improve performance.',
@@ -421,9 +417,8 @@ class OceanDrift(OpenDriftSimulation):
                 self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
 
         # check for minimum height/maximum depth for each particle accouting also for
-        # the sea surface height and the critical/min wet cell depth
-        Dcrit = self.get_config('general:seafloor_action_dcrit')
-        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height + Dcrit)
+        # the sea surface height
+        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height)
 
         # Let particles stick to bottom
         bottom = np.where(self.elements.z < Zmin)
@@ -500,9 +495,8 @@ class OceanDrift(OpenDriftSimulation):
         dt_mix = self.get_config('vertical_mixing:timestep')
 
         # minimum height/maximum depth for each particle accouting also for
-        # the sea surface height and the critical/min wet cell depth
-        Dcrit = self.get_config('general:seafloor_action_dcrit')
-        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height + Dcrit)
+        # the sea surface height
+        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height)
 
         # Eventual model specific preparions
         self.prepare_vertical_mixing()

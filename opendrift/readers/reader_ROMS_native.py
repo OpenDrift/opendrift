@@ -122,7 +122,8 @@ class Reader(BaseReader, StructuredReader):
             'uwind': 'x_wind',
             'vwind': 'y_wind',
             'Uwind': 'x_wind',
-            'Vwind': 'y_wind'}
+            'Vwind': 'y_wind',
+            }
 
         # Add user provided variable mappings
         self.ROMS_variable_mapping.update(standard_name_mapping)
@@ -483,8 +484,13 @@ class Reader(BaseReader, StructuredReader):
             # Transform z_rho to match convention of z.
             z_rho -= np.asarray(zeta)[np.newaxis]
 
+            # Check for positive values in z_rho
+            # if there are any, nan them out since they are above
+            # the surface and therefore the cell is dry
+            # this should only come up for wet/dry simulations
             if (np.nanmax(z_rho) > 0).any():
-                logger.warning('z_rho is positive, but should be negative or 0.')
+                logger.info(f'z_rho had positive values that are now nans.')
+                z_rho[z_rho>0] = np.nan
 
             # Element indices must be relative to extracted subset
             indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
@@ -543,7 +549,7 @@ class Reader(BaseReader, StructuredReader):
                 variables[par] = var[itzxy]
             else:
                 raise Exception('Wrong dimension of variable: ' +
-                                self.variable_mapping[par])
+                                self.ROMS_variable_mapping[par])
 
             # If Xarray, load in so can be used in future loop iterations too
             variables[par] = np.asarray(variables[par])            
