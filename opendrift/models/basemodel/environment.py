@@ -933,7 +933,7 @@ class Environment(Timeable, Configurable):
 
         return env.view(np.recarray), env_profiles, missing
 
-    def get_variables_along_trajectory(self, variables, lons, lats, times):
+    def get_variables_along_trajectory(self, variables, lons, lats, times, z=0):
         self.finalize()
         data = {'time': times, 'lon': lons, 'lat': lats}
         for var in variables:
@@ -942,7 +942,7 @@ class Environment(Timeable, Configurable):
             self.time = time
             d = self.get_environment(lon=np.atleast_1d(lons[i]),
                                      lat=np.atleast_1d(lats[i]),
-                                     z=np.atleast_1d(0),
+                                     z=np.atleast_1d(z),
                                      time=time,
                                      variables=variables,
                                      profiles=None)
