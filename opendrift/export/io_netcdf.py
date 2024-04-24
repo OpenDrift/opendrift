@@ -74,7 +74,11 @@ def init(self, filename):
             dtype = self.history.dtype[prop]
         except:
             dtype = 'f4'
-        var = self.outfile.createVariable(prop, dtype, ('trajectory', 'time'))
+        if np.issubdtype(dtype, np.integer):
+            fill=-999
+        else:
+            fill = np.nan
+        var = self.outfile.createVariable(prop, dtype, ('trajectory', 'time'), fill_value=fill)
         for subprop in self.history_metadata[prop].items():
             if subprop[0] not in ['dtype', 'constant', 'default', 'seed']:
                 # Apparently axis attribute shall not be given for lon and lat:
@@ -184,8 +188,12 @@ def close(self):
                     dst.createDimension(name, len(dimension))
 
             for name, variable in src.variables.items():
+                if '_FillValue' in variable.ncattrs():
+                    fill = variable.getncattr('_FillValue')
+                else:
+                    fill = None
                 dstVar = dst.createVariable(name, variable.datatype,
-                                             variable.dimensions)
+                                             variable.dimensions, fill_value=fill)
                 srcVar = src.variables[name]
                 # Truncate data to number actually seeded
                 if 'trajectory' in variable.dimensions:
@@ -200,6 +208,8 @@ def close(self):
                     dstVar[:] = srcVar[:]
                 for att in src.variables[name].ncattrs():
                     # Copy variable attributes
+                    if att in ['_FillValue']:
+                        continue
                     dstVar.setncattr(att, srcVar.getncattr(att))
 
             for att in src.ncattrs():  # Copy global attributes
