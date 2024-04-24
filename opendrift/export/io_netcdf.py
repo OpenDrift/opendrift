@@ -188,7 +188,6 @@ def close(self):
                     dst.createDimension(name, len(dimension))
 
             for name, variable in src.variables.items():
-                print(name, variable.ncattrs())
                 if '_FillValue' in variable.ncattrs():
                     fill = variable.getncattr('_FillValue')
                 else:
