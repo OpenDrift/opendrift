@@ -613,6 +613,7 @@ class Environment(Timeable, Configurable):
             logger.debug('Variable group %s' % (str(variable_group)))
             logger.debug('----------------------------------------')
             missing_indices = np.array(range(len(lon)))
+            print(len(lon), 'LENLON')
             # For each reader:
             for reader_name in reader_group:
                 logger.debug('Calling reader ' + reader_name)

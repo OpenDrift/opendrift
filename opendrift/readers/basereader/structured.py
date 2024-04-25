@@ -313,7 +313,13 @@ class StructuredReader(Variables):
                               len(self.var_block_after[blockvars_after].y),
                               len_z, time_after))
                 block_after = self.var_block_after[blockvars_after]
+                print(len(reader_x), 'LEN-Reader-X')
 
+        print(f'Len(rx) {len(reader_x)}')
+        print(f'Before cover: {block_before.covers_positions(reader_x, reader_y)}')
+        print(f'After cover: {block_before.covers_positions(reader_x, reader_y)}')
+        print(block_before.y.min(), block_before.y.max(), reader_y.min(), reader_y.max(), 'BByminmax, reader_y_minmax')
+        print(self.ymin, self.ymax, 'reader ymin ymax')
         if (block_before is not None and block_before.covers_positions(
             reader_x, reader_y) is False) or (\
             block_after is not None and block_after.covers_positions(
