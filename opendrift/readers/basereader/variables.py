@@ -744,8 +744,6 @@ class Variables(ReaderDomain):
         z = z.copy()[ind_covered]
 
         logger.debug(f'Fetching variables from {self.name} covering {len(ind_covered)} elements')
-        print(f'Covered elements: {len(ind_covered)}')
-        print(ind_covered)
         self.timer_start('reading')
 
         # Filter derived variables
