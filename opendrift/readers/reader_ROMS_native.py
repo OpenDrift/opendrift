@@ -437,9 +437,9 @@ class Reader(BaseReader, StructuredReader):
         # Avoiding the last pixel in each dimension, since there are
         # several grids which are shifted (rho, u, v, psi)
         indx = np.arange(np.max([0, indx.min()-buffer]),
-                            np.min([indx.max()+buffer, self.lon.shape[1]]))
+                            np.min([indx.max()+buffer, self.lon.shape[1]-1]))
         indy = np.arange(np.max([0, indy.min()-buffer]),
-                            np.min([indy.max()+buffer, self.lon.shape[0]]))
+                            np.min([indy.max()+buffer, self.lon.shape[0]-1]))
 
         # define indices
         ixy = (indy,indx)
