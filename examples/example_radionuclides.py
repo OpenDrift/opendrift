@@ -4,7 +4,7 @@ Radionuclides
 =============
 """
 
-from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
+from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.radionuclides import RadionuclideDrift
 from datetime import timedelta, datetime
 import numpy as np

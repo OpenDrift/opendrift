@@ -743,7 +743,7 @@ class Variables(ReaderDomain):
             z = z.copy() * np.ones(x.shape)
         z = z.copy()[ind_covered]
 
-        logger.debug('Fetching variables from ' + self.name)
+        logger.debug(f'Fetching variables from {self.name} covering {len(ind_covered)} elements')
         self.timer_start('reading')
 
         # Filter derived variables

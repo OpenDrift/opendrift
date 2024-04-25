@@ -4,7 +4,7 @@ ChemicalDrift - Transport and fate of organic compounds
 ========================================================
 """
 
-from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
+from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.chemicaldrift import ChemicalDrift
 from opendrift.readers.reader_constant import Reader as ConstantReader
 from datetime import timedelta, datetime
