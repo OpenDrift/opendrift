@@ -324,11 +324,6 @@ class Environment(Timeable, Configurable):
                         reader.name = tmp_name
                         break
 
-            # Horizontal buffer of reader must be large enough to cover
-            # the distance possibly covered by elements within a time step
-            if not reader.is_lazy:
-                reader.set_buffer_size(max_speed=self.get_config('drift:max_speed'))
-
             self.readers[reader.name] = reader
             logger.debug('Added reader ' + reader.name)
 

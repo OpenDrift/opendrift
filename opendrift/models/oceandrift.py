@@ -173,7 +173,7 @@ class OceanDrift(OpenDriftSimulation):
                 'level': CONFIG_LEVEL_ESSENTIAL},
             })
 
-        self._set_config_default('drift:max_speed', 1)
+        self._set_config_default('drift:max_speed', 2)
 
     def update(self):
         """Update positions and properties of elements."""

@@ -544,6 +544,12 @@ class Variables(ReaderDomain):
 
         super().__init__()
 
+    def prepare(self, extent, start_time, end_time, max_speed):
+        """Prepare reader for given simulation coverage in time and space."""
+        logger.debug('Nothing more to prepare for ' + self.name)
+        pass  # to be overriden by specific readers
+
+
     def activate_environment_mapping(self, mapping_name):
         if mapping_name not in self.environment_mappings:
             raise ValueError('Available environment mappings: ' + str(self.environment_mappings))
