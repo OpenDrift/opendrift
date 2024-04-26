@@ -188,7 +188,7 @@ class TestReaders(unittest.TestCase):
                         wind_drift_factor=.02,
                         number=10, radius=1000)
         o.run(steps=8)
-        self.assertEqual(o.num_elements_deactivated(), 4)
+        self.assertEqual(o.num_elements_deactivated(), 1)
 
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
@@ -662,7 +662,7 @@ class TestReaders(unittest.TestCase):
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
         u = o.get_property('x_sea_water_velocity')[0]
-        self.assertAlmostEqual(u.max(), -.069, 3)  # Some numerical error allowed
+        self.assertAlmostEqual(u.max(), -.0718, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':
