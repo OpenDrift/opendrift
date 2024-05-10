@@ -73,6 +73,13 @@ class LeewayObj(LagrangianArray):
             'Probability per hour that an object may change orientation (jibing)',
             'default': 0.04
         }),
+         ('capsized', {
+            'dtype': np.uint8,
+            'units': '1',
+            'description': '0 is not capsized, changed to 1 after capsizing (irreversible). After capsizing, leeway coeffieiencts are reduced as given by config item "capsized:leeway_fraction"',
+            'seed': True,
+            'default': 0
+        }),
         ('downwind_slope', {
             'dtype': np.float32,
             'units': '%',
@@ -224,6 +231,46 @@ class Leeway(OpenDriftSimulation):
                 'units': 'probability',
                 'level': CONFIG_LEVEL_BASIC
             },
+              'capsizing': {
+                'type': 'bool',
+                'default': False,
+                'min': 0,
+                'max': 1,
+                'description':
+                'If True, elements can be capsized when wind exceeds threshold given by config item capsize:wind_threshold',
+                'units': 'fraction',
+                'level': CONFIG_LEVEL_BASIC
+            },
+             'capsizing:leeway_fraction': {
+                'type': 'float',
+                'default': 0.4,
+                'min': 0,
+                'max': 1,
+                'description':
+                'After capsizing, leeway coefficients are reduced by multiplying by this factor',
+                'units': 'fraction',
+                'level': CONFIG_LEVEL_BASIC
+            },
+              'capsizing:wind_threshold': {
+                'type': 'float',
+                'default': 15,
+                'min': 0,
+                'max': 50,
+                'description':
+                'Probability of capsizing is activated when wind exceeds this value (m/s)',
+                'units': 'm/s',
+                'level': CONFIG_LEVEL_BASIC
+            },
+               'capsizing:probability_per_hour': {
+                'type': 'float',
+                'default': 0.01,
+                'min': 0,
+                'max': 1,
+                'description':
+                'The probability of capsizing per hour, when wind exceeds value given by config item capsize:wind_threshold',
+                'units': 'm/s',
+                'level': CONFIG_LEVEL_BASIC
+            },
         })
 
         self._set_config_default('general:time_step_minutes', 10)
@@ -353,6 +400,13 @@ class Leeway(OpenDriftSimulation):
                     continue
             print('%i %s %s' % (i + 1, objkey, description))
 
+    def prepare_run(self):
+        '''Not allowing capsizing for backwards runs'''
+        if self.time_step.days < 0 and self.get_config('capsizing') is True:
+            raise ValueError('Capsizing is not allowed for backwards runs')
+
+        super(Leeway, self).prepare_run()
+
     def update(self):
         """Update positions and properties of leeway particles."""
 
@@ -360,6 +414,22 @@ class Leeway(OpenDriftSimulation):
                             self.environment.y_wind**2)
         # CCC update wind direction
         winddir = np.arctan2(self.environment.x_wind, self.environment.y_wind)
+
+        # Capsizing
+        if self.get_config('capsizing') is True:
+            wind_threshold = self.get_config('capsizing:wind_threshold')
+            hw = np.where(np.logical_and(windspeed>wind_threshold, self.elements.capsized==0))[0]
+            capsizing = np.random.rand(len(hw))<self.get_config('capsizing:probability_per_hour')*\
+                                        self.time_step.total_seconds()/3600  # NB: assuming small timestep
+            capsizing = hw[capsizing]
+            logger.debug(f'Capsizing {len(capsizing)} of {len(hw)} elements where wind is above threshold of {wind_threshold} m/s')
+            # Reducing downwind and crosswind leeway slope and eps (not offset) by given factor
+            cf = self.get_config('capsizing:leeway_fraction')
+            self.elements.capsized[capsizing] = 1
+            self.elements.downwind_slope[capsizing] *= cf
+            self.elements.downwind_eps[capsizing] *= cf
+            self.elements.crosswind_slope[capsizing] *= cf
+            self.elements.crosswind_eps[capsizing] *= cf
 
         # Move particles with the leeway CCC TODO
         downwind_leeway = (
