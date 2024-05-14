@@ -4287,6 +4287,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         time_array_relative = [td * i for i in range(self.steps_output)]
         return time_array, time_array_relative
 
+    def simulation_direction(self):
+        """Return 1 for a forward simulation, and -1 for a backward simulation"""
+        if self.time_step.days < 0:
+            return -1
+        else:
+            return 1
+
     @require_mode(mode=Mode.Result)
     def plot_environment(self, filename=None, ax=None, show=True):
         """Plot mean wind and current velocities of element of last run."""

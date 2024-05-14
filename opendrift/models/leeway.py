@@ -253,21 +253,21 @@ class Leeway(OpenDriftSimulation):
             },
               'capsizing:wind_threshold': {
                 'type': 'float',
-                'default': 15,
+                'default': 30,
                 'min': 0,
                 'max': 50,
                 'description':
-                'Probability of capsizing is activated when wind exceeds this value (m/s)',
+                'Probability of capsizing per hour is: 0.5 + 0.5tanh((windspeed-wind_threshold)/wind_threshold_sigma)',
                 'units': 'm/s',
                 'level': CONFIG_LEVEL_BASIC
             },
-               'capsizing:probability_per_hour': {
+               'capsizing:wind_threshold_sigma': {
                 'type': 'float',
-                'default': 0.01,
+                'default': 5,
                 'min': 0,
-                'max': 1,
+                'max': 20,
                 'description':
-                'The probability of capsizing per hour, when wind exceeds value given by config item capsize:wind_threshold',
+                'Sigma parameter in parameterization of capsize probability',
                 'units': 'm/s',
                 'level': CONFIG_LEVEL_BASIC
             },
@@ -400,12 +400,20 @@ class Leeway(OpenDriftSimulation):
                     continue
             print('%i %s %s' % (i + 1, objkey, description))
 
-    def prepare_run(self):
-        '''Not allowing capsizing for backwards runs'''
-        if self.time_step.days < 0 and self.get_config('capsizing') is True:
-            raise ValueError('Capsizing is not allowed for backwards runs')
+    def plot_capsize_probability(self):
+        U = np.linspace(0, 35, 100)
+        wind_threshold = self.get_config('capsizing:wind_threshold')
+        sigma = self.get_config('capsizing:wind_threshold_sigma')
+        p = self.capsize_probability(U, wind_threshold, sigma)
+        import matplotlib.pyplot as plt
+        plt.plot(U, p)
+        plt.title(f'p(u) = 0.5 + 0.5*tanh((u - {wind_threshold} / {sigma})')
+        plt.xlabel('Wind speed  [m/s]')
+        plt.ylabel('Probability of capsizing per hour')
+        plt.show()
 
-        super(Leeway, self).prepare_run()
+    def capsize_probability(self, wind, threshold, sigma):
+        return .5 + .5*np.tanh((wind-threshold)/sigma)
 
     def update(self):
         """Update positions and properties of leeway particles."""
@@ -418,18 +426,20 @@ class Leeway(OpenDriftSimulation):
         # Capsizing
         if self.get_config('capsizing') is True:
             wind_threshold = self.get_config('capsizing:wind_threshold')
-            hw = np.where(np.logical_and(windspeed>wind_threshold, self.elements.capsized==0))[0]
-            capsizing = np.random.rand(len(hw))<self.get_config('capsizing:probability_per_hour')*\
-                                        self.time_step.total_seconds()/3600  # NB: assuming small timestep
-            capsizing = hw[capsizing]
-            logger.debug(f'Capsizing {len(capsizing)} of {len(hw)} elements where wind is above threshold of {wind_threshold} m/s')
-            # Reducing downwind and crosswind leeway slope and eps (not offset) by given factor
-            cf = self.get_config('capsizing:leeway_fraction')
-            self.elements.capsized[capsizing] = 1
-            self.elements.downwind_slope[capsizing] *= cf
-            self.elements.downwind_eps[capsizing] *= cf
-            self.elements.crosswind_slope[capsizing] *= cf
-            self.elements.crosswind_eps[capsizing] *= cf
+            wind_threshold_sigma = self.get_config('capsizing:wind_threshold_sigma')
+            # For forward run, elements can be capsized, but for backwards run, only capsized elements can be un-capsized
+            if self.simulation_direction() == 1:  # forward run
+                can_be_capsized = np.where(self.elements.capsized==0)[0]
+            else:
+                can_be_capsized = np.where(self.elements.capsized==1)[0]
+            if len(can_be_capsized) > 0:
+                probability = self.capsize_probability(windspeed[can_be_capsized],
+                        wind_threshold, wind_threshold_sigma)*np.abs(self.time_step.total_seconds())/3600
+                # NB: assuming small timestep
+                to_be_capsized = np.where(np.random.rand(len(can_be_capsized)) < probability)[0]
+                to_be_capsized = can_be_capsized[to_be_capsized]
+                logger.warning(f'Capsizing {len(to_be_capsized)} of {len(can_be_capsized)} elements')
+                self.elements.capsized[to_be_capsized] = 1 - self.elements.capsized[to_be_capsized]
 
         # Move particles with the leeway CCC TODO
         downwind_leeway = (
@@ -444,6 +454,9 @@ class Leeway(OpenDriftSimulation):
         costh = np.cos(winddir)
         y_leeway = downwind_leeway * costh + crosswind_leeway * sinth
         x_leeway = -downwind_leeway * sinth + crosswind_leeway * costh
+        capsize_fraction = self.get_config('capsizing:leeway_fraction')  # Reducing leeway for capsized elements
+        x_leeway[self.elements.capsized==1] *= capsize_fraction
+        y_leeway[self.elements.capsized==1] *= capsize_fraction
         self.update_positions(-x_leeway, y_leeway)
 
         # Move particles with ambient current

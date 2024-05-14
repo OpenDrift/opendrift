@@ -32,11 +32,14 @@ o.set_config('environment:fallback:x_sea_water_velocity', 0)
 o.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
-# Activating capsizing for high winds
+# Activating capsizing for high winds, with probability per hour given by
+# p(windspeed) = 0.5 + 0.5*tanh((windspeed-wind_threshold)/sigma)
 o.set_config('capsizing', True)
-o.set_config('capsizing:wind_threshold', 15)  # Capsizing can take place for winds above 15 m/s
-o.set_config('capsizing:probability_per_hour', .01)  # 1% probability of capsizing per hour for wind above threshold
+o.set_config('capsizing:wind_threshold', 30)
+o.set_config('capsizing:wind_threshold_sigma', 5)
 o.set_config('capsizing:leeway_fraction', 0.4)  # Reducing leeway coefficients to 40% of original after capsize
+
+o.plot_capsize_probability()
 
 #%%
 # Seed leeway elements at defined position and time
