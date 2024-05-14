@@ -81,24 +81,27 @@ def test_leewayrun(tmpdir, test_data):
 def test_capsize():
     o = Leeway(loglevel=20)
     o.set_config('environment:constant', {'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0,
-                    'x_wind': 15, 'y_wind': 0, 'land_binary_mask': 0})
+                    'x_wind': 25, 'y_wind': 0, 'land_binary_mask': 0})
     o.set_config('capsizing', True)
-    o.set_config('capsizing:wind_threshold', 15)
-    o.set_config('capsizing:wind_threshold_sigma', 5)
+    o.set_config('capsizing:wind_threshold', 30)
+    o.set_config('capsizing:wind_threshold_sigma', 3)
     o.set_config('capsizing:leeway_fraction', .4)
-    o.seed_elements(lon=0, lat=60, time=datetime.now(), number=10)
-    o.run(time_step=900, time_step_output=900, duration=timedelta(hours=2))
+    o.seed_elements(lon=0, lat=60, time=datetime.now(), number=100)
+    o.run(time_step=900, time_step_output=900, duration=timedelta(hours=6))
     assert o.elements.capsized.max() == 1
     assert o.elements.capsized.min() == 0
-    assert o.elements.capsized.sum() == 6
+    assert o.elements.capsized.sum() == 18
 
     # Backward run, checking that forward capsizing is not happening
     ob = Leeway(loglevel=20)
     ob.set_config('capsizing', True)
+    ob.set_config('capsizing:wind_threshold', 30)
+    ob.set_config('capsizing:wind_threshold_sigma', 3)
+    ob.set_config('capsizing:leeway_fraction', .4)
     ob.set_config('environment:constant', {'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0,
-                    'x_wind': 15, 'y_wind': 0, 'land_binary_mask': 0})
-    ob.seed_elements(lon=0, lat=60, time=datetime.now(), number=10)
-    ob.run(time_step=-900, time_step_output=900, duration=timedelta(hours=2))
+                    'x_wind': 25, 'y_wind': 0, 'land_binary_mask': 0})
+    ob.seed_elements(lon=0, lat=60, time=datetime.now(), number=100)
+    ob.run(time_step=-900, time_step_output=900, duration=timedelta(hours=6))
     assert ob.elements.capsized.max() == 0
     assert ob.elements.capsized.min() == 0
     assert ob.elements.capsized.sum() == 0
@@ -106,10 +109,13 @@ def test_capsize():
     # Backward run, checking that backward capsizing does happen
     ob = Leeway(loglevel=20)
     ob.set_config('capsizing', True)
+    ob.set_config('capsizing:wind_threshold', 30)
+    ob.set_config('capsizing:wind_threshold_sigma', 3)
+    ob.set_config('capsizing:leeway_fraction', .4)
     ob.set_config('environment:constant', {'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0,
-                    'x_wind': 15, 'y_wind': 0, 'land_binary_mask': 0})
-    ob.seed_elements(lon=0, lat=60, time=datetime.now(), number=10, capsized=1)
-    ob.run(time_step=-900, time_step_output=900, duration=timedelta(hours=2))
+                    'x_wind': 25, 'y_wind': 0, 'land_binary_mask': 0})
+    ob.seed_elements(lon=0, lat=60, time=datetime.now(), number=100, capsized=1)
+    ob.run(time_step=-900, time_step_output=900, duration=timedelta(hours=6))
     assert ob.elements.capsized.max() == 1
     assert ob.elements.capsized.min() == 0
-    assert ob.elements.capsized.sum() == 7
+    assert ob.elements.capsized.sum() == 82
