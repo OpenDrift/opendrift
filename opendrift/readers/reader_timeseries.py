@@ -21,7 +21,10 @@ class Reader(BaseReader, ContinuousReader):
     '''Reader providing the nearest value in time from a given time series.'''
 
     def __init__(self, parameter_value_map):
-        '''init with a map {'time':, time array, 'variable_name': value, ...}'''
+        '''init with a map {'time':, time array, 'variable_name': value, ...}
+        If there is the key lon or lat in the map, it will be stored as
+        self.lon and self.lat but not as a timeserie.
+        '''
 
         self.times = parameter_value_map['time']
         if type(self.times) is not list:
@@ -29,6 +32,12 @@ class Reader(BaseReader, ContinuousReader):
         del parameter_value_map['time']
 
         for key, var in parameter_value_map.items():
+            if key == 'lon':
+                self.lon=var
+                continue
+            if key == 'lat':
+                self.lat=var
+                continue
             parameter_value_map[key] = np.atleast_1d(var)
             if len(parameter_value_map[key]) != len(self.times):
                 raise ValueError('All variables must have same length as time array')
