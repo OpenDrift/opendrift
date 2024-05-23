@@ -17,10 +17,15 @@ class Combined(BaseReader):
     b: BaseReader
     op: LambdaType
 
-    def __init__(self, a, b, op):
+    def __init__(self, a, b, op, op_type = "easy", external_params = None):
+        '''Combine two readers a and b followinf the operator op. If needed,
+        you can ad an op_type that will enable you to use the external parameters
+        you want in your op. '''
         self.a = a
         self.b = b
         self.op = op
+        self.op_type = op_type
+        self.external_params = external_params
 
         self.variables = list(set(self.a.variables).intersection(self.b.variables))
 
@@ -47,6 +52,11 @@ class Combined(BaseReader):
     def get_variables_interpolated(self, variables, *args, **kwargs):
         assert set(variables).issubset(self.variables), f"{variables} is not subset of {self.variables}"
 
+        debug=True
+        if debug:
+            print("args passed are: {}".format(args))
+            print("kwargs passed are: {}".format(kwargs))
+
         env_a, env_profiles_a = self.a.get_variables_interpolated(variables, *args, **kwargs)
         env_b, env_profiles_b = self.b.get_variables_interpolated(variables, *args, **kwargs)
 
@@ -54,8 +64,18 @@ class Combined(BaseReader):
             var for var in env_a.keys() if var not in ['x', 'y', 'z', 'time']
         ]
 
+	#Making disctinction between easy functions or more complex ones that need some external parameters
         for var in variables:
-            env_a[var] = self.op(env_a[var], env_b[var])
+            if self.op_type == "easy":
+                env_a[var] = self.op(env_a[var], env_b[var])
+            elif self.op_type == "combine_gaussian":
+                lon = kwargs['lon']
+                lat = kwargs['lat']
+                lon_center, lat_center = self.b.lon, self.b.lat
+                std = self.external_params
+                env_a[var] = self.op(env_a[var], env_b[var], lon, lat, lon_center, lat_center, std)
+            else:
+                raise ValueError('Op_type not recognised. You should verify the definition of the Reader operator you are using.')
 
         if env_profiles_a is not None:
             variables = [
