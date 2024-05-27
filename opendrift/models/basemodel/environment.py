@@ -639,10 +639,10 @@ class Environment(Timeable, Configurable):
                         profiles_from_reader = None
                     env_tmp, env_profiles_tmp = \
                         reader.get_variables_interpolated(
-                            variable_group, profiles_from_reader,
-                            profiles_depth, time,
-                            lon[missing_indices], lat[missing_indices],
-                            z[missing_indices], self.proj_latlon)
+                            variable_group, profiles = profiles_from_reader,
+                            profiles_depth = profiles_depth, time = time,
+                            lon=lon[missing_indices], lat=lat[missing_indices],
+                            z=z[missing_indices], rotate_to_proj=self.proj_latlon)
 
                 except NotCoveredError as e:
                     logger.info(e)

@@ -20,7 +20,7 @@ class Combined(BaseReader):
     def __init__(self, a, b, op, op_type = "easy", external_params = None):
         '''Combine two readers a and b followinf the operator op. If needed,
         you can ad an op_type that will enable you to use the external parameters
-        you want in your op. '''
+        you want in your op between lines 63 and 73.'''
         self.a = a
         self.b = b
         self.op = op
@@ -49,16 +49,11 @@ class Combined(BaseReader):
     def covers_time(self, time):
         return self.a.covers_time(time) and self.b.covers_time(time)
 
-    def get_variables_interpolated(self, variables, *args, **kwargs):
+    def get_variables_interpolated(self, variables, **kwargs):
         assert set(variables).issubset(self.variables), f"{variables} is not subset of {self.variables}"
 
-        debug=True
-        if debug:
-            print("args passed are: {}".format(args))
-            print("kwargs passed are: {}".format(kwargs))
-
-        env_a, env_profiles_a = self.a.get_variables_interpolated(variables, *args, **kwargs)
-        env_b, env_profiles_b = self.b.get_variables_interpolated(variables, *args, **kwargs)
+        env_a, env_profiles_a = self.a.get_variables_interpolated(variables, **kwargs)
+        env_b, env_profiles_b = self.b.get_variables_interpolated(variables, **kwargs)
 
         variables = [
             var for var in env_a.keys() if var not in ['x', 'y', 'z', 'time']
