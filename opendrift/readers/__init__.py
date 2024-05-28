@@ -34,11 +34,12 @@ def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time
     urls = [t.strftime(url_base) for t in time_series]
     time_step = time_series[1] - time_series[0]
     print('Opening individual URLs...')
-    datasets = [xr.open_dataset(u, chunks='auto').sel({timedim: slice(t, t+time_step-timedelta(seconds=1))})
+    chunks = {'time': 1, 'depth': 1, 'Y': 17, 'X': 2602}
+    datasets = [xr.open_dataset(u, chunks=chunks).sel({timedim: slice(t, t+time_step-timedelta(seconds=1))})
                 for u,t in zip(urls, time_series)]
     print('Concatenating...')
     ds = xr.concat(datasets, dim=timedim,
-                   compat='override', combine_attrs='override', join='override', coords='all')
+                   compat='override', combine_attrs='override', join='override', coords='minimal', data_vars='minimal')
     return ds
 
 def reader_from_url(url, timeout=10):
