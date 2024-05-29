@@ -3781,8 +3781,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             reader_x = np.array([reader.xmin, reader.xmax])
             reader_y = np.array([reader.ymin, reader.ymax])
         else:
-            reader_x = np.linspace(reader_x.min(), reader_x.max(), 10)
-            reader_y = np.linspace(reader_y.min(), reader_y.max(), 10)
+            reader_x = np.linspace(reader_x.min(), reader_x.max(), 100)
+            reader_y = np.linspace(reader_y.min(), reader_y.max(), 100)
 
         data = reader.get_variables(background, time, reader_x, reader_y, None)
         reader_x, reader_y = np.meshgrid(data['x'], data['y'])
