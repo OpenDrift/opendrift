@@ -1,5 +1,6 @@
 from types import LambdaType
 from ..basereader import BaseReader
+import numpy as np
 
 def none_or_cmp(a, b, cmp):
     if a is None:
@@ -40,7 +41,7 @@ class Combined(BaseReader):
         self.name = f'Combined({a.name} | {b.name})'
 
         self.proj4 = '+proj=latlong'
-
+        self.projected = None
         super().__init__()
 
     def covers_positions(self, lon, lat):
@@ -55,9 +56,7 @@ class Combined(BaseReader):
         env_a, env_profiles_a = self.a.get_variables_interpolated(variables, **kwargs)
         env_b, env_profiles_b = self.b.get_variables_interpolated(variables, **kwargs)
 
-        variables = [
-            var for var in env_a.keys() if var not in ['x', 'y', 'z', 'time']
-        ]
+        variables = [ var for var in env_a.keys() if var not in ['x', 'y', 'z', 'time'] ]
 
 	#Making disctinction between easy functions or more complex ones that need some external parameters
         for var in variables:
@@ -73,11 +72,44 @@ class Combined(BaseReader):
                 raise ValueError('Op_type not recognised. You should verify the definition of the Reader operator you are using.')
 
         if env_profiles_a is not None:
-            variables = [
-                var for var in env_profiles_a.keys() if var not in ['x', 'y', 'z', 'time']
-            ]
+            variables = [ var for var in env_profiles_a.keys() if var not in ['x', 'y', 'z', 'time'] ]
             for var in variables:
                 env_profiles_a[var] = self.op(env_profiles_a[var], env_profiles_b[var])
 
         return env_a, env_profiles_a
+
+    def get_variables(self, requested_variables, time=None,
+                      x=None, y=None, z=None):
+
+        pm1 = self.a.pixel_size()
+        pm2 = self.b.pixel_size()
+
+        print(pm1, pm2)
+        if pm1 == None and pm2 == None:
+            raise Exception("Neither {} or {} in {} have pixel_size well defined. Plot is not possible.")
+        elif pm1 == None:
+            pm=pm2
+        elif pm2 == None:
+            pm=pm1
+        else:
+            pm = np.lcm(int(pm1), int(pm2))
+
+        delta_x = pm/111000
+        delta_y = pm/ 111000 * np.abs(np.cos(np.radians(np.mean(y))))
+
+        x = np.arange(np.min(x), np.max(x), delta_x)
+        y = np.arange(np.min(y), np.max(y), delta_y)
+
+        X, Y = np.meshgrid(x, y)
+        shape = X.shape
+        X = X.flatten()
+        Y = Y.flatten()
+
+        variables, _ = self.get_variables_interpolated(requested_variables, lon = X, lat = Y, time = time, z = z)
+        for key in variables.keys():
+            variables[key] = np.reshape(variables[key], shape)
+        variables['x'] = x
+        variables['y'] = y
+
+        return variables
 
