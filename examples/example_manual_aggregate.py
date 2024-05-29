@@ -27,14 +27,14 @@ print(rm)
 
 om = OceanDrift()
 om.add_reader(rm)
-om.seed_elements(lon=4.4, lat=60.0, number=1000, radius=100, time=rm.start_time)
+om.seed_elements(lon=4.5, lat=60.0, number=1000, radius=100, time=rm.start_time)
 om.run(end_time=rm.end_time)
 
 #%
 # Second simulation using ready made aggregate from thredds
 ot = OceanDrift()
 ot.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
-ot.seed_elements(lon=3.4, lat=60.23, number=1000, radius=100, time=rm.start_time)
+ot.seed_elements(lon=4.5, lat=60.0, number=1000, radius=100, time=rm.start_time)
 ot.run(end_time=rm.end_time)
 
 #%
