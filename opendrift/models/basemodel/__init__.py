@@ -312,6 +312,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Set configuration options
         self._add_config({
             # type, default, min, max, enum, important, value, units, description
+            'general:simulation_name': {'type': 'str', 'min_length': 0, 'max_length': 64,
+                                        'default': '', 'level': CONFIG_LEVEL_BASIC,
+                                        'description': 'Name of simulation'},
             'general:coastline_action': {
                 'type':
                 'enum',
@@ -327,49 +330,31 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'if they hit land'
             },
             'general:time_step_minutes': {
-                'type':
-                'float',
-                'min':
-                .01,
-                'max':
-                1440,
-                'default':
-                60,
-                'units':
-                'minutes',
-                'level':
-                CONFIG_LEVEL_BASIC,
-                'description':
-                'Calculation time step used for the simulation. The output time step may '
+                'type': 'float',
+                'min': .01,
+                'max': 1440,
+                'default': 60,
+                'units': 'minutes',
+                'level': CONFIG_LEVEL_BASIC,
+                'description': 'Calculation time step used for the simulation. The output time step may '
                 'be equal or larger than this.'
             },
             'general:time_step_output_minutes': {
-                'type':
-                'float',
-                'min':
-                1,
-                'max':
-                1440,
-                'default':
-                None,
-                'units':
-                'minutes',
-                'level':
-                CONFIG_LEVEL_BASIC,
-                'description':
-                'Output time step, i.e. the interval at which output is saved. This must be larger than '
-                'the calculation time step, and be an integer multiple of this.'
+                'type': 'float',
+                'min': 1,
+                'max': 1440,
+                'default': None,
+                'units': 'minutes',
+                'level': CONFIG_LEVEL_BASIC,
+                'description': 'Output time step, i.e. the interval at which output is saved. '
+                'This must be larger than the calculation time step, and be an integer multiple of this.'
             },
             'seed:ocean_only': {
-                'type':
-                'bool',
-                'default':
-                True,
-                'description':
-                'If True, elements seeded on land will be moved to the closest '
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, elements seeded on land will be moved to the closest '
                 'position in ocean',
-                'level':
-                CONFIG_LEVEL_ADVANCED
+                'level': CONFIG_LEVEL_ADVANCED
             },
             'seed:number': {
                 'type': 'int',
@@ -391,15 +376,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'level': CONFIG_LEVEL_ADVANCED
             },
             'drift:advection_scheme': {
-                'type':
-                'enum',
+                'type': 'enum',
                 'enum': ['euler', 'runge-kutta', 'runge-kutta4'],
-                'default':
-                'euler',
-                'level':
-                CONFIG_LEVEL_ADVANCED,
-                'description':
-                'Numerical advection scheme for ocean current advection'
+                'default': 'euler',
+                'level': CONFIG_LEVEL_ADVANCED,
+                'description': 'Numerical advection scheme for ocean current advection'
             },
             'drift:horizontal_diffusivity': {
                 'type': 'float',
@@ -492,21 +473,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             maxval = v['max'] if 'max' in v else None
             units = v['units'] if 'units' in v else None
             c['seed:%s' % p] = {
-                'type':
-                v['type'] if 'type' in v else 'float',
-                'min':
-                v['min'] if 'min' in v else None,
-                'max':
-                v['max'] if 'max' in v else None,
-                'units':
-                v['units'] if 'units' in v else None,
-                'default':
-                v['default'] if 'default' in v else None,
-                'description':
-                v['description']
-                if 'description' in v else 'Seeding value of %s' % p,
-                'level':
-                v['level'] if 'level' in v else CONFIG_LEVEL_ADVANCED
+                'type': v['type'] if 'type' in v else 'float',
+                'min': v['min'] if 'min' in v else None,
+                'max': v['max'] if 'max' in v else None,
+                'units': v['units'] if 'units' in v else None,
+                'default': v['default'] if 'default' in v else None,
+                'description': v['description'] if 'description' in v \
+                        else 'Seeding value of %s' % p, 'level': v['level'] if 'level' in v \
+                        else CONFIG_LEVEL_ADVANCED
             }
         self._add_config(c)
 
