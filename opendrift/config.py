@@ -41,6 +41,8 @@ class Configurable:
 
                 if i['type'] == 'bool':
                     rang = ''
+                elif i['type'] == 'str':
+                    rang = f'min length {i["min_length"]}, max length {i["max_length"]}'
                 elif i['type'] in ['float', 'int']:
                     rang = 'min: %s, max: %s [%s]' % (i['min'], i['max'],
                                                       i['units'])
@@ -82,6 +84,9 @@ class Configurable:
                 value = float(value)
             elif i['type'] == 'int' and value is not None:
                 value = int(value)
+        elif i['type'] == 'str':
+            if len(value) < i["min_length"] or len(value) > i["max_length"]:
+                raise ValueError(f'String {key} length must be between {i["min_length"]} and {i["max_length"]} characters')
         elif i['type'] == 'enum':
             if value not in i['enum']:
                 suggestion = ''
@@ -124,11 +129,13 @@ class Configurable:
         config is a dictionary where keys are configuration keywords,
         and values are dictionaries with the following contents:
 
-        type (string): 'float', 'int', 'bool' or 'enum'
+        type (string): 'float', 'int', 'str', 'bool' or 'enum'
 
         min, max (float/int/None): (only when type is 'float' or 'int')
             The minimum and maximum allowed values for this setting.
             May also be None if there are no upper/lowe limits.
+
+        min_length, max_length (int): minimum and maximum length of string
 
         units (string): (only when type is 'float' or 'int')
             The units of this config setting.
@@ -186,12 +193,17 @@ class Configurable:
                     if p not in i:
                         raise ValueError(
                             '"%s" not provided for config item %s' % (p, c))
+            elif i['type'] == 'str':
+                for p in ['min_length', 'max_length']:
+                    if p not in i:
+                        raise ValueError(
+                            '"%s" not provided for config item %s' % (p, c))
             elif i['type'] == 'bool':
                 pass  # no check for bool
             else:
                 raise ValueError(
                     'Config type "%s" (%s) is not defined. Valid options are: '
-                    'float, int, enum, bool' % (i['type'], c))
+                    'float, int, str, enum, bool' % (i['type'], c))
             if 'default' in i:
                 i['value'] = i['default']
         for r in remove:
