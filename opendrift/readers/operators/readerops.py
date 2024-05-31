@@ -52,7 +52,7 @@ class Combined(BaseReader):
     def covers_time(self, time):
         return self.a.covers_time(time) and self.b.covers_time(time)
 
-    def get_variables_interpolated(self, variables, shape = None, profiles=None, profiles_depth=None,time=None,lon=None, lat=None, z=None,rotate_to_proj=None):
+    def get_variables_interpolated(self, variables, profiles=None, profiles_depth=None,time=None,lon=None, lat=None, z=None,rotate_to_proj=None):
         assert set(variables).issubset(self.variables), f"{variables} is not subset of {self.variables}"
 
         env_a, env_profiles_a = self.a.get_variables_interpolated(variables, time=time,lon=lon, lat=lat, z=z)
@@ -105,7 +105,7 @@ class Combined(BaseReader):
         X = X.flatten()
         Y = Y.flatten()
 
-        variables, _ = self.get_variables_interpolated(requested_variables, shape = shape, lon = X, lat = Y, time = time, z = z)
+        variables, _ = self.get_variables_interpolated(requested_variables, lon = X, lat = Y, time = time, z = z)
         for key in variables.keys():
             variables[key] = np.reshape(variables[key], shape)
         variables['x'] = x
