@@ -62,9 +62,8 @@ class Combined(BaseReader):
         #Making disctinction between easy functions or more complex ones that need some external parameters
         env_c = {}
         for var in variables:
-            print(var)
             if self.op_type == "easy":
-                env_a[var] = self.op(env_a[var], env_b[var])
+                env_c[var] = self.op(env_a[var], env_b[var])
             elif self.op_type == "combine_gaussian":
                 lon_center, lat_center = self.b.lon, self.b.lat
                 std = self.external_params
