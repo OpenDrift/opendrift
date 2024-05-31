@@ -1,6 +1,8 @@
 from types import LambdaType
 from ..basereader import BaseReader
 import numpy as np
+import matplotlib.pyplot as plt
+import pyproj
 
 def none_or_cmp(a, b, cmp):
     if a is None:
@@ -50,41 +52,40 @@ class Combined(BaseReader):
     def covers_time(self, time):
         return self.a.covers_time(time) and self.b.covers_time(time)
 
-    def get_variables_interpolated(self, variables, **kwargs):
+    def get_variables_interpolated(self, variables, profiles=None, profiles_depth=None,time=None,lon=None, lat=None, z=None,rotate_to_proj=None):
         assert set(variables).issubset(self.variables), f"{variables} is not subset of {self.variables}"
 
-        env_a, env_profiles_a = self.a.get_variables_interpolated(variables, **kwargs)
-        env_b, env_profiles_b = self.b.get_variables_interpolated(variables, **kwargs)
-
+        env_a, env_profiles_a = self.a.get_variables_interpolated(variables, time=time,lon=lon, lat=lat, z=z)
+        env_b, env_profiles_b = self.b.get_variables_interpolated(variables,time=time,lon=lon, lat=lat, z=z)
         variables = [ var for var in env_a.keys() if var not in ['x', 'y', 'z', 'time'] ]
 
-	#Making disctinction between easy functions or more complex ones that need some external parameters
+        #Making disctinction between easy functions or more complex ones that need some external parameters
+        env_c = {}
         for var in variables:
             if self.op_type == "easy":
-                env_a[var] = self.op(env_a[var], env_b[var])
+                env_c[var] = self.op(env_a[var], env_b[var])
             elif self.op_type == "combine_gaussian":
-                lon = kwargs['lon']
-                lat = kwargs['lat']
                 lon_center, lat_center = self.b.lon, self.b.lat
                 std = self.external_params
-                env_a[var] = self.op(env_a[var], env_b[var], lon, lat, lon_center, lat_center, std)
+                env_c[var] = self.op(env_a[var], env_b[var], lon, lat, lon_center, lat_center, std)
             else:
                 raise ValueError('Op_type not recognised. You should verify the definition of the Reader operator you are using.')
 
+        #Profile
+        env_profiles_c = None
         if env_profiles_a is not None:
+            env_profiles_c = {}
             variables = [ var for var in env_profiles_a.keys() if var not in ['x', 'y', 'z', 'time'] ]
             for var in variables:
-                env_profiles_a[var] = self.op(env_profiles_a[var], env_profiles_b[var])
+                env_profiles_c[var] = self.op(env_profiles_c[var], env_profiles_c[var])
 
-        return env_a, env_profiles_a
+        return env_c, env_profiles_c
 
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None):
 
         pm1 = self.a.pixel_size()
         pm2 = self.b.pixel_size()
-
-        print(pm1, pm2)
         if pm1 == None and pm2 == None:
             raise Exception("Neither {} or {} in {} have pixel_size well defined. Plot is not possible.")
         elif pm1 == None:
@@ -96,10 +97,8 @@ class Combined(BaseReader):
 
         delta_x = pm/111000
         delta_y = pm/ 111000 * np.abs(np.cos(np.radians(np.mean(y))))
-
         x = np.arange(np.min(x), np.max(x), delta_x)
         y = np.arange(np.min(y), np.max(y), delta_y)
-
         X, Y = np.meshgrid(x, y)
         shape = X.shape
         X = X.flatten()
