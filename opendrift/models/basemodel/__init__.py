@@ -2129,7 +2129,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if outfile is not None:
             logger.debug('Writing and closing output file: %s' % outfile)
             # Write buffer to outfile, and close
-            if self.steps_output >= self.steps_exported:
+            #if self.steps_output >= self.steps_exported:
+            # KFD: >= changed to > 4th June 2024, as this is probably correct
+            # Unit tests are passing in both cases
+            if self.steps_output > self.steps_exported:
                 # Write last lines, if needed
                 self.io_write_buffer()
             self.io_close()
