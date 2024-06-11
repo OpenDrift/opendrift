@@ -183,11 +183,6 @@ class BaseReader(Variables, Combine, Filter):
         else:
             return False
 
-    def prepare(self, extent, start_time, end_time, max_speed):
-        """Prepare reader for given simulation coverage in time and space."""
-        logger.debug('Nothing more to prepare for ' + self.name)
-        pass  # to be overriden by specific readers
-
     def index_of_closest_z(self, requested_z):
         """Return (internal) index of z closest to requested z.
 
@@ -230,7 +225,7 @@ class BaseReader(Variables, Combine, Filter):
                             self.shape[1]-2*numpix])
         self.clipped = numpix
 
-    def plot(self, variable=None, vmin=None, vmax=None,
+    def plot(self, variable=None, vmin=None, vmax=None, time=None,
              filename=None, title=None, buffer=1, lscale='auto'):
         """Plot geographical coverage of reader."""
 
@@ -324,14 +319,16 @@ class BaseReader(Variables, Combine, Filter):
         plt.xlabel('Time coverage: %s to %s' %
                    (self.start_time, self.end_time))
 
+        if time is None:
+            time = self.start_time
         if variable is not None:
             rx = np.array([self.xmin, self.xmax])
             ry = np.array([self.ymin, self.ymax])
             if variable in self.derived_variables:
-                data = self.get_variables(self.derived_variables[variable], self.start_time, rx, ry)
+                data = self.get_variables(self.derived_variables[variable], time, rx, ry)
                 self.__calculate_derived_environment_variables__(data)
             else:
-                data = self.get_variables(variable, self.start_time, rx, ry)
+                data = self.get_variables(variable, time, rx, ry)
             rx, ry = np.meshgrid(data['x'], data['y'])
             rx = np.float32(rx)
             ry = np.float32(ry)

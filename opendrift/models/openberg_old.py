@@ -105,8 +105,6 @@ class OpenBergOld(OpenDriftSimulation):
         'land_binary_mask': {'fallback': None},
         }
 
-    required_profiles_z_range = [-120, 0] # [min_depth, max_depth]
-
     # Default colors for plotting
     status_colors = {'initial': 'green', 'active': 'blue',
                      'missing_data': 'gray', 'stranded': 'red'}

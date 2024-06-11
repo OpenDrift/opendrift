@@ -562,6 +562,17 @@ class OpenDriftGUI(tk.Tk):
                 tk.Label(tab, text='[%s]  min: %s, max: %s' % (
                     sc[key]['units'], sc[key]['min'], sc[key]['max'])
                         ).grid(row=i, column=3, rowspan=1)
+            if sc[key]['type'] == 'str':
+                self.config_input_var[i] = tk.StringVar()
+                vcmd = (tab.register(self.validate_config),
+                    '%P', '%s', key)
+                self.config_input[i] = tk.Entry(
+                    tab, textvariable=self.config_input_var[i],
+                    validate='key', validatecommand=vcmd,
+                    width=sc[key]['max_length'], justify=tk.RIGHT)
+                self.config_input[i].insert(0, str(sc[key]['default']))
+                self.config_input[i].grid(row=i, column=2, columnspan=3, rowspan=1)
+                #tk.Label(tab, text='').grid(row=i, column=3, rowspan=1)
             elif sc[key]['type'] == 'bool':
                 if self.o.get_config(key) is True:
                     value = 1

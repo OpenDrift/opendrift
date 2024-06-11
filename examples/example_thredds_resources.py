@@ -16,7 +16,7 @@ times = {}
 #%%
 # Open each thredds dataset to check contents and spatial coverage
 for t in thredds_resources:
-    if t.startswith('http') and 'nrt.cmems' not in t:
+    if t.startswith('http') and not t.startswith('cmems'):
         start = datetime.now()
         print('\n#%%\n%s\n' % t)
         r = Reader(t)

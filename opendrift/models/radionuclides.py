@@ -75,6 +75,7 @@ class RadionuclideDrift(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': None},
         'y_sea_water_velocity': {'fallback': None},
+        'sea_surface_height': {'fallback': 0},
         'x_wind': {'fallback': 0},
         'y_wind': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
@@ -90,9 +91,6 @@ class RadionuclideDrift(OceanDrift):
         'upward_sea_water_velocity': {'fallback': 0},
         'conc3': {'fallback': 1.e-3},
         }
-
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
 
 
     def specie_num2name(self,num):
@@ -225,7 +223,7 @@ class RadionuclideDrift(OceanDrift):
         logger.info('nspecies: %s' % self.nspecies)
         logger.info('Transfer rates:\n %s' % self.transfer_rates)
 
-
+        super(RadionuclideDrift, self).prepare_run()
 
 
     def init_species(self):

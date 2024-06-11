@@ -69,6 +69,7 @@ class OceanDrift(OpenDriftSimulation):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0},
         'x_wind': {'fallback': 0},
         'y_wind': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0},
@@ -95,8 +96,6 @@ class OceanDrift(OpenDriftSimulation):
         'land_binary_mask': {'fallback': None},
         }
 
-    # The depth range (in m) which profiles shall cover
-    required_profiles_z_range = [-20, 0]
 
     def __init__(self, *args, **kwargs):
 
@@ -114,6 +113,9 @@ class OceanDrift(OpenDriftSimulation):
             self.ml_predictors = [self.dict_normalization_params['predictors'][i]['content'] for i in self.dict_normalization_params['predictors']]
         else:
             logger.debug('No machine learning correction available.')
+
+        if hasattr(self, 'required_profiles_z_range'):
+            raise ValueError('self.required_profiles_z_range is obsolete, and replaced by config setting drift:profile_depth. Please update your model.')
 
         # Calling general constructor of parent class
         super(OceanDrift, self).__init__(*args, **kwargs)
@@ -171,7 +173,7 @@ class OceanDrift(OpenDriftSimulation):
                 'level': CONFIG_LEVEL_ESSENTIAL},
             })
 
-        self._set_config_default('drift:max_speed', 1)
+        self._set_config_default('drift:max_speed', 2)
 
     def update(self):
         """Update positions and properties of elements."""
@@ -199,11 +201,40 @@ class OceanDrift(OpenDriftSimulation):
         # Optional machine learning correction
         self.machine_learning_correction()
 
+    def simulate_trajectories(self, outfile, trajectories, number=1,
+                              wind_drift_factors=None, current_drift_factors=None,
+                              time_step=None, time_step_output=None,
+                              simulation_duration=None, simulation_interval=None):
+
+        import pandas as pd
+        time_step_output = pd.Timedelta(time_step_output)
+        simulation_interval = pd.Timedelta(simulation_interval)
+        # Interpolate trajectories to output time step
+        #trajectories = trajectories.traj.gridtime(time_step_output)
+        # Find all seed combinations: position, time, wdf, cdf
+        #  Loop også over trajektorier -> origin_marker
+        step = int(simulation_interval / time_step_output)
+        tind = np.arange(0, trajectories.sizes['time'], step)
+        start_lons = trajectories.isel(time=tind).isel(trajectory=0).lon.values
+        start_lats = trajectories.isel(time=tind).isel(trajectory=0).lat.values
+        start_times = trajectories.time[tind]
+        self.set_config('drift:max_age_seconds', simulation_duration.total_seconds())
+        kwargs = {'wind_drift_factor': wind_drift_factors[0],
+                  'current_drift_factor': current_drift_factors[0]}
+        for (lo,la,ti) in zip(start_lons, start_lats, start_times):
+            if np.isnan(lo):
+                continue
+            ti = pd.Timestamp(ti.values).to_pydatetime()
+            self.seed_elements(lon=lo, lat=la, time=ti, number=number, **kwargs)
+        print(self)
+        self.run(outfile=outfile, end_time=pd.Timestamp(start_times[-1].values).to_pydatetime()+simulation_duration)
+        # Simulate and save to file
+
     def wind_drift_factor_from_trajectory_lw(self, drifters, wind_drift_factors,
                                              simulation_length, simulation_interval):
         """Perform simulations and use skillscore to optimize wind_drift_factor
 
-        drifters: list of disctionaries with numpy arrays of 'lon' and 'lat'
+        drifters: list of dictionaries with numpy arrays of 'lon' and 'lat'
                     and list of datetimes
         wind_drift_factors: the wind_drift_factors to use for simulations/optimalizations
         """
@@ -357,6 +388,9 @@ class OceanDrift(OpenDriftSimulation):
     def prepare_vertical_mixing(self):
         pass  # To be implemented by subclasses as needed
 
+    def prepare_run(self):
+        super(OceanDrift, self).prepare_run()
+
     def vertical_advection(self):
         """Move particles vertically according to vertical ocean current
 
@@ -382,13 +416,14 @@ class OceanDrift(OpenDriftSimulation):
             self.elements.z[in_ocean] = np.minimum(0,
                 self.elements.z[in_ocean] + self.elements.terminal_velocity[in_ocean] * self.time_step.total_seconds())
 
-        # check for minimum height/maximum depth for each particle
-        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        # check for minimum height/maximum depth for each particle accouting also for
+        # the sea surface height
+        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height)
 
         # Let particles stick to bottom
         bottom = np.where(self.elements.z < Zmin)
         if len(bottom[0]) > 0:
-            logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+            logger.debug('%s elements reached seafloor, interacting with bottom' % len(bottom[0]))
             self.interact_with_seafloor()
             self.bottom_interaction(Zmin)
 
@@ -409,8 +444,7 @@ class OceanDrift(OpenDriftSimulation):
 
         pass
 
-    def get_diffusivity_profile(self, model):
-        depths = np.abs(self.environment_profiles['z'])
+    def get_diffusivity_profile(self, model, depths):
         wind, depth = np.meshgrid(self.wind_speed(), depths)
         MLD = self.environment.ocean_mixed_layer_thickness
         background_diffusivity = self.get_config('vertical_mixing:background_diffusivity')
@@ -460,8 +494,9 @@ class OceanDrift(OpenDriftSimulation):
 
         dt_mix = self.get_config('vertical_mixing:timestep')
 
-        # minimum height/maximum depth for each particle
-        Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
+        # minimum height/maximum depth for each particle accouting also for
+        # the sea surface height
+        Zmin = -1.*(self.environment.sea_floor_depth_below_sea_level + self.environment.sea_surface_height)
 
         # Eventual model specific preparions
         self.prepare_vertical_mixing()
@@ -470,6 +505,8 @@ class OceanDrift(OpenDriftSimulation):
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
         diffusivity_fallback = self.get_config('environment:fallback:ocean_vertical_diffusivity')
+        # Mixing levels to be used if analytical expression:
+        mixing_z_analytical = -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
         if diffusivity_model == 'environment':
             if 'ocean_vertical_diffusivity' in self.environment_profiles and not (
                     self.environment_profiles['ocean_vertical_diffusivity'].min() ==
@@ -478,26 +515,22 @@ class OceanDrift(OpenDriftSimulation):
                     diffusivity_fallback):
                 Kprofiles = self.environment_profiles[
                     'ocean_vertical_diffusivity']
+                mixing_z = self.environment_profiles['z'].copy()
                 logger.debug('Using diffusivity from ocean model')
             else:
                 logger.debug('Using diffusivity from Large1994 since model diffusivities not available')
-                # Using higher vertical resolution when analytical
-                self.environment_profiles['z'] = \
-                        -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
-                Kprofiles = self.get_diffusivity_profile('windspeed_Large1994')
+                mixing_z = mixing_z_analytical
+                Kprofiles = self.get_diffusivity_profile('windspeed_Large1994', np.abs(mixing_z))
         elif diffusivity_model == 'constant':
             logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (diffusivity_fallback))
+            mixing_z = self.environment_profiles['z'].copy()
             Kprofiles = diffusivity_fallback*np.ones(
                     self.environment_profiles['ocean_vertical_diffusivity'].shape) # keep constant value for ocean_vertical_diffusivity
         else:
             logger.debug('Using functional expression for diffusivity')
-            # Using higher vertical resolution when analytical
-            if self.environment_profiles is None:
-                self.environment_profiles = {}
-            self.environment_profiles['z'] = \
-                    -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
             # Note: although analytical functions, z is discretised
-            Kprofiles = self.get_diffusivity_profile(diffusivity_model)
+            mixing_z = mixing_z_analytical
+            Kprofiles = self.get_diffusivity_profile(diffusivity_model, np.abs(mixing_z))
 
         logger.debug('Diffusivities are in range %s to %s' %
                       (Kprofiles.min(), Kprofiles.max()))
@@ -523,12 +556,11 @@ class OceanDrift(OpenDriftSimulation):
             Tprofiles = None
 
         # prepare vertical interpolation coordinates
-        z_i = range(self.environment_profiles['z'].shape[0])
+        z_i = range(mixing_z.shape[0])
         if len(z_i) == 1:
             z_index = 0
         else:
-            z_index = interp1d(-self.environment_profiles['z'],
-                               z_i, bounds_error=False,
+            z_index = interp1d(-mixing_z, z_i, bounds_error=False,
                                fill_value=(0,len(z_i)-1))  # Extrapolation
 
         # Internal loop for fast time step of vertical mixing model.
@@ -545,7 +577,7 @@ class OceanDrift(OpenDriftSimulation):
             depths[0, :] = self.elements.z
 
         # Calculating dK/dz for all profiles before the loop
-        gradK = -np.gradient(Kprofiles, self.environment_profiles['z'], axis=0)
+        gradK = -np.gradient(Kprofiles, mixing_z, axis=0)
         gradK[np.abs(gradK)<1e-10] = 0
 
         for i in range(0, ntimes_mix):
@@ -580,6 +612,7 @@ class OceanDrift(OpenDriftSimulation):
                 self.elements.z[reflect] = -self.elements.z[reflect]
 
             # Reflect elements going below seafloor
+            # Zmin accounts for sea_surface_height
             bottom = np.where(np.logical_and(self.elements.z < Zmin, self.elements.moving == 1))
             if len(bottom[0]) > 0:
                 logger.debug('%s elements penetrated seafloor, lifting up' % len(bottom[0]))
@@ -600,7 +633,7 @@ class OceanDrift(OpenDriftSimulation):
             # Let particles stick to bottom
             bottom = np.where(self.elements.z < Zmin)
             if len(bottom[0]) > 0:
-                logger.debug('%s elements reached seafloor, set to bottom' % len(bottom[0]))
+                logger.debug('%s elements reached seafloor, interacting with bottom' % len(bottom[0]))
                 self.interact_with_seafloor()
                 self.bottom_interaction(Zmin)
 

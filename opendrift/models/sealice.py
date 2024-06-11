@@ -84,6 +84,7 @@ class SeaLice(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0},
         # 'sea_surface_wave_significant_height': {'fallback': 0},
         # 'x_wind': {'fallback': 0},
         # 'y_wind': {'fallback': 0},
@@ -95,7 +96,6 @@ class SeaLice(OceanDrift):
         'sea_water_salinity': {'fallback': 34}
     }
 
-    # required_profiles_z_range = [0, -50]  # The depth range (in m) which profiles should cover
 
     def __init__(self,*args, **kwargs):
 
@@ -182,6 +182,8 @@ class SeaLice(OceanDrift):
         self.new_born()
         self.population()
         self.ref_date = datetime(1,1,1,0,0)
+
+        super(SeaLice, self).prepare_run()
 
     def new_born(self):
         """

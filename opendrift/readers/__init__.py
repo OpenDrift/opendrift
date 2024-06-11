@@ -20,11 +20,27 @@ The `ContinuousReader` is suited for data that can be defined at any point withi
     See :class:`.basereader.BaseReader` for how readers work internally.
 """
 
+from datetime import datetime, timedelta
 import importlib
 import logging; logger = logging.getLogger(__name__)
 import glob
 import json
 import opendrift
+import xarray as xr
+
+def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time=None, freq=None, timedim='time'):
+    if time_series is None:
+        construct_from_times
+    urls = [t.strftime(url_base) for t in time_series]
+    time_step = time_series[1] - time_series[0]
+    print('Opening individual URLs...')
+    chunks = {'time': 1, 'depth': 1, 'Y': 17, 'X': 2602}
+    datasets = [xr.open_dataset(u, chunks=chunks).sel({timedim: slice(t, t+time_step-timedelta(seconds=1))})
+                for u,t in zip(urls, time_series)]
+    print('Concatenating...')
+    ds = xr.concat(datasets, dim=timedim,
+                   compat='override', combine_attrs='override', join='override', coords='minimal', data_vars='minimal')
+    return ds
 
 def reader_from_url(url, timeout=10):
     '''Make readers from URLs or paths to datasets'''
@@ -52,15 +68,17 @@ def reader_from_url(url, timeout=10):
         try:
             resp = requests.get(url, timeout=timeout)
         except requests.exceptions.MissingSchema:
-            logger.info('Neither a file or a URL: ' + url)
-            return None
+
+            logger.info('Neither a file or a URL, could still be a CMEMS product ID: ' + url)
+            #return None
         except:
             logger.info('Connection error for ' + url)
             return None
 
     reader_modules = ['reader_netCDF_CF_generic',
                       'reader_ROMS_native',
-                      'reader_grib']
+                      'reader_grib',
+                      'reader_copernicusmarine']
 
     for rm in reader_modules:
         reader_module = importlib.import_module('opendrift.readers.' + rm)

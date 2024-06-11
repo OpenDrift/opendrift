@@ -38,6 +38,10 @@ class TestNetCDF(unittest.TestCase):
             '2Feb2016_Nordic_sigma_3d/Nordic_subset.nc')
         lon = 14.0
         lat = 67.3
+
+        # nordicMF is missing angle
+        nordicMF.Dataset["angle"] = nordicMF_all.Dataset.angle
+
         #nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +
         #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         #o.add_reader(nordic3d)  # Slightly different results

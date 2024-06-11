@@ -1,7 +1,9 @@
+import pickle
 import numpy as np
 import pyproj
 from scipy.ndimage import map_coordinates
 from abc import abstractmethod
+from pathlib import Path
 
 from opendrift.readers.interpolation.structured import ReaderBlock
 from .variables import Variables
@@ -32,6 +34,10 @@ class StructuredReader(Variables):
     y = None
     interpolation = 'linearNDFast'
     convolve = None  # Convolution kernel or kernel size
+    # set these in reader to save interpolators to file
+    save_interpolator = None
+    interpolator_filename = None
+    
 
     # Used to enable and track status of parallel coordinate transformations.
     __lonlat2xy_parallel__ = None
@@ -56,7 +62,7 @@ class StructuredReader(Variables):
             self.proj4 = 'None'
             self.proj = fakeproj.fakeproj()
             self.projected = False
-            logger.info('Making interpolator for lon,lat to x,y conversion...')
+            
             self.xmin = self.ymin = 0.
             self.delta_x = self.delta_y = 1.
             self.xmax = self.lon.shape[1] - 1
@@ -65,22 +71,50 @@ class StructuredReader(Variables):
             self.numy = self.ymax
             self.x = np.arange(0, self.xmax+1)
             self.y = np.arange(0, self.ymax+1)
-
-            block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
-                                        self.ymin:self.ymax + 1]
-            block_x, block_y = block_x.T, block_y.T
-
+    
             # Making interpolator (lon, lat) -> x
-            self.spl_x = LinearNDInterpolator(
-                (self.lon.ravel(), self.lat.ravel()),
-                block_x.ravel(),
-                fill_value=np.nan)
-            # Reusing x-interpolator (deepcopy) with data for y
-            self.spl_y = copy.deepcopy(self.spl_x)
-            self.spl_y.values[:, 0] = block_y.ravel()
-            # Call interpolator to avoid threading-problem:
-            # https://github.com/scipy/scipy/issues/8856
-            self.spl_x((0, 0)), self.spl_y((0, 0))
+            # save to speed up next time
+            if self.save_interpolator and self.interpolator_filename is not None:
+                interpolator_filename = Path(self.interpolator_filename).with_suffix('.pickle')
+            else:
+                interpolator_filename = f'{self.name}_interpolators.pickle'
+            
+            if self.save_interpolator and Path(interpolator_filename).is_file():
+                logger.info('Loading previously saved interpolator for lon,lat to x,y conversion.')
+                with open(interpolator_filename, 'rb') as file_handle:
+                    interp_dict = pickle.load(file_handle)
+                    spl_x = interp_dict["spl_x"]
+                    spl_y = interp_dict["spl_y"]
+            
+            else:
+                logger.info('Making interpolator for lon,lat to x,y conversion...')
+
+                block_x, block_y = np.mgrid[self.xmin:self.xmax + 1,
+                                            self.ymin:self.ymax + 1]
+                block_x, block_y = block_x.T, block_y.T
+            
+                spl_x = LinearNDInterpolator(
+                    (self.lon.ravel(), self.lat.ravel()),
+                    block_x.ravel(),
+                    fill_value=np.nan)
+                # Reusing x-interpolator (deepcopy) with data for y
+                spl_y = copy.deepcopy(spl_x)
+                spl_y.values[:, 0] = block_y.ravel()
+                # Call interpolator to avoid threading-problem:
+                # https://github.com/scipy/scipy/issues/8856
+                spl_x((0, 0)), spl_y((0, 0))
+                
+                if self.save_interpolator:
+                    logger.info('Saving interpolator for lon,lat to x,y conversion.')
+
+                    interp_dict = {"spl_x": spl_x, "spl_y": spl_y}
+                    with open(interpolator_filename, 'wb') as f:
+                        pickle.dump(interp_dict, f)
+            
+            self.spl_x = spl_x
+            self.spl_y = spl_y
+
+
         else:
             self.projected = True
 
@@ -123,6 +157,9 @@ class StructuredReader(Variables):
             # Set buffer large enough for whole simulation
             logger.debug('Time step is None for %s, setting buffer size large nough for whole simulation' % self.name)
             self.set_buffer_size(max_speed, end_time-start_time)
+        else:
+            self.set_buffer_size(max_speed, self.time_step)
+
         super().prepare(extent, start_time, end_time, max_speed)
 
     def set_convolution_kernel(self, convolve):
@@ -199,7 +236,7 @@ class StructuredReader(Variables):
             # requested block has the depth range required for profiles
             mx = np.append(reader_x, [reader_x[-1], reader_x[-1]])
             my = np.append(reader_y, [reader_y[-1], reader_y[-1]])
-            mz = np.append(z, [profiles_depth[0], profiles_depth[1]])
+            mz = np.append(z, [0, -profiles_depth])
         else:
             mx = reader_x
             my = reader_y
@@ -288,7 +325,7 @@ class StructuredReader(Variables):
                            'cover element positions within timestep. '
                            'Buffer size (%s) must be increased. See `Variables.set_buffer_size`.' %
                            (self.name, str(self.buffer)))
-            # TODO; could add dynamic incraes of buffer size here
+            # TODO: could add dynamic increase of buffer size here
 
         ############################################################
         # Interpolate before/after blocks onto particles in space
@@ -355,7 +392,7 @@ class StructuredReader(Variables):
                     env_profiles = env_profiles_before
                 else:
                     # Copying data from environment to vertical profiles
-                    env_profiles = {'z': profiles_depth}
+                    env_profiles = {'z': [0, -profiles_depth]}
                     for var in profiles:
                         env_profiles[var] = np.ma.array([env[var], env[var]])
         self.timer_end('interpolation_time')

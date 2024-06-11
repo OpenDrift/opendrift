@@ -83,6 +83,7 @@ class ModelTemplate(OceanDrift):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0},
         'x_wind': {'fallback': 0, 'important': False},
         'y_wind': {'fallback': 0, 'important': False},
         'ocean_vertical_diffusivity': {'fallback': 0.02, 'important': False, 'profiles': True},
@@ -101,11 +102,10 @@ class ModelTemplate(OceanDrift):
     # If the attribute 'profiles' is True for a variable (as for
     # ocean_vertical_diffusivity in the example above), a vertical profile
     # of this variable is obtained over the vertical depth interval as 
-    # defined below. These profiles are used for the vertical turbulence scheme:
+    # defined by config setting drift:profiles_depth. These profiles are used for the vertical turbulence scheme:
     # https://opendrift.github.io/_modules/opendrift/models/oceandrift.html#OceanDrift.vertical_mixing
     # Profiles are typically required for ocean_vertical_diffusivity, and sometimes for 
     # salinity and temperature in order to calculate the stratification.
-    required_profiles_z_range = [-50, 0]
     
     def __init__(self, *args, **kwargs):
 
@@ -235,6 +235,7 @@ class ModelTemplate(OceanDrift):
 
     def prepare_run(self):
         """Code to be run before a simulation loop (``update()``)"""
+        # This method must also call the corresponding method of parent class
 
     def bottom_interaction(self, seafloor_depth):
         """Sub method of vertical_mixing, determines settling"""

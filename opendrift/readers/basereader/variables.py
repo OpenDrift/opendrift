@@ -58,6 +58,15 @@ class ReaderDomain(Timeable):
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
+        if isinstance(u_component, list):  # Looping recursively over ensemble members
+            uout = []
+            vout = []
+            for ucomp, vcomp in zip(u_component, v_component):
+                ucomprot, vcomprot = self.rotate_vectors(
+                    reader_x, reader_y, ucomp, vcomp, proj_from, proj_to)
+                uout.append(ucomprot)
+                vout.append(vcomprot)
+            return uout, vout
         """Rotate vectors from one crs to another."""
 
         if type(proj_from) is str:
@@ -430,7 +439,7 @@ class ReaderDomain(Timeable):
 # Methods to derive environment variables from others available
 ################################################################
 
-def land_binary_mask_from_ocean_depth(env):
+def land_binary_mask_from_ocean_depth(env,in_name=None,out_name=None):
     env['land_binary_mask'] = np.float32(env['sea_floor_depth_below_sea_level'] <= 0)
 
 def wind_from_speed_and_direction(env, in_name, out_name):
@@ -534,6 +543,12 @@ class Variables(ReaderDomain):
                     }
 
         super().__init__()
+
+    def prepare(self, extent, start_time, end_time, max_speed):
+        """Prepare reader for given simulation coverage in time and space."""
+        logger.debug('Nothing more to prepare for ' + self.name)
+        pass  # to be overriden by specific readers
+
 
     def activate_environment_mapping(self, mapping_name):
         if mapping_name not in self.environment_mappings:
@@ -734,7 +749,7 @@ class Variables(ReaderDomain):
             z = z.copy() * np.ones(x.shape)
         z = z.copy()[ind_covered]
 
-        logger.debug('Fetching variables from ' + self.name)
+        logger.debug(f'Fetching variables from {self.name} covering {len(ind_covered)} elements')
         self.timer_start('reading')
 
         # Filter derived variables
@@ -851,7 +866,7 @@ class Variables(ReaderDomain):
 
             profiles: List of variable names that should be returned for the range in `profiles_depth`.
 
-            profiles_depth: A range [z-start, z-end] for which to return values for profile-variables. The exact z-depth are given by the reader and returned as `z` variable in `env_profiles`.
+            profiles_depth: Profiles variables will be retrieved from surface and down to this depth. The exact z-depth are given by the reader and returned as `z` variable in `env_profiles`.
 
             time: datetime or None, time at which data are requested.
                 Can be None (default) if reader/variable has no time

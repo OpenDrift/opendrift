@@ -31,8 +31,9 @@ try:
     from opendrift.readers import reader_netCDF_CF_generic
     from opendrift.readers import reader_netCDF_CF_unstructured
     from opendrift.readers import reader_ROMS_native
+    from opendrift.readers import reader_copernicusmarine
 
-    readers = [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured]
+    readers = [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured, reader_copernicusmarine]
     try:
         from opendrift.readers import reader_grib
         readers.append(reader_grib)
@@ -84,12 +85,13 @@ def main():
     if not 'r' in locals():
         sys.exit('No readers applicable for ' + args.filename)
 
+    if args.time is None:
+        time = r.start_time
+    else:
+        time = datetime.strptime(args.time, '%Y%m%d%H%M')
+        #raise ValueError('Both lon, lat and time must be given')
+
     if args.lon is not None:
-        if args.time is None:
-            time = r.start_time
-        else:
-            time = datetime.strptime(args.time, '%Y%m%d%H%M')
-            #raise ValueError('Both lon, lat and time must be given')
         lon = np.atleast_1d(float(args.lon))
         lat = np.atleast_1d(float(args.lat))
         x,y = r.lonlat2xy(lon, lat)
@@ -114,7 +116,7 @@ def main():
             else:
                 vmax = float(args.vmax)
 
-            r.plot(args.variable, vmin=vmin, vmax=vmax)
+            r.plot(args.variable, vmin=vmin, vmax=vmax, time=time)
 
 if __name__ == '__main__':
     main()

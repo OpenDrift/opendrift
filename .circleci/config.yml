@@ -167,6 +167,18 @@ jobs:
               poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
             fi
 
+  python_312:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.12
+
+  python_311:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.11
+
   python_310:
     <<: *test-template
     parallelism: 5
@@ -179,12 +191,6 @@ jobs:
     parallelism: 5
     environment:
       - PYTHON_VERSION=3.9
-
-  python_38:
-    <<: *test-template
-    parallelism: 5
-    environment:
-      - PYTHON_VERSION=3.8
 
   docs-build-examples:
     docker:
@@ -410,9 +416,10 @@ workflows:
 
   test-and-package:
     jobs:
+      # - python_312 # disabled because of missing netcdf dependency
+      - python_311
       - python_310
       - python_39
-      - python_38
       - build_package
       - publish_package:
           requires:

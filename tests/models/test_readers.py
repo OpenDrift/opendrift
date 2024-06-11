@@ -188,7 +188,7 @@ class TestReaders(unittest.TestCase):
                         wind_drift_factor=.02,
                         number=10, radius=1000)
         o.run(steps=8)
-        self.assertEqual(o.num_elements_deactivated(), 4)
+        self.assertEqual(o.num_elements_deactivated(), 1)
 
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
@@ -381,9 +381,53 @@ class TestReaders(unittest.TestCase):
                                        time=norkyst3d.start_time,
                                        x=x, y=y, z=[0, -100])
         self.assertEqual(data['z'][4], -25)
-        self.assertEqual(data['z'][4], -25)
         self.assertAlmostEqual(data['sea_water_temperature'][:,0,0][7],
                          9.220000267028809)
+
+        # test also profiles depth
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
+                profiles_depth = 100,
+                time = norkyst3d.start_time,
+                lon=lon, lat=lat, z=0)
+        assert profiles['z'].min() == -150
+        # Request profiles with less depth
+        # NB TODO: must use later time, otherwise cache (with deeper profile) is reused
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
+                profiles_depth = 30,
+                time = norkyst3d.start_time + timedelta(hours=1),
+                lon=lon, lat=lat, z=0)
+        assert profiles['z'].min() == -75
+        # Setting vertical buffer to 0, and checking that now less extra layers are read in the vertical
+        norkyst3d.verticalbuffer=0
+        data, profiles = norkyst3d.get_variables_interpolated(
+                variables, profiles=['sea_water_temperature'],
+                profiles_depth = 30,
+                time = norkyst3d.start_time + timedelta(hours=2),
+                lon=lon, lat=lat, z=0)
+        assert profiles['z'].min() == -50
+
+    def test_vertical_profile_from_simulation(self):
+        o = OpenOil()
+        r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+            '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        variables = ['x_sea_water_velocity', 'x_sea_water_velocity',
+                     'sea_water_temperature']
+        N = 10
+        o.add_reader(r)
+        o.set_config('environment:constant', {'land_binary_mask': 0, 'x_wind': 0, 'y_wind': 0})
+        o.seed_elements(lon=np.linspace(4.5, 4.8, N), lat=np.linspace(63, 63.2, N), time=r.start_time)
+        o.run(steps=1)
+        assert o.environment_profiles['z'].min() == -75
+
+        o = OpenOil()
+        o.set_config('drift:profiles_depth', 20)
+        o.add_reader(r)
+        o.set_config('environment:constant', {'land_binary_mask': 0, 'x_wind': 0, 'y_wind': 0})
+        o.seed_elements(lon=np.linspace(4.5, 4.8, N), lat=np.linspace(63, 63.2, N), time=r.start_time)
+        o.run(steps=1)
+        assert o.environment_profiles['z'].min() == -50
 
     def test_vertical_interpolation(self):
         norkyst3d = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
@@ -397,7 +441,7 @@ class TestReaders(unittest.TestCase):
         # space (horizontally, vertically) and then in time
         data, profiles = norkyst3d.get_variables_interpolated(
                 variables, profiles=['sea_water_temperature'],
-                profiles_depth = [-100, 0],
+                profiles_depth = 100,
                 time = norkyst3d.start_time + timedelta(seconds=900),
                 lon=lon, lat=lat, z=z)
         # Check surface value
@@ -406,10 +450,6 @@ class TestReaders(unittest.TestCase):
         # Check interpolated temperature at 33 m depth
         self.assertAlmostEqual(data['sea_water_temperature'][1],
                                8.32, 2)
-        #import matplotlib.pyplot as plt
-        #plt.plot(profiles['sea_water_temperature'][:,0])
-        #plt.plot(profiles['sea_water_temperature'][:,1], 'r')
-        #plt.show()
 
     def test_vertical_interpolation_sigma(self):
         nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +
@@ -457,7 +497,7 @@ class TestReaders(unittest.TestCase):
             o.env.get_environment(list(o.required_variables),
                               reader_nordic.start_time,
                               testlon, testlat, testz,
-                              o.required_profiles)
+                              o.required_profiles, profiles_depth=120)
         self.assertAlmostEqual(env['sea_water_temperature'][0], 4.251, 2)
         self.assertAlmostEqual(env['sea_water_temperature'][1], -0.148, 3)
         self.assertAlmostEqual(env['sea_water_temperature'][4], 10.0)
@@ -622,7 +662,7 @@ class TestReaders(unittest.TestCase):
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
         u = o.get_property('x_sea_water_velocity')[0]
-        self.assertAlmostEqual(u.max(), -.069, 3)  # Some numerical error allowed
+        self.assertAlmostEqual(u.max(), -.0718, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':

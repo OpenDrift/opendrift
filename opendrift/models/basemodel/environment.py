@@ -21,7 +21,6 @@ class Environment(Timeable, Configurable):
     readers: OrderedDict
     priority_list: OrderedDict
     required_variables: Dict
-    required_profiles_z_range: List[float]  # [min_depth, max_depth]
 
     discarded_readers: Dict
 
@@ -29,7 +28,7 @@ class Environment(Timeable, Configurable):
 
     __finalized__ = False
 
-    def __init__(self, required_variables, required_profiles_z_range, _config):
+    def __init__(self, required_variables, _config):
         super().__init__()
 
         self.readers = OrderedDict()
@@ -37,7 +36,6 @@ class Environment(Timeable, Configurable):
         self.discarded_readers = {}
 
         self.required_variables = required_variables
-        self.required_profiles_z_range = required_profiles_z_range
         self._config = _config # reference to simulation config
 
         # Add constant and fallback environment variables to config
@@ -326,11 +324,6 @@ class Environment(Timeable, Configurable):
                         reader.name = tmp_name
                         break
 
-            # Horizontal buffer of reader must be large enough to cover
-            # the distance possibly covered by elements within a time step
-            if not reader.is_lazy:
-                reader.set_buffer_size(max_speed=self.get_config('drift:max_speed'))
-
             self.readers[reader.name] = reader
             logger.debug('Added reader ' + reader.name)
 
@@ -521,7 +514,7 @@ class Environment(Timeable, Configurable):
             if var not in self.priority_list
         ]
 
-    def get_environment(self, variables, time, lon, lat, z, profiles):
+    def get_environment(self, variables, time, lon, lat, z, profiles=None, profiles_depth=None):
         '''Retrieve environmental variables at requested positions.
 
         Args:
@@ -536,7 +529,9 @@ class Environment(Timeable, Configurable):
 
             z: depth to get value for
 
-            profiles: ?
+            profiles: list of variables for which profiles are needed
+
+            profiles_depth: depth of profiles in meters, as a positive number
 
         Updates:
             Buffer (raw data blocks) for each reader stored for performance:
@@ -562,6 +557,8 @@ class Environment(Timeable, Configurable):
         for readername, reader in self.readers.copy().items():
             self.discard_reader_if_not_relevant(reader, time)
 
+        if profiles_depth is None:
+            profiles_depth = np.abs(z).max()
         if 'drift:truncate_ocean_model_below_m' in self._config:
             truncate_depth = self.get_config(
                 'drift:truncate_ocean_model_below_m')
@@ -570,12 +567,7 @@ class Environment(Timeable, Configurable):
                              truncate_depth)
                 z = z.copy()
                 z[z < -truncate_depth] = -truncate_depth
-                if self.required_profiles_z_range is not None:
-                    self.required_profiles_z_range = np.array(
-                        self.required_profiles_z_range)
-                    self.required_profiles_z_range[
-                        self.required_profiles_z_range <
-                        -truncate_depth] = -truncate_depth
+                profiles_depth = np.minimum(profiles_depth, truncate_depth)
 
         # Initialise more lazy readers if necessary
         missing_variables = ['missingvar']
@@ -631,7 +623,7 @@ class Environment(Timeable, Configurable):
                                 'Missing variables: calling get_environment recursively'
                             )
                             return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                                variables, time, lon, lat, z, profiles, profiles_depth)
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
@@ -647,10 +639,10 @@ class Environment(Timeable, Configurable):
                         profiles_from_reader = None
                     env_tmp, env_profiles_tmp = \
                         reader.get_variables_interpolated(
-                            variable_group, profiles_from_reader,
-                            self.required_profiles_z_range, time,
-                            lon[missing_indices], lat[missing_indices],
-                            z[missing_indices], self.proj_latlon)
+                            variable_group, profiles = profiles_from_reader,
+                            profiles_depth = profiles_depth, time = time,
+                            lon=lon[missing_indices], lat=lat[missing_indices],
+                            z=z[missing_indices], rotate_to_proj=self.proj_latlon)
 
                 except NotCoveredError as e:
                     logger.info(e)
@@ -662,7 +654,7 @@ class Environment(Timeable, Configurable):
                                 'Missing variables: calling get_environment recursively'
                             )
                             return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                                variables, time, lon, lat, z, profiles, profiles_depth)
                     continue
 
                 except Exception as e:  # Unknown error
@@ -693,7 +685,7 @@ class Environment(Timeable, Configurable):
                                 'Missing variables: calling get_environment recursively'
                             )
                             return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                                variables, time, lon, lat, z, profiles, profiles_depth)
                     continue
 
                 # Copy retrieved variables to env array, and mask nan-values
@@ -806,9 +798,7 @@ class Environment(Timeable, Configurable):
                     logger.debug('Creating empty dictionary for profiles not '
                                  'profided by any reader: ' +
                                  str(self.required_profiles))
-                    env_profiles = {}
-                    env_profiles['z'] = \
-                        np.array(self.required_profiles_z_range)[::-1]
+                    env_profiles = {'z': [0, -profiles_depth]}
                 if var not in env_profiles:
                     logger.debug(
                         '      Using fallback value %s for %s for all profiles'
@@ -851,14 +841,13 @@ class Environment(Timeable, Configurable):
                     env_profiles['sea_water_temperature'][:,t_kelvin] = \
                       env_profiles['sea_water_temperature'][:,t_kelvin] - 273.15
 
-        #######################################################
+        ############################################################
         # Parameterisation of unavailable variables
-        #######################################################
+        # TODO: use instead "environment mapping" mechanism for this
+        #############################################################
         if 'drift:use_tabularised_stokes_drift' in self._config and self.get_config(
                 'drift:use_tabularised_stokes_drift') is True:
-            if 'x_wind' not in variables:
-                logger.debug('No wind available to calculate Stokes drift')
-            else:
+            if 'x_wind' in variables:
                 if 'sea_surface_wave_stokes_drift_x_velocity' not in variables or (
                         env['sea_surface_wave_stokes_drift_x_velocity'].max()
                         == 0 and
@@ -939,7 +928,7 @@ class Environment(Timeable, Configurable):
 
         return env.view(np.recarray), env_profiles, missing
 
-    def get_variables_along_trajectory(self, variables, lons, lats, times):
+    def get_variables_along_trajectory(self, variables, lons, lats, times, z=0):
         self.finalize()
         data = {'time': times, 'lon': lons, 'lat': lats}
         for var in variables:
@@ -948,7 +937,7 @@ class Environment(Timeable, Configurable):
             self.time = time
             d = self.get_environment(lon=np.atleast_1d(lons[i]),
                                      lat=np.atleast_1d(lats[i]),
-                                     z=np.atleast_1d(0),
+                                     z=np.atleast_1d(z),
                                      time=time,
                                      variables=variables,
                                      profiles=None)

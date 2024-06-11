@@ -39,13 +39,13 @@ o.seed_elements(lon=4.5, lat=62.0, z='seafloor', radius=0, number=3000,
 
 #%%
 # Running model with a small timestep to resolve the boyant rising
-o.run(duration=timedelta(hours=2), time_step=60, time_step_output=60)
+o.run(duration=timedelta(hours=6), time_step=60, time_step_output=60)
 
 #%%
 # Print and plot results
 print(o)
 
-o.animation_profile()
+o.animation_profile(markersize='z', color='z')
 #%%
 # .. image:: /gallery/animations/example_oilspill_seafloor_0.gif
 

@@ -74,7 +74,12 @@ class Reader(StructuredReader, BaseReader):
 
         if isinstance(filename, xr.Dataset):
             self.Dataset = filename
-            self.name = name if name is not None else str(filename)
+            if name is not None:
+                self.name = name
+            elif hasattr(self.Dataset, 'name'):
+                self.name = self.Dataset.name
+            else:
+                self.name = str(filename)
         else:
             if zarr_storage_options is not None:
                 self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
@@ -119,6 +124,8 @@ class Reader(StructuredReader, BaseReader):
         lat_var_name = None
         self.unitfactor = 1
         self.realizations = None
+        self.ensemble_dimension = None
+        self.dimensions = {}
         for var_name in self.Dataset.variables:
             var = self.Dataset.variables[var_name]
 
@@ -156,6 +163,8 @@ class Reader(StructuredReader, BaseReader):
             if (axis == 'X' or standard_name == 'projection_x_coordinate' or standard_name == 'grid_longitude') \
                     and var.ndim == 1:
                 self.xname = var_name
+                if len(var.dims)==1:
+                    self.dimensions['x'] = var.dims[0]
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
                     self.unitfactor = 1000
@@ -166,6 +175,8 @@ class Reader(StructuredReader, BaseReader):
             if (axis == 'Y' or standard_name == 'projection_y_coordinate' or standard_name == 'grid_latitude') \
                     and var.ndim == 1:
                 self.yname = var_name
+                if len(var.dims)==1:
+                    self.dimensions['y'] = var.dims[0]
                 # Fix for units; should ideally use udunits package
                 if units == 'km':
                     self.unitfactor = 1000
@@ -175,6 +186,8 @@ class Reader(StructuredReader, BaseReader):
                 y = var_data*self.unitfactor
             if (standard_name == 'depth' or axis == 'Z') and var.ndim==1:
                 var_data = var.values
+                if len(var.dims)==1:
+                    self.dimensions['z'] = var.dims[0]
                 if var_data.ndim == 1:  # Earlier this was not a requirement above
                     if 'positive' not in var.attrs or \
                             var.attrs['positive'] == 'up':
@@ -186,6 +199,8 @@ class Reader(StructuredReader, BaseReader):
                 var_data = var.values
                 time = var_data
                 time_units = units
+                if len(var.dims)==1:
+                    self.dimensions['time'] = var.dims[0]
 
                 if isinstance(time[0], np.bytes_):
                     # This hack is probably only necessary for CERSAT/GELOBCURRENT
@@ -215,6 +230,8 @@ class Reader(StructuredReader, BaseReader):
                     self.realizations = var_data
                     logger.debug('%i ensemble members available'
                                 % len(self.realizations))
+                if len(var.dims)==1:
+                    self.ensemble_dimension = var.dims[0]
 
         # Temporary workaround for Barents EPS model
         if self.realizations is None and 'ensemble_member' in self.Dataset.dims:
@@ -235,23 +252,29 @@ class Reader(StructuredReader, BaseReader):
             # We load lon and lat arrays into memory
             lon_var = self.Dataset.variables[lon_var_name]
             lat_var = self.Dataset.variables[lat_var_name]
+            self.xname = lon_var_name
+            self.yname = lat_var_name
             if lon_var.ndim == 1:
                 logger.debug('Lon and lat are 1D arrays - using as projection coordinates')
                 x = lon_var.data
                 y = lat_var.data
-                self.xname = lon_var_name
-                self.yname = lat_var_name
+                self.dimensions['x'] = lon_var.dims[0]
+                self.dimensions['y'] = lat_var.dims[0]
                 if self.proj4 is None:
                     self.proj4 = '+proj=latlong'
             elif lon_var.ndim == 2:
                 logger.debug('Lon and lat are 2D arrays - dataset is unprojected')
                 self.lon = lon_var.data
                 self.lat = lat_var.data
+                self.dimensions['x'] = lon_var.dims[0]
+                self.dimensions['y'] = lat_var.dims[1]
                 self.projected = False
             elif lon_var.ndim == 3:
                 logger.debug('Lon lat are 3D arrays, reading first time')
                 self.lon = lon_var[0,:,:].data
                 self.lat = lat_var[0,:,:].data
+                self.dimensions['x'] = lon_var.dims[1]
+                self.dimensions['y'] = lat_var.dims[2]
                 self.projected = False
         else:
             if self.proj4 is None:
@@ -288,6 +311,8 @@ class Reader(StructuredReader, BaseReader):
             self.xmax -= 360
             self.x -= 360
 
+        logger.info(f'Detected dimensions: {self.dimensions}')
+
         ##########################################
         # Find all variables having standard_name
         ##########################################
@@ -315,6 +340,15 @@ class Reader(StructuredReader, BaseReader):
             logger.debug('Skipped variables without standard_name: %s' % skipvars)
 
         self.variables = list(self.variable_mapping.keys())
+
+        # Workaround for datasets with unnecessary ensemble dimension for static variables
+        for vn, va in self.variable_mapping.items():
+            if vn == 'sea_floor_depth_below_sea_level':
+                var = self.Dataset.variables[va]
+                if 'ensemble_member' in var.dims:
+                    logger.info(f'Removing ensemble dimension from {vn}')
+                    var = var.isel(ensemble_member=0).squeeze()
+                    self.Dataset[va] = var
 
         # Run constructor of parent Reader class
         super().__init__()
@@ -392,18 +426,31 @@ class Reader(StructuredReader, BaseReader):
 
             ensemble_dim = None
             if continuous is True:
-                if var.ndim == 2:
-                    variables[par] = var[indy, indx]
-                elif var.ndim == 3:
-                    variables[par] = var[indxTime, indy, indx]
-                elif var.ndim == 4:
-                    variables[par] = var[indxTime, indz, indy, indx]
-                elif var.ndim == 5:  # Ensemble data
-                    variables[par] = var[indxTime, indz, indrealization, indy, indx]
-                    ensemble_dim = 0  # Hardcoded ensemble dimension for now
-                else:
-                    raise Exception('Wrong dimension of variable: ' +
-                                    self.variable_mapping[par])
+                if True:  # new dynamic way
+                    dimindices = {'x': indx, 'y': indy, 'time': indxTime, 'z': indz}
+                    subset = {vdim:dimindices[dim] for dim,vdim in self.dimensions.items() if vdim in var.dims}
+                    variables[par] = var.isel(subset)
+                    # Remove any unknown dimensions
+                    for dim in variables[par].dims:
+                        if dim not in self.dimensions.values() and dim != self.ensemble_dimension:
+                            logger.debug(f'Removing unknown dimension: {dim}')
+                            variables[par] = variables[par].squeeze(dim=dim)
+                    if self.ensemble_dimension is not None and self.ensemble_dimension in variables[par].dims:
+                        ensemble_dim = 0  # hardcoded, may not work for MEPS
+                else:  # old hardcoded way
+                    if var.ndim == 2:
+                        variables[par] = var[indy, indx]
+                    elif var.ndim == 3:
+                        variables[par] = var[indxTime, indy, indx]
+                    elif var.ndim == 4:
+                        variables[par] = var[indxTime, indz, indy, indx]
+                    elif var.ndim == 5:  # Ensemble data
+                        variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                        ensemble_dim = 0  # Hardcoded ensemble dimension for now
+                    else:
+                        raise Exception('Wrong dimension of variable: ' +
+                                        self.variable_mapping[par])
+            # The below should also be updated to dynamic subsetting
             else:  # We need to read left and right parts separately
                 if var.ndim == 2:
                     left = var[indy, indx_left]
@@ -437,7 +484,7 @@ class Reader(StructuredReader, BaseReader):
             # Ensemble blocks are split into lists
             if ensemble_dim is not None:
                 num_ensembles = variables[par].shape[ensemble_dim]
-                logger.debug('Num ensembles: %i ' % num_ensembles)
+                logger.debug(f'Num ensembles for {par}: {num_ensembles}')
                 newvar = [0]*num_ensembles
                 for ensemble_num in range(num_ensembles):
                     newvar[ensemble_num] = \
@@ -473,7 +520,10 @@ class Reader(StructuredReader, BaseReader):
                 from opendrift.readers.basereader import vector_pairs_xy
                 for vectorpair in vector_pairs_xy:
                     if vectorpair[0] in self.rotate_mapping and vectorpair[0] in variables.keys():
-                        logger.debug(f'Rotating vector from east/north to xy orientation: {vectorpair}')
+                        if self.proj.__class__.__name__ == 'fakeproj':
+                            logger.warning('Rotation from fakeproj is not yet implemented, skipping.')
+                            continue
+                        logger.debug(f'Rotating vector from east/north to xy orientation: {vectorpair[0:2]}')
                         variables[vectorpair[0]], variables[vectorpair[1]] = self.rotate_vectors(
                             lon, lat, variables[vectorpair[0]], variables[vectorpair[1]],
                             pyproj.Proj('+proj=latlong'), self.proj)

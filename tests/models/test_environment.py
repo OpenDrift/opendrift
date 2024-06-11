@@ -13,7 +13,7 @@ def test_add_readers(test_data_roms):
             'fallback': 10
         },
     }
-    env = Environment(required_variables, None, c._config)
+    env = Environment(required_variables, c._config)
     env.add_reader(test_data_roms)
     env.finalize()
 
