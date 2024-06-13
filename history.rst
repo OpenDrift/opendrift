@@ -1,14 +1,32 @@
 History
 =======
 
+2024-06-13 / Release v1.11.3
+----------------------------
+* reader.plot() now takes time as optional argument for plotting background field at specific time
+* Using now product_id instead of OPeNDAP URL for CMEMS datasets, and using copernicusmarineclient through new reader_copernicusmarine. username/password can be stored in netrc-file with machine name equal to *copernicusmarine* or *nrt.cmems-du.eu*
+* Model property reguired_profiles_z_range is now replaced with config setting drift:profile_depth, and profiles are retrieved from surface to this depth. profiles_depth is now input parameter to get_environment, and not anymore a property of Environment class. prepare_run must now always call prepare_run of parent class, since profile_depth is copied to object in basemodel.prepare_run
+* get_variables_along_trajectory now also takes depth (z) as input parameter
+* updates to wetting/drying in ROMS reader (Kristin Thyng)
+* Fill value in output netCDF files is now set to NaN for floats and -999 for integers
+* Moving basereader.prepare() to variables.prepare(), as the former was overriding structured.prepare() due to multiple inheritance, and thus config *drift:max_speed* was not applied if config setting was made after reader was added. Also increasing *drift:max_speed* of OceanDrift from 1 to 2m/s
+* Leeway model now allows capsizing (and un-capsizing for backwards runs), with given probability and reduction of leeway coefficients when wind exceeds given threshold
+* New internal method simulation_direction() is 1 for forward runs, and -1 for backwards runs
+* First version of gaussian merging of model and point measurements (Ugo Martinez)
+* Added utility method open_mfdataset_overlap to create manual threds aggregates, and example_manual_aggregate to illustrate usage
+* Added new config type 'str' with properties min_length and max_length (default 64). Added generic config 'general:simulation_name' (default empty)
+* Changing >= to > in condition regarding at which timestep to export buffer to file
+
 2024-04-02 / Release v1.11.2
 ----------------------------
 * Proper handling of sea_surface_height implemented by Kristin Thyng. All subclasses of OceanDrift now have `sea_surface_height` (default 0) as new parameter. z=0 is always sea surface (including sea_surface_height), and seafloor is now where z = -(sea_floor_depth + sea_surface_height)
 * Improvements of ROMS reader by Kristin Thyng:
+
   * Roppy-method `sdepth` (used by ROMS reader) now accounts for `sea_surface_height` (zeta).
   * Improved handling of rotation of vectors.
   * Interpolator can be saved/cached to file to save time on repeated simulations.
   * Improved handling of landmasks, for wetting-drying-applications.
+
 * Added alternative biodegradation to OpenOil by specifying half_tiome [days], which can be different for slick and submerged droplets.
 * Memory usage is now logged once every timestep, and can be plotted after simulation with new method `o.plot_memory_usage()`
 * Exporting directly to parquet file is now an alternative to netCDF (#1259, Achim Randelhoff)
@@ -17,9 +35,11 @@ History
 * Bugfix for attibute of vertical coordinate in SCISM raeder (Calvin Quigley)
 * Can make faster and smaller animation by selcting frames as range or list (Manuel Aghito)
 * Updates to reader_netCDF_CF_generic:
+
   * Now also rotating ensemble vectors from east/north to x/y
   * Now using dynamic instead of hardcoded order of dimensions
   * Removing unnecessary ensemble dimension for seafloor depth
+
 * Now ending timer[total time] before finalizing output netCDF file, so that complete performance is included.
 
 2024-01-25 / Release v1.11.1
