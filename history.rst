@@ -1,6 +1,11 @@
 History
 =======
 
+2024-06-14 / Release v1.11.4
+----------------------------
+* Updating requirements in pyproject.toml
+* config setting general:simulation_name is now ESSENTIAL, to be on fron page of GUI
+
 2024-06-14 / Release v1.11.3
 ----------------------------
 * reader.plot() now takes time as optional argument for plotting background field at specific time
