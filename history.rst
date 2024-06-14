@@ -1,7 +1,7 @@
 History
 =======
 
-2024-06-13 / Release v1.11.3
+2024-06-14 / Release v1.11.3
 ----------------------------
 * reader.plot() now takes time as optional argument for plotting background field at specific time
 * Using now product_id instead of OPeNDAP URL for CMEMS datasets, and using copernicusmarineclient through new reader_copernicusmarine. username/password can be stored in netrc-file with machine name equal to *copernicusmarine* or *nrt.cmems-du.eu*
@@ -16,6 +16,7 @@ History
 * Added utility method open_mfdataset_overlap to create manual threds aggregates, and example_manual_aggregate to illustrate usage
 * Added new config type 'str' with properties min_length and max_length (default 64). Added generic config 'general:simulation_name' (default empty)
 * Changing >= to > in condition regarding at which timestep to export buffer to file
+* Added new oil, HEIDRUN AARE 2023 
 
 2024-04-02 / Release v1.11.2
 ----------------------------
