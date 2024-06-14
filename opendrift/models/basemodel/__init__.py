@@ -55,7 +55,7 @@ import opendrift
 from opendrift.timer import Timeable
 from opendrift.errors import WrongMode
 from opendrift.models.physics_methods import PhysicsMethods
-from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
+from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED, CONFIG_LEVEL_ESSENTIAL
 
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 
@@ -313,7 +313,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self._add_config({
             # type, default, min, max, enum, important, value, units, description
             'general:simulation_name': {'type': 'str', 'min_length': 0, 'max_length': 64,
-                                        'default': '', 'level': CONFIG_LEVEL_BASIC,
+                                        'default': '', 'level': CONFIG_LEVEL_ESSENTIAL,
                                         'description': 'Name of simulation'},
             'general:coastline_action': {
                 'type':

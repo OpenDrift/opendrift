@@ -546,7 +546,8 @@ class OpenDriftGUI(tk.Tk):
             else:
                 tab = self.subconfig[key.split(':')[0]]
                 keystr = ''.join(key.split(':')[1:])
-
+            if keystr == '':
+                keystr = key
             lab = tk.Label(tab, text=keystr)
             lab.grid(row=i, column=1, rowspan=1)
             if sc[key]['type'] in ['float', 'int']:
@@ -566,10 +567,12 @@ class OpenDriftGUI(tk.Tk):
                 self.config_input_var[i] = tk.StringVar()
                 vcmd = (tab.register(self.validate_config),
                     '%P', '%s', key)
+                max_length = sc[i].get('max_length') or 12
+                max_length = np.minimum(max_length, 64)
                 self.config_input[i] = tk.Entry(
                     tab, textvariable=self.config_input_var[i],
                     validate='key', validatecommand=vcmd,
-                    width=sc[key]['max_length'], justify=tk.RIGHT)
+                    width=max_length, justify=tk.RIGHT)
                 self.config_input[i].insert(0, str(sc[key]['default']))
                 self.config_input[i].grid(row=i, column=2, columnspan=3, rowspan=1)
                 #tk.Label(tab, text='').grid(row=i, column=3, rowspan=1)
@@ -641,9 +644,11 @@ class OpenDriftGUI(tk.Tk):
                     text=sc[i]['description'])
             else:
                 self.seed_input_var[i] = tk.StringVar()
+                max_length = sc[i].get('max_length') or 12
+                max_length = np.minimum(max_length, 64)
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
-                    width=12, justify=tk.RIGHT)
+                    width=max_length, justify=tk.RIGHT)
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
