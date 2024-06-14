@@ -4,6 +4,7 @@ def parse():
     import NO00161_STAER as d
     import NO00162_YME as d
     import NO00163_OFELIA as d
+    import NO00164_HEIDRUN_AARE as d
     import adios_db.scripting as ads
     from adios_db.models.oil.values import Reference
     from adios_db.models.common.measurement import (MassFraction,
