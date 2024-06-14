@@ -112,10 +112,10 @@ class RadionuclideDrift(OceanDrift):
                 'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
                 'min': .45e-6, 'max': 63.e-6, 'units': 'm',
-                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Mean particle diameter. Determines the settling velocity.'},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': 'Mean particle diameter. Determines the settling velocity.'},
             'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': 'Standard deviation of particle size distribution.'},
             'radionuclide:particle_diameter_minimum': {'type': 'float', 'default': 0.45e-6,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': CONFIG_LEVEL_ADVANCED, 'description': 'Mimimum particle size.'},
@@ -243,8 +243,11 @@ class RadionuclideDrift(OceanDrift):
             self.name_species.append('LMM')
             self.name_species.append('Particle reversible')
             self.name_species.append('Sediment reversible')
-        else:
-            logger.error('No valid specie setup {}'.format(self.get_config('radionuclide:specie_setup')))
+        # else:
+        #     if not self.isotope == 'Al':
+        #         logger.error('No valid specie setup {}'.format(self.get_config('radionuclide:specie_setup')))
+        #     else:
+        #         pass
 
 
         if  '+ slow rev' in self.specie_setup.casefold():
@@ -311,11 +314,39 @@ class RadionuclideDrift(OceanDrift):
 
 
 
+    def check_speciation(self):
+        isotop = self.get_config('radionuclide:isotope')
+        specie_setup = self.get_config('radionuclide:specie_setup')
+
+        legal_species = { '137Cs'   : ['LMM + Rev', 
+                                       'LMM + Rev + Slow rev', 
+                                       'LMM + Rev + Irrev', 
+                                       'LMM + Rev + Slow rev + Irrev'],
+                      '129I'    : ['LMM + Rev', 
+                                   'LMM + Rev + Slow rev + Irrev'],
+                      '241Am'   : ['LMM + Rev', 
+                                   'LMM + Rev + Slow rev', 
+                                    'LMM + Rev + Slow rev + Irrev'],
+                      'Al'      : ['LMM + Colloid + Rev'],
+                     }
+
+
+        if specie_setup in legal_species[isotop]:
+            logger.info(f'All good, isotop: {isotop}, species: {specie_setup}')
+        else:
+            logger.info(f'Not a legal combination of isotop: {isotop} and speciation: {specie_setup}')
+            logger.error('Illegal speciation for %s: %s',isotop, specie_setup)
+            exit()
+
+
+
 
 
 
     def seed_elements(self, *args, **kwargs):
 
+
+        self.check_speciation()
         self.init_species()
         self.init_transfer_rates()
 
@@ -1023,6 +1054,7 @@ class RadionuclideDrift(OceanDrift):
                                               time_avg_conc=False,
                                               horizontal_smoothing=False,
                                               smoothing_cells=0,
+                                              reader_sea_depth=None,
                                               ):
         '''Write netCDF file with map of radionuclide species densities and concentrations'''
 
@@ -1046,6 +1078,42 @@ class RadionuclideDrift(OceanDrift):
                 pixelsize_m = 2000
             if latspan > 5:
                 pixelsize_m = 4000
+
+
+
+
+        if reader_sea_depth is not None:
+            from opendrift.readers import reader_netCDF_CF_generic,reader_ROMS_native
+            reader = reader_sea_depth
+        else:
+            for readerName in self.env.readers:
+                reader = self.env.readers[readerName]
+                if 'sea_floor_depth_below_sea_level' in reader.variables:
+                    break
+
+       
+        try:
+            self.conc_lat  = reader.get_variables('latitude',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['latitude'][:]
+        except:
+            self.conc_lat  = reader.get_variables('grid_latitude_at_cell_center',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['grid_latitude_at_cell_center'][:]
+        try:
+            self.conc_lon  = reader.get_variables('longitude',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['longitude'][:]
+        except:
+            self.conc_lon  = reader.get_variables('grid_longitude_at_cell_center',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['grid_longitude_at_cell_center'][:]
+
+        self.conc_topo = reader.get_variables('sea_floor_depth_below_sea_level',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
+
+
 
 
         if density_proj is None: # add default projection with equal-area property
@@ -1385,7 +1453,7 @@ class RadionuclideDrift(OceanDrift):
         lon_grd = self.conc_lon[:nx,:ny]
 
         # Interpolate topography to new grid
-        h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')
+        h = interpolate.griddata((lon_grd[h_grd.mask==False].flatten(),lat_grd[h_grd.mask==False].flatten()), h_grd[h_grd.mask==False].flatten(), (lons, lats), method='linear')
 
         return h
 
