@@ -194,10 +194,9 @@ class RadionuclideDrift(OceanDrift):
                 'min': 0, 'max': 1, 'units': 'm/s',
                 'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             # OUTPUT config
-            'radionuclide:output:depthintervals': {'type':'enum',
-                'enum': ['-50.', '-25.', '-10.', '-5.', '-2.', '-1.',
-                          '-25., -5.', '-50., -10., -1.', 
-                          '-10., -1.'], 'default':'-10.',
+            'radionuclide:output:depthintervals': {'type':'str',
+                                                   'default': '-25, -10., -5., -1.',
+                                                   'min_length':0, 'max_length':60,
                 'level':CONFIG_LEVEL_ESSENTIAL,
                 'description':'Depth intervals for computation of concentration'},
                         })
