@@ -42,14 +42,14 @@ class Radionuclide(Lagrangian3DArray):
 #         ('transfer_rates1D', {'dtype':np.array(3, dtype=np.float32),
 #                     'units': '1/s',
 #                     'default': 0.})
-        ('LMM_fraction', {'dtype':np.float32,
-                          'units':'',
-                          'default':0,
-                          'seed':False}),
-        ('particle_fraction', {'dtype':np.float32,
-                          'units':'',
-                          'default':0,
-                          'seed':False})
+        # ('LMM_fraction', {'dtype':np.float32,
+        #                   'units':'',
+        #                   'default':0,
+        #                   'seed':False}),
+        # ('particle_fraction', {'dtype':np.float32,
+        #                   'units':'',
+        #                   'default':0,
+        #                   'seed':False})
         ])
 
 
@@ -107,22 +107,21 @@ class RadionuclideDrift(OceanDrift):
 
         # TODO: descriptions and units must be added in config setting below
         self._add_config({
-            'radionuclide:transfer_setup': {'type': 'enum',
-                'enum': ['Sandnesfj_Al','Bokna_137Cs', '137Cs_rev', 'custom'], 'default': '137Cs_rev',
-                'level': CONFIG_LEVEL_ESSENTIAL, 'description': ''},
-            'radionuclide:slowly_fraction': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'radionuclide:irreversible_fraction': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:dissolved_diameter': {'type': 'float', 'default': 0,
                 'min': 0, 'max': 100e-6, 'units': 'm',
                 'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
             'radionuclide:particle_diameter': {'type': 'float', 'default': 5e-6,
                 'min': .45e-6, 'max': 63.e-6, 'units': 'm',
-                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Mean particle diameter. Determines the settling velocity.'},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': 'Mean particle diameter. Determines the settling velocity.'},
             'radionuclide:particle_diameter_uncertainty': {'type': 'float', 'default': 1e-7,
                 'min': 0, 'max': 100e-6, 'units': 'm',
-                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Standard deviation of particle size distribution.'},
+                'level': CONFIG_LEVEL_ADVANCED, 'description': 'Standard deviation of particle size distribution.'},
+            'radionuclide:particle_diameter_minimum': {'type': 'float', 'default': 0.45e-6,
+                'min': 0, 'max': 100e-6, 'units': 'm',
+                'level': CONFIG_LEVEL_ADVANCED, 'description': 'Mimimum particle size.'},
+            'radionuclide:particle_diameter_maximum': {'type': 'float', 'default': 63.e-6,
+                'min': 0, 'max': 100e-6, 'units': 'm',
+                'level': CONFIG_LEVEL_ADVANCED, 'description': 'Maximum particle size.'},
             'radionuclide:particlesize_distribution': {'type':'enum',
                 'enum': ['normal','lognormal'], 'default':'normal',
                 'level':CONFIG_LEVEL_ADVANCED,
@@ -133,35 +132,24 @@ class RadionuclideDrift(OceanDrift):
             'seed:particle_fraction': {'type': 'float','default': 0.9,
                 'min': 0, 'max': 1, 'units': '1',
                 'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of initial discharge released as particle species'},
+            'seed:slowly_fraction': {'type': 'float','default': 0.,
+                'min': 0, 'max': 1, 'units': '1',
+                'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Fraction of PARTICLE discharge released as slowly reversible particle species'},
             'seed:total_release': {'type': 'float','default': 100.e9,
                 'min': 0, 'max': 1e36, 'units': 'Bq',
                 'level': CONFIG_LEVEL_ESSENTIAL, 'description': 'Total release (Bq)'},
-            # Species
-            'radionuclide:species:LMM': {'type': 'bool', 'default': True,
-                'level': CONFIG_LEVEL_BASIC, 'description': 'Toggle LMM species'},
-            'radionuclide:species:LMMcation': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:LMManion': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:Colloid': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:Humic_colloid': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'radionuclide:species:Polymer': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'radionuclide:species:Particle_reversible': {'type': 'bool', 'default': True,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:Particle_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:Particle_irreversible': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
-            'radionuclide:species:Sediment_reversible': {'type': 'bool', 'default': True,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:Sediment_slowly_reversible': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_BASIC, 'description': ''},
-            'radionuclide:species:Sediment_irreversible': {'type': 'bool', 'default': False,
-                'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
-            # Transformations
+
+            # ISOTOPES
+            'radionuclide:isotope': {'type': 'enum', 'default': '137Cs',
+                                   'enum': ['Al', '137Cs', '129I', '241Am', 'manual'],
+                                   'level':CONFIG_LEVEL_ESSENTIAL, 'description':'Isotope'},
+            'radionuclide:specie_setup': {'type': 'enum', 'default': 'LMM + Rev',
+                                   'enum': ['LMM + Rev', 'LMM + Rev + Slow rev', 'LMM + Rev + Irrev', 
+                                            'LMM + Rev + Slow rev + Irrev', 'LMM + Colloid + Rev'],
+                                   'level':CONFIG_LEVEL_ESSENTIAL, 'description':'Species enabled'},
+
+
+            # Transformation parameters
             'radionuclide:transformations:Kd': {'type': 'float', 'default': 2.0,
                 'min': 0, 'max': 1e9, 'units': 'm3/kg',
                 'level': CONFIG_LEVEL_BASIC, 'description': ''},
@@ -205,7 +193,13 @@ class RadionuclideDrift(OceanDrift):
             'radionuclide:sediment:resuspension_critvel': {'type': 'float', 'default': .01,
                 'min': 0, 'max': 1, 'units': 'm/s',
                 'level': CONFIG_LEVEL_ADVANCED, 'description': ''},
-            })
+            # OUTPUT config
+            'radionuclide:output:depthintervals': {'type':'str',
+                                                   'default': '-25, -10., -5., -1.',
+                                                   'min_length':0, 'max_length':60,
+                'level':CONFIG_LEVEL_ESSENTIAL,
+                'description':'Depth intervals for computation of concentration'},
+                        })
 
 
 
@@ -218,81 +212,130 @@ class RadionuclideDrift(OceanDrift):
             logger.info( '{:>3} {}'.format( i, sp ) )
 
 
-        logger.info( 'transfer setup: %s' % self.get_config('radionuclide:transfer_setup'))
+        logger.info( 'Isotope: %s' % self.get_config('radionuclide:isotope'))
+        logger.info( 'specie setup: %s' % self.get_config('radionuclide:specie_setup'))
 
         logger.info('nspecies: %s' % self.nspecies)
         logger.info('Transfer rates:\n %s' % self.transfer_rates)
+
+        tmp = self.get_config('radionuclide:output:depthintervals')
+        self.depthintervals = [float(item) for item in tmp.split(',')]
+        logger.info('DEPTH_INTERVALS: %s',self.depthintervals)
+
+
 
         super(RadionuclideDrift, self).prepare_run()
 
 
     def init_species(self):
-        # Initialize specie types
-        if self.get_config('radionuclide:transfer_setup')=='Bokna_137Cs':
-            self.set_config('radionuclide:species:LMM',True)
-            self.set_config('radionuclide:species:Particle_reversible', True)
-            self.set_config('radionuclide:species:Particle_slowly_reversible', True)
-            self.set_config('radionuclide:species:Sediment_reversible', True)
-            self.set_config('radionuclide:species:Sediment_slowly_reversible', True)
-        elif self.get_config('radionuclide:transfer_setup')=='137Cs_rev':
-            self.set_config('radionuclide:species:LMM',True)
-            self.set_config('radionuclide:species:Particle_reversible', True)
-            self.set_config('radionuclide:species:Sediment_reversible', True)
-        elif self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
-            self.set_config('radionuclide:species:LMM', False)
-            self.set_config('radionuclide:species:LMMcation', True)
-            self.set_config('radionuclide:species:LMManion', True)
-            self.set_config('radionuclide:species:Humic_colloid', True)
-            self.set_config('radionuclide:species:Polymer', True)
-            self.set_config('radionuclide:species:Particle_reversible', True)
-            self.set_config('radionuclide:species:Sediment_reversible', True)
-        elif self.get_config('radionuclide:transfer_setup')=='custom':
-            # Do nothing, species must be set manually
-            pass
-        else:
-            logger.error('No valid transfer_setup {}'.format(self.get_config('radionuclide:transfer_setup')))
+        
+        # Initialize slowly and irrev fractions to False, set True later if enabled
+        self.species_slowly_fraction = False
+        self.species_irreversible_fraction = False
 
 
+        # Initialize species, add enabled species to name_species list
         self.name_species=[]
-        if self.get_config('radionuclide:species:LMM'):
+        self.specie_setup = self.get_config('radionuclide:specie_setup')
+
+        if 'lmm + rev' in self.specie_setup.casefold():
             self.name_species.append('LMM')
-        if self.get_config('radionuclide:species:LMMcation'):
-            self.name_species.append('LMMcation')
-        if self.get_config('radionuclide:species:LMManion'):
-            self.name_species.append('LMManion')
-        if self.get_config('radionuclide:species:Colloid'):
-            self.name_species.append('Colloid')
-        if self.get_config('radionuclide:species:Humic_colloid'):
-            self.name_species.append('Humic colloid')
-        if self.get_config('radionuclide:species:Polymer'):
-            self.name_species.append('Polymer')
-        if self.get_config('radionuclide:species:Particle_reversible'):
             self.name_species.append('Particle reversible')
-        if self.get_config('radionuclide:species:Particle_slowly_reversible'):
-            self.name_species.append('Particle slowly reversible')
-        if self.get_config('radionuclide:species:Particle_irreversible'):
-            self.name_species.append('Particle irreversible')
-        if self.get_config('radionuclide:species:Sediment_reversible'):
             self.name_species.append('Sediment reversible')
-        if self.get_config('radionuclide:species:Sediment_slowly_reversible'):
+        # else:
+        #     if not self.isotope == 'Al':
+        #         logger.error('No valid specie setup {}'.format(self.get_config('radionuclide:specie_setup')))
+        #     else:
+        #         pass
+
+
+        if  '+ slow rev' in self.specie_setup.casefold():
+            self.name_species.append('Particle slowly reversible')
             self.name_species.append('Sediment slowly reversible')
-        if self.get_config('radionuclide:species:Sediment_irreversible'):
+            self.species_slowly_fraction = True
+        if '+ irrev' in self.specie_setup.casefold():
+            self.name_species.append('Particle irreversible')
             self.name_species.append('Sediment irreversible')
-
-
-        if self.get_config('radionuclide:species:Sediment_slowly_reversible') and \
-                    self.get_config('radionuclide:species:Particle_slowly_reversible'):
-            self.set_config('radionuclide:slowly_fraction', True)
-        if self.get_config('radionuclide:species:Sediment_irreversible') and \
-                    self.get_config('radionuclide:species:Particle_irreversible'):
-            self.set_config('radionuclide:irreversible_fraction', True)
+            self.species_irreversible_fraction = True
+        if self.specie_setup.casefold() == 'lmm + colloid + rev':
+            self.name_species.append('LMMcation')
+            self.name_species.append('LMManion')
+            self.name_species.append('Humic colloid')
+            self.name_species.append('Polymer')
+            self.name_species.append('Particle reversible')
+            self.name_species.append('Sediment reversible')
 
 
         self.nspecies      = len(self.name_species)
-#         logger.info( 'Number of species: {}'.format(self.nspecies) )
-#         for i,sp in enumerate(self.name_species):
-#             logger.info( '{:>3} {}'.format( i, sp ) )
+        logger.info( 'Number of species: {}'.format(self.nspecies) )
+        for i,sp in enumerate(self.name_species):
+            logger.info( '{:>3} {}'.format( i, sp ) )
 
+
+
+
+
+    def set_init_diameter(self, num, idxs,diam):
+        """ Initialize diameter for particles, according to size distribution """
+
+        distr = self.get_config('radionuclide:particlesize_distribution')
+
+        init_diam = np.zeros(num)
+        npart = len(idxs) 
+
+        mu = 0.
+        uncert  = self.get_config('radionuclide:particle_diameter_uncertainty')
+        if diam>0:
+            uncert_ln = uncert/diam * 3.
+        else:
+            uncert_ln = 0.
+
+        rng = np.random.default_rng()
+
+        if distr=='normal':
+            truncs = rng.normal(mu, uncert, npart)
+            init_diam[idxs] = diam + truncs
+
+        elif distr=='lognormal':
+            truncs = rng.lognormal(mu, uncert_ln, size=npart ) # * diameter
+            init_diam[idxs] = diam * truncs
+        else:
+            logger.error('Not available distribution: %s',distr)
+
+        pmin = self.get_config('radionuclide:particle_diameter_minimum')
+        pmax = self.get_config('radionuclide:particle_diameter_maximum')
+        init_diam[idxs][init_diam[idxs]<pmin] = pmin 
+        init_diam[idxs][init_diam[idxs]>pmax] = pmax
+
+
+        return init_diam
+
+
+
+
+    def check_speciation(self):
+        isotop = self.get_config('radionuclide:isotope')
+        specie_setup = self.get_config('radionuclide:specie_setup')
+
+        legal_species = { '137Cs'   : ['LMM + Rev', 
+                                       'LMM + Rev + Slow rev', 
+                                       'LMM + Rev + Irrev', 
+                                       'LMM + Rev + Slow rev + Irrev'],
+                      '129I'    : ['LMM + Rev', 
+                                   'LMM + Rev + Slow rev + Irrev'],
+                      '241Am'   : ['LMM + Rev', 
+                                   'LMM + Rev + Slow rev', 
+                                    'LMM + Rev + Slow rev + Irrev'],
+                      'Al'      : ['LMM + Colloid + Rev'],
+                     }
+
+
+        if specie_setup in legal_species[isotop]:
+            logger.info(f'All good, isotop: {isotop}, species: {specie_setup}')
+        else:
+            logger.info(f'Not a legal combination of isotop: {isotop} and speciation: {specie_setup}')
+            logger.error('Illegal speciation for %s: %s',isotop, specie_setup)
+            exit()
 
 
 
@@ -301,10 +344,10 @@ class RadionuclideDrift(OceanDrift):
 
     def seed_elements(self, *args, **kwargs):
 
+
+        self.check_speciation()
         self.init_species()
-
         self.init_transfer_rates()
-
 
 
         if 'number' in kwargs:
@@ -314,6 +357,8 @@ class RadionuclideDrift(OceanDrift):
 
 
 
+
+        # Initialize species 
         if 'specie' in kwargs:
             print('num_elements', num_elements)
             try:
@@ -324,9 +369,6 @@ class RadionuclideDrift(OceanDrift):
             init_specie = np.ones(num_elements,dtype=int)
             init_specie[:] = kwargs['specie']
             kwargs['specie'] = init_specie[:]
-
-
-
 
         else:
 
@@ -341,7 +383,6 @@ class RadionuclideDrift(OceanDrift):
             else:
                 lmm_frac = self.get_config('seed:LMM_fraction')
 
-            shift = int(num_elements * (1-particle_frac))
             if not lmm_frac + particle_frac == 1.:
                 logger.error('Fraction does not sum up to 1: %s' % str(lmm_frac+particle_frac) )
                 logger.error('LMM fraction: %s ' % str(lmm_frac))
@@ -349,11 +390,23 @@ class RadionuclideDrift(OceanDrift):
                 raise ValueError('Illegal specie fraction combination : ' + str(lmm_frac) + ' '+ str(particle_frac) )
 
             init_specie = np.ones(num_elements, int)
-            if self.get_config('radionuclide:transfer_setup')=='Sandnesfj_Al':
-                init_specie[:shift] = self.num_lmmcation
+            dissolved = np.random.rand(num_elements)<lmm_frac
+            ndiss = np.sum(dissolved)
+            if 'LMMcation' in self.name_species:
+                init_specie[dissolved] = self.num_lmmcation
+            elif 'LMM' in self.name_species:
+                init_specie[dissolved] = self.num_lmm
             else:
-                init_specie[:shift] = self.num_lmm
-            init_specie[shift:] = self.num_prev
+                logger.error('No dissolved species present %s: ',self.name_species)
+            
+            if self.get_config('seed:slowly_fraction')>0 and 'Particle slowly reversible' in self.name_species:
+                ndiss = np.sum(dissolved)
+                prtidx = np.where(~dissolved)[0]
+                slowprt  = np.random.rand(num_elements-ndiss)<self.get_config('seed:slowly_fraction')
+                init_specie[prtidx[slowprt]] = self.num_psrev
+                init_specie[prtidx[~slowprt]] = self.num_prev
+            else:
+                init_specie[~dissolved] = self.num_prev
 
             kwargs['specie'] = init_specie
 
@@ -362,50 +415,92 @@ class RadionuclideDrift(OceanDrift):
         for i,sp in enumerate(self.name_species):
             logger.info( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
 
+
+        if all(init_specie == self.num_srev):
+            print( 'ALL ELEMENTS ARE SEDIMENTS')
+            kwargs['z'] = 'seafloor'
+            # TODO SET MOVING = 0 
+
+        elif any(init_specie == self.num_srev):
+            print( 'SOME ELEMENTS ARE SEDIMENTS')
+            exit()
+
+
+
         # Set initial particle size according to speciation
         if 'diameter' in kwargs:
             diameter = kwargs['diameter']
         else:
             diameter = self.get_config('radionuclide:particle_diameter')
 
-        init_diam =np.zeros(num_elements,float)
-        if self.get_config('radionuclide:particlesize_distribution')=='normal':
-            uncert  = self.get_config('radionuclide:particle_diameter_uncertainty')
-            init_diam[init_specie==self.num_prev] = diameter
-            init_diam[init_specie==self.num_prev] += np.random.normal(
-                            0, uncert, sum(init_specie==self.num_prev))
-        elif self.get_config('radionuclide:particlesize_distribution')=='lognormal':
-            std = 0.5
-            mu  = 0.
-            if self.get_config('radionuclide:species:Particle_reversible'):
-                init_diam[init_specie==self.num_prev] = \
-                        np.random.lognormal(mu, std, size=sum(init_specie==self.num_prev) ) * diameter
-            if self.get_config('radionuclide:species:Particle_slowly_reversible'):
-                init_diam[init_specie==self.num_psrev] = \
-                        np.random.lognormal(mu, std, size=sum(init_specie==self.num_psrev) ) * diameter
-            if self.get_config('radionuclide:species:Particle_irreversible'):
-                init_diam[init_specie==self.num_pirrev] = \
-                        np.random.lognormal(mu, std, size=sum(init_specie==self.num_pirrev) ) * diameter
+        logger.info('PARTICLE DIAMETER %s',diameter)
+
+        particles = []
+        for i,sp in enumerate(self.name_species):
+            if 'particle' in sp.casefold():
+                prt = np.where(init_specie==i)[0]
+                particles.extend(prt)
+
+        init_diam = self.set_init_diameter(num_elements, particles, diameter)
 
 
-        init_diam[(init_specie==self.num_prev) & (init_diam<0.45e-6)] = 0.45e-6
-        init_diam[(init_specie==self.num_prev) & (init_diam>63.5e-6)] = 63.5e-6
-        if self.get_config('radionuclide:species:Particle_slowly_reversible'):
-            init_diam[(init_specie==self.num_psrev) & (init_diam<0.45e-6)] = 0.45e-6
-            init_diam[(init_specie==self.num_psrev) & (init_diam>63.5e-6)] = 63.5e-6
-        if self.get_config('radionuclide:species:Particle_irreversible'):
-            init_diam[(init_specie==self.num_pirrev) & (init_diam<0.45e-6)] = 0.45e-6
-            init_diam[(init_specie==self.num_pirrev) & (init_diam>63.5e-6)] = 63.5e-6
-
-        logger.info('Min: {:.2e}, Max: {:.2e}, Numer of particles seeded: {}, at {} distribution'.format(
-            np.min(init_diam[init_diam>0.]), np.max(init_diam[init_diam>0.]), sum(init_diam>0.),
-             self.get_config('radionuclide:particlesize_distribution')))
+        try:
+            logger.info('Min: {:.2e}, Max: {:.2e}, Numer of particles seeded: {}, at {} distribution'.format(
+                np.min(init_diam[init_diam>0.]), np.max(init_diam[init_diam>0.]), sum(init_diam>0.),
+                self.get_config('radionuclide:particlesize_distribution')))
+        except Exception:
+            logger.info('All diameters are 0 (min:{}, max: {})'.format( np.min(init_diam), np.max(init_diam)) )
 
         kwargs['diameter'] = init_diam
 
+        
+        
+        # Set z to seabed for sediments
+        # sediments = []
+        # for i,sp in enumerate(self.name_species):
+        #     if 'sediment' in sp.casefold():
+        #         sed = np.where(init_specie==i)[0]
+        #         sediments.extend(sed)
+        
+        # kwargs['z'] = 'seafloor'
+        # logger.debug('Seafloor is selected, neglecting z')
+#         init_z = np.ones(num_elements,dtype=float)
+#         init_z[:] = kwargs['z']
+#         init_z[sediments] = -10000. #\
+#                 #-1.*self.environment.sea_floor_depth_below_sea_level[sediments]
+# #        self.elements.moving[sediments] = 0
+#         kwargs['z'] = init_z
 
 
         super(RadionuclideDrift, self).seed_elements(*args, **kwargs)
+
+
+
+    def init_kd(self):
+        ''' Initialization of Kd value, dependent on simulated radionuclide
+        '''
+
+        # Values from IAEA (2004)
+        kd_values = { '137Cs'   : 4.0e0,
+                      '129I'    : 7.0e-2, 
+                      '241Am'   : 2.0e3,
+                      'Al'      : None,
+                     }
+
+
+        print('ISOTOPE',self.isotope)
+
+        if self.isotope == 'manual':
+            self.kd = self.get_config('radionuclide:transformations:Kd')
+            return
+
+        if not self.isotope in kd_values.keys():
+            logger.error('No Kd value implemented for %s ', self.isotope)
+
+        else:
+            self.kd = kd_values[self.isotope]
+
+
 
 
 
@@ -414,47 +509,22 @@ class RadionuclideDrift(OceanDrift):
         ''' Initialization of background values in the transfer rates 2D array.
         '''
 
-        transfer_setup=self.get_config('radionuclide:transfer_setup')
 
 #        logger.info( 'transfer setup: %s' % transfer_setup)
 
+        self.isotope = self.get_config('radionuclide:isotope')
+
+        self.init_kd()
+
+        logger.info('ISOTOPE %s',self.isotope)
+        logger.info('SPECIE SETUP %s',self.specie_setup)
+        logger.info('Kd: %s',self.kd)
 
         self.transfer_rates = np.zeros([self.nspecies,self.nspecies])
         self.ntransformations = np.zeros([self.nspecies,self.nspecies])
 
-        if transfer_setup == 'Bokna_137Cs':
 
-            self.num_lmm    = self.specie_name2num('LMM')
-            self.num_prev   = self.specie_name2num('Particle reversible')
-            self.num_srev   = self.specie_name2num('Sediment reversible')
-            self.num_psrev  = self.specie_name2num('Particle slowly reversible')
-            self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
-
-
-            # Values from Simonsen et al (2019a)
-            Kd         = self.get_config('radionuclide:transformations:Kd')
-            Dc         = self.get_config('radionuclide:transformations:Dc')
-            slow_coeff = self.get_config('radionuclide:transformations:slow_coeff')
-            susp_mat    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
-            sedmixdepth = self.get_config('radionuclide:sediment:sedmixdepth')     # sediment mixing depth (m)
-            default_density =  self.get_config('radionuclide:sediment:sediment_density') # default particle density (kg/m3)
-            f           =  self.get_config('radionuclide:sediment:effective_fraction')      # fraction of effective sorbents
-            phi         =  self.get_config('radionuclide:sediment:corr_factor')      # sediment correction factor
-            poro        =  self.get_config('radionuclide:sediment:porosity')      # sediment porosity
-            layer_thick =  self.get_config('radionuclide:sediment:layer_thick')      # thickness of seabed interaction layer (m)
-
-            self.transfer_rates[self.num_lmm,self.num_prev] = Dc * Kd * susp_mat
-            self.transfer_rates[self.num_prev,self.num_lmm] = Dc
-            self.transfer_rates[self.num_lmm,self.num_srev] = \
-                Dc * Kd * sedmixdepth * default_density * (1.-poro) * f * phi / layer_thick
-            self.transfer_rates[self.num_srev,self.num_lmm] = Dc * phi
-            self.transfer_rates[self.num_srev,self.num_ssrev] = slow_coeff
-            self.transfer_rates[self.num_prev,self.num_psrev] = slow_coeff
-            self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1
-            self.transfer_rates[self.num_psrev,self.num_prev] = slow_coeff*.1
-
-
-        elif transfer_setup == '137Cs_rev':
+        if 'lmm + rev' in self.specie_setup.casefold(): 
 
             self.num_lmm    = self.specie_name2num('LMM')
             self.num_prev   = self.specie_name2num('Particle reversible')
@@ -463,7 +533,7 @@ class RadionuclideDrift(OceanDrift):
 
             # Simpler version of Values from Simonsen et al (2019a)
             # Only consider the reversible fraction
-            Kd         = self.get_config('radionuclide:transformations:Kd')
+            Kd        = self.kd     # depends on isotope
             Dc         = self.get_config('radionuclide:transformations:Dc')
             susp_mat    = 1.e-3   # concentration of available suspended particulate matter (kg/m3)
             sedmixdepth = self.get_config('radionuclide:sediment:sedmixdepth')     # sediment mixing depth (m)
@@ -479,41 +549,37 @@ class RadionuclideDrift(OceanDrift):
                 Dc * Kd * sedmixdepth * default_density * (1.-poro) * f * phi / layer_thick
             self.transfer_rates[self.num_srev,self.num_lmm] = Dc * phi
 
-        elif transfer_setup=='custom':
-        # Set of custom values for testing/development
-
-            self.num_lmm   = self.specie_name2num('LMM')
-            if self.get_config('radionuclide:species:Colloid'):
-                self.num_col = self.specie_name2num('Colloid')
-            if self.get_config('radionuclide:species:Particle_reversible'):
-                self.num_prev  = self.specie_name2num('Particle reversible')
-            if self.get_config('radionuclide:species:Sediment_reversible'):
-                self.num_srev  = self.specie_name2num('Sediment reversible')
-            if self.get_config('radionuclide:slowly_fraction'):
-                self.num_psrev  = self.specie_name2num('Particle slowly reversible')
-                self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
-            if self.get_config('radionuclide:irreversible_fraction'):
-                self.num_pirrev  = self.specie_name2num('Particle irreversible')
-                self.num_sirrev  = self.specie_name2num('Sediment irreversible')
+        else:
+            logger.error('No transfer setup available')
 
 
-            if self.get_config('radionuclide:species:Particle_reversible'):
-                self.transfer_rates[self.num_lmm,self.num_prev] = 5.e-6 #*0.
-                self.transfer_rates[self.num_prev,self.num_lmm] = \
-                    self.get_config('radionuclide:transformations:Dc')
-            if self.get_config('radionuclide:species:Sediment_reversible'):
-                self.transfer_rates[self.num_lmm,self.num_srev] = 1.e-5 #*0.
-                self.transfer_rates[self.num_srev,self.num_lmm] = \
-                    self.get_config('radionuclide:transformations:Dc') * self.get_config('radionuclide:sediment:corr_factor')
-#                self.transfer_rates[self.num_srev,self.num_lmm] = 5.e-6
+        if '+ slow rev' in self.specie_setup.casefold(): 
 
-            if self.get_config('radionuclide:slowly_fraction'):
-                self.transfer_rates[self.num_prev,self.num_psrev] = 2.e-6
-                self.transfer_rates[self.num_srev,self.num_ssrev] = 2.e-6
-                self.transfer_rates[self.num_psrev,self.num_prev] = 2.e-7
-                self.transfer_rates[self.num_ssrev,self.num_srev] = 2.e-7
+            self.num_psrev  = self.specie_name2num('Particle slowly reversible')
+            self.num_ssrev  = self.specie_name2num('Sediment slowly reversible')
 
-        elif transfer_setup=='Sandnesfj_Al':
+            slow_coeff = self.get_config('radionuclide:transformations:slow_coeff')
+
+            self.transfer_rates[self.num_srev,self.num_ssrev] = slow_coeff
+            self.transfer_rates[self.num_prev,self.num_psrev] = slow_coeff
+            self.transfer_rates[self.num_ssrev,self.num_srev] = slow_coeff*.1
+            self.transfer_rates[self.num_psrev,self.num_prev] = slow_coeff*.1
+
+        if '+ irrev' in self.specie_setup.casefold():
+
+            self.num_pirrev  = self.specie_name2num('Particle irreversible')
+            self.num_sirrev  = self.specie_name2num('Sediment irreversible')
+
+            slow_coeff = self.get_config('radionuclide:transformations:slow_coeff')
+            
+            self.transfer_rates[self.num_ssrev,self.num_sirrev] = slow_coeff
+            self.transfer_rates[self.num_psrev,self.num_pirrev] = slow_coeff
+
+
+
+
+        if self.specie_setup.casefold() == 'lmm + colloid + rev' and \
+               self.isotope.casefold() == 'al':
             # Use values from Simonsen et al (2019b)
             self.num_lmmanion    = self.specie_name2num('LMManion')
             self.num_lmmcation   = self.specie_name2num('LMMcation')
@@ -576,10 +642,6 @@ class RadionuclideDrift(OceanDrift):
 
 
 
-        else:
-            logger.ERROR('No transfer setup available')
-
-
         # Set diagonal to 0. (not possible to transform to present specie)
         if len(self.transfer_rates.shape) == 3:
             for ii in range(self.transfer_rates.shape[0]):
@@ -587,8 +649,6 @@ class RadionuclideDrift(OceanDrift):
         else:
             np.fill_diagonal(self.transfer_rates,0.)
 
-#         self.transfer_rates[:] = 0.
-#         print ('\n ###### \n IMPORTANT:: \n transfer rates are all set to zero for testing purposes! \n#### \n ')
 
 
 
@@ -658,17 +718,18 @@ class RadionuclideDrift(OceanDrift):
         self.elements.terminal_velocity = W * self.elements.moving
 
 
+
+
+
+
     def update_transfer_rates(self):
         '''Pick out the correct row from transfer_rates for each element. Modify the
         transfer rates according to local environmental conditions '''
 
-        transfer_setup=self.get_config('radionuclide:transfer_setup')
-        if transfer_setup == 'Bokna_137Cs' or \
-         transfer_setup=='custom' or \
-         transfer_setup=='137Cs_rev':
+        if not self.specie_setup.casefold() == 'lmm + colloid + rev':
             self.elements.transfer_rates1D = self.transfer_rates[self.elements.specie,:]
 
-            if self.get_config('radionuclide:species:Sediment_reversible'):
+            if 'Sediment reversible' in self.name_species:
                 # Only LMM radionuclides close to seabed are allowed to interact with sediments
                 # minimum height/maximum depth for each particle
                 Zmin = -1.*self.environment.sea_floor_depth_below_sea_level
@@ -677,8 +738,7 @@ class RadionuclideDrift(OceanDrift):
                 self.elements.transfer_rates1D[(self.elements.specie == self.num_lmm) &
                                  (dist_to_seabed > interaction_thick), self.num_srev] = 0.
 
-
-            if self.get_config('radionuclide:species:Particle_reversible'):
+            if 'Particle reversible' in self.name_species:
                 # Modify particle adsorption according to local particle concentration
                 # (LMM -> reversible particles)
                 kktmp = self.elements.specie == self.num_lmm
@@ -687,7 +747,7 @@ class RadionuclideDrift(OceanDrift):
                             self.environment.conc3[kktmp] / 1.e-3
         #                    self.environment.particle_conc[kktmp] / 1.e-3
 
-        elif transfer_setup=='Sandnesfj_Al':
+        elif self.specie_setup.casefold() == 'lmm + colloid + rev' and self.isotope=='Al':
             sal = self.environment.sea_water_salinity
             sali = np.searchsorted(self.salinity_intervals, sal) - 1
             self.elements.transfer_rates1D = self.transfer_rates[sali,self.elements.specie,:]
@@ -748,18 +808,16 @@ class RadionuclideDrift(OceanDrift):
 
 
 
-
-
     def sorption_to_sediments(self,sp_in=None,sp_out=None):
         '''Update radionuclide properties  when sorption to sediments occurs'''
 
 
         # Set z to local sea depth
-        if self.get_config('radionuclide:species:LMM'):
+        if 'LMM' in self.name_species:
             self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmm)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmm)]
             self.elements.moving[(sp_out==self.num_srev) & (sp_in==self.num_lmm)] = 0
-        if self.get_config('radionuclide:species:LMMcation'):
+        if 'LMMcation' in self.name_species:
             self.elements.z[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)]
             self.elements.moving[(sp_out==self.num_srev) & (sp_in==self.num_lmmcation)] = 0
@@ -777,7 +835,7 @@ class RadionuclideDrift(OceanDrift):
         std = self.get_config('radionuclide:sediment:desorption_depth_uncert')
 
 
-        if self.get_config('radionuclide:species:LMM'):
+        if 'LMM' in self.name_species:
             self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] + desorption_depth
             self.elements.moving[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] = 1
@@ -785,7 +843,7 @@ class RadionuclideDrift(OceanDrift):
                 logger.debug('Adding uncertainty for desorption from sediments: %s m' % std)
                 self.elements.z[(sp_out==self.num_lmm) & (sp_in==self.num_srev)] += np.random.normal(
                         0, std, sum((sp_out==self.num_lmm) & (sp_in==self.num_srev)))
-        if self.get_config('radionuclide:species:LMMcation'):
+        if 'LMMcation' in self.name_species:
             self.elements.z[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = \
                 -1.*self.environment.sea_floor_depth_below_sea_level[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] + desorption_depth
             self.elements.moving[(sp_out==self.num_lmmcation) & (sp_in==self.num_srev)] = 1
@@ -810,45 +868,40 @@ class RadionuclideDrift(OceanDrift):
         dia_diss=self.get_config('radionuclide:dissolved_diameter')
 
 
-        # Transfer to reversible particles
-        self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] = dia_part
-        std = self.get_config('radionuclide:particle_diameter_uncertainty')
-        if std > 0:
-            logger.debug('Adding uncertainty for particle diameter: %s m' % std)
-            self.elements.diameter[(sp_out==self.num_prev) & (sp_in!=self.num_prev)] += np.random.normal(
-                    0, std, sum((sp_out==self.num_prev) & (sp_in!=self.num_prev)))
 
-        # Transfer to slowly reversible particles
-        if self.get_config('radionuclide:slowly_fraction'):
-            self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] = dia_part
-            if std > 0:
-                logger.debug('Adding uncertainty for slowly rev particle diameter: %s m' % std)
-                self.elements.diameter[(sp_out==self.num_psrev) & (sp_in!=self.num_psrev)] += np.random.normal(
-                    0, std, sum((sp_out==self.num_psrev) & (sp_in!=self.num_psrev)))
+        # Transform to particle species
+        to_particles = np.where( (sp_out==self.num_prev) & (sp_in!=self.num_prev) ) [0]
+        if self.species_slowly_fraction:
+            to_particles = np.append(to_particles, np.where((sp_out==self.num_psrev) & (sp_in==self.num_ssrev))[0] )
+        if self.species_irreversible_fraction:
+            to_particles = np.append(to_particles, np.where((sp_out==self.num_pirrev) & (sp_in==self.num_sirrev))[0] )
 
-        # Transfer to irreversible particles
-        if self.get_config('radionuclide:irreversible_fraction'):
-            self.elements.diameter[(sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)] = dia_part
-            if std > 0:
-                logger.debug('Adding uncertainty for irrev particle diameter: %s m' % std)
-                self.elements.diameter[(sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)] += np.random.normal(
-                    0, std, sum((sp_out==self.num_pirrev) & (sp_in!=self.num_pirrev)))
+        new_diam = self.set_init_diameter(self.num_elements_total(), to_particles, dia_part)
+        self.elements.diameter[to_particles] = new_diam[to_particles]
 
-        # Transfer to LMM
-        if self.get_config('radionuclide:species:LMM'):
-            self.elements.diameter[(sp_out==self.num_lmm) & (sp_in!=self.num_lmm)] = dia_diss
-        if self.get_config('radionuclide:species:LMManion'):
-            self.elements.diameter[(sp_out==self.num_lmmanion) & (sp_in!=self.num_lmmanion)] = dia_diss
-        if self.get_config('radionuclide:species:LMMcation'):
-            self.elements.diameter[(sp_out==self.num_lmmcation) & (sp_in!=self.num_lmmcation)] = dia_diss
 
-        # Transfer to colloids
-        if self.get_config('radionuclide:species:Colloid'):
-            self.elements.diameter[(sp_out==self.num_col) & (sp_in!=self.num_col)] = dia_diss
-        if self.get_config('radionuclide:species:Humic_colloid'):
-            self.elements.diameter[(sp_out==self.num_humcol) & (sp_in!=self.num_humcol)] = dia_diss
-        if self.get_config('radionuclide:species:Polymer'):
-            self.elements.diameter[(sp_out==self.num_polymer) & (sp_in!=self.num_polymer)] = dia_diss
+
+
+        # Transform to LMM and colloid species
+        if 'LMM' in self.name_species:
+            to_diss = np.where( (sp_out==self.num_lmm) & (sp_in!=self.num_lmm) )[0]
+        elif 'LMMcation' and 'LMManion' in self.name_species: 
+            to_diss = np.where( (sp_out==self.num_lmmcation) & (sp_in!=self.num_lmmcation) )[0]
+            to_diss = np.append( to_diss, np.where( (sp_out==self.num_lmmanion) & (sp_in!=self.num_lmmanion) )[0] )
+        if 'Colloid' in self.name_species:
+            to_diss = np.append(to_diss, np.where( (sp_out==self.num_col) & (sp_in!=self.num_col) )[0] )
+        if 'Humic_colloid' in self.name_species:
+            to_diss = np.append( to_diss, np.where( (sp_out==self.num_humcol) & (sp_in!=self.num_humcol) )[0] )
+        if 'Polymer' in self.name_species:
+            to_diss = np.append( to_diss, np.where( (sp_out==self.num_polymer) & (sp_in!=self.num_polymer) )[0] )
+
+        new_diam = self.set_init_diameter(self.num_elements_total(), to_diss, dia_diss)
+        self.elements.diameter[to_diss] = new_diam[to_diss]
+
+
+
+
+
 
 
 
@@ -856,10 +909,14 @@ class RadionuclideDrift(OceanDrift):
     def bottom_interaction(self,Zmin=None):
         ''' Change speciation of radionuclides that reach bottom due to settling.
         particle specie -> sediment specie '''
-        if not  ((self.get_config('radionuclide:species:Particle_reversible')) &
-                  (self.get_config('radionuclide:species:Sediment_reversible')) or
-                  (self.get_config('radionuclide:slowly_fraction')) or
-                  (self.get_config('radionuclide:irreversible_fraction'))):
+
+        if not ( ('Particle reversible' in self.name_species) & 
+                ('Sediment reversible' in self.name_species) or 
+                self.species_slowly_fraction or self.species_irreversible_fraction):
+            print('RETURN: ', ('Particle reversible' in self.name_species),  
+                ('Sediment reversible' in self.name_species),
+                self.species_slowly_fraction,  
+                self.species_irreversible_fraction)
             return
 
         bottom = np.array(np.where(self.elements.z <= Zmin)[0])
@@ -867,12 +924,15 @@ class RadionuclideDrift(OceanDrift):
         self.elements.specie[bottom[kktmp]] = self.num_srev
         self.ntransformations[self.num_prev,self.num_srev]+=len(kktmp)
         self.elements.moving[bottom[kktmp]] = 0
-        if self.get_config('radionuclide:slowly_fraction'):
+#        self.elements.moving[bottom] = 0
+
+        if self.species_slowly_fraction:
             kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_psrev)[0])
             self.elements.specie[bottom[kktmp]] = self.num_ssrev
             self.ntransformations[self.num_psrev,self.num_ssrev]+=len(kktmp)
             self.elements.moving[bottom[kktmp]] = 0
-        if self.get_config('radionuclide:irreversible_fraction'):
+
+        if self.species_irreversible_fraction:
             kktmp = np.array(np.where(self.elements.specie[bottom] == self.num_pirrev)[0])
             self.elements.specie[bottom[kktmp]] = self.num_sirrev
             self.ntransformations[self.num_pirrev,self.num_sirrev]+=len(kktmp)
@@ -886,8 +946,11 @@ class RadionuclideDrift(OceanDrift):
         Sediment species -> Particle specie
         """
         # Exit function if particles and sediments not are present
-        if not  ((self.get_config('radionuclide:species:Particle_reversible')) &
-                  (self.get_config('radionuclide:species:Sediment_reversible'))):
+        # if not  ((self.get_config('radionuclide:species:Particle_reversible')) &
+        #           (self.get_config('radionuclide:species:Sediment_reversible'))):
+        #     return
+        if not ('Particle reversible' in self.name_species and 'Sediment reversible' in self.name_species):
+            logger.info('No sediments and particles present...')
             return
 
         specie_in = self.elements.specie.copy()
@@ -918,10 +981,12 @@ class RadionuclideDrift(OceanDrift):
 
         self.ntransformations[self.num_srev,self.num_prev]+=sum((resusp) & (self.elements.specie==self.num_srev))
         self.elements.specie[(resusp) & (self.elements.specie==self.num_srev)] = self.num_prev
-        if self.get_config('radionuclide:slowly_fraction'):
+#        if self.get_config('radionuclide:slowly_fraction'):
+        if self.species_slowly_fraction:
             self.ntransformations[self.num_ssrev,self.num_psrev]+=sum((resusp) & (self.elements.specie==self.num_ssrev))
             self.elements.specie[(resusp) & (self.elements.specie==self.num_ssrev)] = self.num_psrev
-        if self.get_config('radionuclide:irreversible_fraction'):
+        if self.species_irreversible_fraction:
+#        if self.get_config('radionuclide:irreversible_fraction'):
             self.ntransformations[self.num_sirrev,self.num_pirrev]+=sum((resusp) & (self.elements.specie==self.num_sirrev))
             self.elements.specie[(resusp) & (self.elements.specie==self.num_sirrev)] = self.num_pirrev
 
@@ -958,7 +1023,9 @@ class RadionuclideDrift(OceanDrift):
         logger.info('Speciation: {} {}'.format([sum(self.elements.specie==ii) for ii in range(self.nspecies)],self.name_species))
 
 
+        #self.elements.moving[self.elements.z <= -1*self.environment.sea_floor_depth_below_sea_level] = 0.
 
+        
         # Horizontal advection
         self.advect_ocean_current()
 
@@ -966,8 +1033,6 @@ class RadionuclideDrift(OceanDrift):
         # Vertical advection
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
-
-
 
 
 
@@ -988,6 +1053,7 @@ class RadionuclideDrift(OceanDrift):
                                               time_avg_conc=False,
                                               horizontal_smoothing=False,
                                               smoothing_cells=0,
+                                              reader_sea_depth=None,
                                               ):
         '''Write netCDF file with map of radionuclide species densities and concentrations'''
 
@@ -1011,6 +1077,42 @@ class RadionuclideDrift(OceanDrift):
                 pixelsize_m = 2000
             if latspan > 5:
                 pixelsize_m = 4000
+
+
+
+
+        if reader_sea_depth is not None:
+            from opendrift.readers import reader_netCDF_CF_generic,reader_ROMS_native
+            reader = reader_sea_depth
+        else:
+            for readerName in self.env.readers:
+                reader = self.env.readers[readerName]
+                if 'sea_floor_depth_below_sea_level' in reader.variables:
+                    break
+
+       
+        try:
+            self.conc_lat  = reader.get_variables('latitude',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['latitude'][:]
+        except:
+            self.conc_lat  = reader.get_variables('grid_latitude_at_cell_center',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['grid_latitude_at_cell_center'][:]
+        try:
+            self.conc_lon  = reader.get_variables('longitude',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['longitude'][:]
+        except:
+            self.conc_lon  = reader.get_variables('grid_longitude_at_cell_center',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['grid_longitude_at_cell_center'][:]
+
+        self.conc_topo = reader.get_variables('sea_floor_depth_below_sea_level',
+                                        x=[reader.xmin,reader.xmax],
+                                        y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
+
+
 
 
         if density_proj is None: # add default projection with equal-area property
@@ -1350,7 +1452,7 @@ class RadionuclideDrift(OceanDrift):
         lon_grd = self.conc_lon[:nx,:ny]
 
         # Interpolate topography to new grid
-        h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')
+        h = interpolate.griddata((lon_grd[h_grd.mask==False].flatten(),lat_grd[h_grd.mask==False].flatten()), h_grd[h_grd.mask==False].flatten(), (lons, lats), method='linear')
 
         return h
 
@@ -1407,29 +1509,36 @@ class RadionuclideDrift(OceanDrift):
             logger.info ('{:32}: {:>6}'.format(sp,sum(self.elements.specie==isp)))
 
         homefolder = expanduser("~")
-        filename = homefolder+'/conc_radio.nc'
+        filename = homefolder+'/conc_radio_gui.nc'
 
 
         self.guipp_saveconcfile(filename)
 
+    """
         zlayer   = [-1,-2]
         self.guipp_plotandsaveconc(filename=filename,
                                          outfilename=homefolder+'/radio_plots/RadioConc',
                                          zlayers=zlayer,
                                          specie= ['Total', 'LMM', 'Particle reversible'],
                                          )
+    """
 
 
 
 
 
-    def guipp_saveconcfile(self,filename='none'):
+    def guipp_saveconcfile(self,filename='none', pixelsize_m=200., reader_sea_depth=None):
 
 
-        for readerName in self.readers:
-            reader = self.readers[readerName]
-            if 'sea_floor_depth_below_sea_level' in reader.variables:
-                break
+
+        if reader_sea_depth is not None:
+            from opendrift.readers import reader_netCDF_CF_generic
+            reader_sea_depth = reader_netCDF_CF_generic.Reader(reader_sea_depth)
+        else:
+            for readerName in self.env.readers:
+                reader = self.env.readers[readerName]
+                if 'sea_floor_depth_below_sea_level' in reader.variables:
+                    break
 
 
         self.conc_lon  = reader.get_variables('longitude',
@@ -1445,8 +1554,8 @@ class RadionuclideDrift(OceanDrift):
                                        y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
 
 
-        self.write_netcdf_radionuclide_density_map(filename, pixelsize_m=200.,
-                                        zlevels=[-25, -2.],
+        self.write_netcdf_radionuclide_density_map(filename, pixelsize_m=pixelsize_m,
+                                        zlevels=self.depthintervals,
                                         activity_unit='Bq',
                                         horizontal_smoothing=True,
                                         smoothing_cells=1,
@@ -1495,14 +1604,14 @@ class RadionuclideDrift(OceanDrift):
         else:
             specie_arr = specie
 
-        for readerName in self.readers:
-            reader = self.readers[readerName]
-            if 'sea_floor_depth_below_sea_level' in reader.variables:
-                break
+        # for readerName in self.readers:
+        #     reader = self.readers[readerName]
+        #     if 'sea_floor_depth_below_sea_level' in reader.variables:
+        #         break
 
-        gtopo  = reader.get_variables('sea_floor_depth_below_sea_level',
-                                       x=[reader.xmin,reader.xmax],
-                                       y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
+        # gtopo  = reader.get_variables('sea_floor_depth_below_sea_level',
+        #                                x=[reader.xmin,reader.xmax],
+        #                                y=[reader.ymin,reader.ymax])['sea_floor_depth_below_sea_level'][:]
 
 
 
