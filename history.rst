@@ -1,6 +1,11 @@
 History
 =======
 
+2024-06-18 / Release v1.11.5
+----------------------------
+* Leeway config categori capsizing (bool) renamed to processes:capsizing
+* adios<1.2 removed from pyproject.toml, as this it not found on conda
+
 2024-06-14 / Release v1.11.4
 ----------------------------
 * Updating requirements in pyproject.toml
