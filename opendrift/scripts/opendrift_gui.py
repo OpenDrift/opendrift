@@ -722,11 +722,6 @@ class OpenDriftGUI(tk.Tk):
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
 
-        # Creating fresh instance of the current model, but keeping config
-        adjusted_config = self.o._config
-        self.set_model(self.modelname, rebuild_gui=False)
-        self.o._config = adjusted_config
-
         try:
             self.budgetbutton.destroy()
         except Exception as e:
@@ -751,6 +746,23 @@ class OpenDriftGUI(tk.Tk):
             local_end = local.localize(end_time, is_dst=None)
             start_time = local_start.astimezone(pytz.utc).replace(tzinfo=None)
             end_time = local_end.astimezone(pytz.utc).replace(tzinfo=None)
+
+        # Creating fresh instance of the current model, but keeping config
+        adjusted_config = self.o._config
+        self.set_model(self.modelname, rebuild_gui=False)
+        self.o._config = adjusted_config
+
+        # Add secondary log-handler to file
+        if self.has_diana is True and True:
+            logfile = self.outputdir + '/opendrift_' + self.modelname + start_time.strftime('_%Y%m%d_%H%M.log')
+            import logging
+            if hasattr(self, 'handler'):
+                logging.getLogger('opendrift').removeHandler(self.handler)
+            self.handler = logging.FileHandler(logfile, mode='w')
+            self.handler.setFormatter(logging.getLogger('opendrift').handlers[0].formatter)
+            logging.getLogger('opendrift').addHandler(self.handler)
+            if len(logging.getLogger('opendrift').handlers) > 2:
+                raise ValueError('Too many log handlers')
 
         sys.stdout.flush()
         lon = float(self.lon.get())
