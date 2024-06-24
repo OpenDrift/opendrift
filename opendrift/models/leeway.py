@@ -76,7 +76,7 @@ class LeewayObj(LagrangianArray):
          ('capsized', {
             'dtype': np.uint8,
             'units': '1',
-            'description': '0 is not capsized, changed to 1 after capsizing (irreversible). After capsizing, leeway coeffieiencts are reduced as given by config item "capsized:leeway_fraction"',
+            'description': '0 is not capsized, changed to 1 after capsizing (irreversible). After capsizing, leeway coeffieiencts are reduced as given by config item capsized:leeway_fraction',
             'seed': True,
             'default': 0
         }),
