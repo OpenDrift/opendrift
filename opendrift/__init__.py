@@ -125,6 +125,16 @@ def versions():
     import matplotlib
     import netCDF4
     import xarray
+    try:
+        import adios_db
+        adios_version = adios_db.__version__
+    except:
+        adios_version = ': Not installed'
+    try:
+        import copernicusmarine
+        copernicus_version = copernicusmarine.__version__
+    except:
+        copernicus_version = ': Not installed'
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'
@@ -143,6 +153,8 @@ def versions():
     s += '  Matplotlib version %s\n' % matplotlib.__version__
     s += '  NetCDF4 version %s\n' % netCDF4.__version__
     s += '  Xarray version %s\n' % xarray.__version__
+    s += '  ADIOS (adios_db) version %s\n' % adios_version
+    s += '  Copernicusmarine version %s\n' % copernicus_version
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s
