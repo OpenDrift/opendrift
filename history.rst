@@ -1,6 +1,16 @@
 History
 =======
 
+2024-06-24 / Release v1.11.6
+----------------------------
+* Credentials for copernicusmarine client can now be stored in environment variables COPERNICUSMARINE_USER and COPERNICUSMARINE_PASSWORD, as alternative to .netrc file
+* Removed GRIB reader from list included in add_readers_from_list
+* Replaced two obsolete URLS for HYCOM (tds.hycom.org) with new aggregate from ncei.noaa.gov
+* Removed double quote from docstring, as giving problems for Drifty
+* Updated max water content of new oils
+* OpenDriftGUI now logs to file in addition to GUI window
+* config general:simulation_name is now ESSENTIAL, meaning that it will appear on front page of GUI
+
 2024-06-18 / Release v1.11.5
 ----------------------------
 * Leeway config categori capsizing (bool) renamed to processes:capsizing
