@@ -15,7 +15,7 @@ time = datetime.now()
 #%%
 # Current from HYCOM and wind from NCEP GFS
 o.add_readers_from_list([
-    'https://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/uv3z',
+    'https://www.ncei.noaa.gov/thredds-coastal/dodsC/hycom/hycom_sfc_agg/HYCOM_Surface_Aggregation_best.ncd',
     'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 o.set_config('environment:constant:ocean_mixed_layer_thickness', 20)
 o.set_config('drift', {'current_uncertainty': 0, 'wind_uncertainty': 0, 'horizontal_diffusivity': 20})
