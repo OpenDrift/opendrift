@@ -77,7 +77,6 @@ def reader_from_url(url, timeout=10):
 
     reader_modules = ['reader_netCDF_CF_generic',
                       'reader_ROMS_native',
-                      'reader_grib',
                       'reader_copernicusmarine']
 
     for rm in reader_modules:
