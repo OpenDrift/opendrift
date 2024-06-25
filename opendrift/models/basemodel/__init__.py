@@ -915,6 +915,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          time=land_reader.start_time)[0]['land_binary_mask']
         if landgrid.min() == 1 or np.isnan(landgrid.min()):
             logger.warning('No ocean pixels nearby, cannot move elements.')
+            if land.min() == 1:
+                raise ValueError('All elements seeded on land')
             return lon, lat
 
         oceangridlons = longrid[landgrid == 0]
