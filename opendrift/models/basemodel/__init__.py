@@ -313,7 +313,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self._add_config({
             # type, default, min, max, enum, important, value, units, description
             'general:simulation_name': {'type': 'str', 'min_length': 0, 'max_length': 64,
-                                        'default': '', 'level': CONFIG_LEVEL_ESSENTIAL,
+                                        'default': '', 'level': CONFIG_LEVEL_BASIC,
                                         'description': 'Name of simulation'},
             'general:coastline_action': {
                 'type':
