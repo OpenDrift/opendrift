@@ -340,8 +340,9 @@ class OpenDriftGUI(tk.Tk):
         self.text = tk.Text(self.output, wrap="word", height=18)
         self.text.grid(row=60, columnspan=6, sticky='nsw')
         self.text.tag_configure("stderr", foreground="#b22222")
-        sys.stdout = TextRedirector(self.text, "stdout")
-        sys.stderr = TextRedirector(self.text, "stderr")
+        if os.getenv('OPENDRIFT_GUI_OUTPUT', 'gui') == 'gui':
+            sys.stdout = TextRedirector(self.text, "stdout")
+            sys.stderr = TextRedirector(self.text, "stderr")
         s = tk.Scrollbar(self)
         s.grid(row=60, column=6, sticky='ns')
         s.config(command=self.text.yview)
@@ -567,7 +568,7 @@ class OpenDriftGUI(tk.Tk):
                 self.config_input_var[i] = tk.StringVar()
                 vcmd = (tab.register(self.validate_config),
                     '%P', '%s', key)
-                max_length = sc[i].get('max_length') or 12
+                max_length = sc[key].get('max_length') or 12
                 max_length = np.minimum(max_length, 64)
                 self.config_input[i] = tk.Entry(
                     tab, textvariable=self.config_input_var[i],
@@ -891,4 +892,11 @@ def main():
     OpenDriftGUI().mainloop()
 
 if __name__ == '__main__':
+
+    # Add any argument to redirect output to terminal instead of GUI window.
+    # TODO: must be a better way to pass arguments to Tkinter?
+    if len(sys.argv) > 1:
+        os.environ['OPENDRIFT_GUI_OUTPUT'] = 'terminal'
+    else:
+        os.environ['OPENDRIFT_GUI_OUTPUT'] = 'gui'
     OpenDriftGUI().mainloop()
