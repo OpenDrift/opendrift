@@ -1,6 +1,10 @@
 History
 =======
 
+2024-06-25 / Release v1.11.7
+----------------------------
+* Decreased config_level of general:simulation_name to BASIC, due to wrong interpretation of config_level by Drifty
+
 2024-06-24 / Release v1.11.6
 ----------------------------
 * Credentials for copernicusmarine client can now be stored in environment variables COPERNICUSMARINE_USER and COPERNICUSMARINE_PASSWORD, as alternative to .netrc file
