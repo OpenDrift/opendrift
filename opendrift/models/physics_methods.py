@@ -88,10 +88,13 @@ def distance_between_trajectories(lon1, lat1, lon2, lat2):
     return distance
 
 def distance_along_trajectory(lon, lat):
-    '''Calculate the distances [m] between points along a trajectory'''
+    '''Calculate the distances [m] between points along a trajectory
+    assuming the last dimension is the time dimension for the
+    trajectory.
+    '''
 
     geod = pyproj.Geod(ellps='WGS84')
-    azimuth_forward, a2, distance = geod.inv(lon[1:], lat[1:], lon[0:-1], lat[0:-1])
+    azimuth_forward, a2, distance = geod.inv(lon[...,1:], lat[...,1:], lon[...,:-1], lat[...,:-1])
 
     return distance
 
@@ -152,11 +155,11 @@ def skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model, tolerance_t
     lat_model = np.array(lat_model)
     d = distance_between_trajectories(lon_obs, lat_obs, lon_model, lat_model)
     l = distance_along_trajectory(lon_obs, lat_obs)
-    s = d.sum() / l.cumsum().sum()
+    s = np.divide(np.nansum(d, axis = -1), np.nansum(np.nancumsum(l, axis = -1), axis = -1))
     if tolerance_threshold==0:
         skillscore = 0
     else:
-        skillscore = max(0, 1 - s/tolerance_threshold)
+        skillscore = np.maximum(0, 1 - s/tolerance_threshold)
 
     return skillscore
 

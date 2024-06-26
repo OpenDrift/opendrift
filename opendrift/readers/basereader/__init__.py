@@ -226,7 +226,8 @@ class BaseReader(Variables, Combine, Filter):
         self.clipped = numpix
 
     def plot(self, variable=None, vmin=None, vmax=None, time=None,
-             filename=None, title=None, buffer=1, lscale='auto'):
+             filename=None, title=None, buffer=1, lscale='auto',
+             cmap = None, cbar_label = None):
         """Plot geographical coverage of reader."""
 
         fig = plt.figure()
@@ -345,10 +346,13 @@ class BaseReader(Variables, Combine, Filter):
                 p = sp.transform_points(ccrs.PlateCarree(), rlon, rlat)
                 mapx = p[:,:,0]
                 mapy = p[:,:,1]
-                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax)
+                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,  cmap = cmap)
 
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
-            cbar.set_label(variable)
+            if cbar_label:
+                cbar.set_label(cbar_label)
+            else:
+                cbar.set_label(variable)
 
         try:  # Activate figure zooming
             mng = plt.get_current_fig_manager()
