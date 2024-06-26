@@ -239,7 +239,7 @@ class TestPhysics(unittest.TestCase):
         lon_model = lon_obs
         km2deg = 111
         lon_model[-1] = lon_obs[-1] + 1.8/km2deg
-        lat_model = [0, 1.2/km2deg, -3.4/km2deg, 6.3/km2deg, 4.2/km2deg, 0]
+        lat_model = np.array([0, 1.2/km2deg, -3.4/km2deg, 6.3/km2deg, 4.2/km2deg, 0])
         # Test distance between trajectories
         db = distance_between_trajectories(lon_obs, lat_obs, lon_model, lat_model)
         self.assertIsNone(np.testing.assert_array_almost_equal(
@@ -255,5 +255,29 @@ class TestPhysics(unittest.TestCase):
         skill_lw = skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model)
         self.assertAlmostEqual(skill_lw, 0.99099, 5)
 
+    def test_skillscores_2d(self):
+        lon_obs = np.array([[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]])
+        lat_obs = np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+        lon_model = lon_obs
+        km2deg = 111
+        lon_model[:,-1] = lon_obs[:,-1] + 1.8/km2deg
+        lat_model = np.array([[0, 1.2/km2deg, -3.4/km2deg, 6.3/km2deg, 4.2/km2deg, 0], [0, 1.2/km2deg, -3.4/km2deg, 6.3/km2deg, 4.2/km2deg, 0]])
+        # Test distance between trajectories
+        db = distance_between_trajectories(lon_obs, lat_obs, lon_model, lat_model)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            db, np.array([[0, 1195.4, 3387.0, 6275.8, 4183.9, 0], [0, 1195.4, 3387.0, 6275.8, 4183.9, 0]]), 1))
+        # Test distance along trajectory
+        da = distance_along_trajectory(lon_obs, lat_obs)
+        self.assertIsNone(np.testing.assert_array_almost_equal(
+            da, np.array([[111319.5, 111319.5, 111319.5, 111319.5, 111319.5], [111319.5, 111319.5, 111319.5, 111319.5, 111319.5]]), 1))
+        # No test DARPA skillscore
+        # Test Liu-Weissberg skillscore
+        skill_lw = skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model)
+        self.assertEqual(skill_lw.shape, (2,))
+        self.assertAlmostEqual(skill_lw[0], 0.99099, 5)
+        
+        
+        
+        
 if __name__ == '__main__':
     unittest.main()
