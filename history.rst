@@ -1,6 +1,10 @@
 History
 =======
 
+2024-06-26 / Release v1.11.8
+----------------------------
+* Raising now error if all elements are seeded on land
+
 2024-06-25 / Release v1.11.7
 ----------------------------
 * Decreased config_level of general:simulation_name to BASIC, due to wrong interpretation of config_level by Drifty
