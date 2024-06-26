@@ -109,7 +109,7 @@ o.add_reader([reader_norkyst])
 
 o.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=time_start, wind_drift_factor=wind_drift_factor)
 o.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output)
-o.plot(fast = True, file = "plot_fast", background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer = .02) 
+o.plot(fast=False, background=['x_sea_water_velocity', 'y_sea_water_velocity'], buffer = .02) 
 
 #%%
 # Measurement modified model simulation
@@ -124,7 +124,7 @@ o2.add_reader([c, reader_norkyst])
 o2.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=time_start, wind_drift_factor=wind_drift_factor)
 o2.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output)
 
-o.plot(fast = True, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .02, markersize = 70, linewidth = 1)
+o.plot(fast=False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .02, markersize = 70, linewidth = 1)
 
 
 #%%
@@ -146,7 +146,7 @@ o2.add_reader([c, reader_norkyst])
 o2.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=time_start, wind_drift_factor=wind_drift_factor)
 o2.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output)
 
-o.plot(fast = True, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .02, markersize = 70, linewidth = 1)
+o.plot(fast=False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .02, markersize = 70, linewidth = 1)
 
 lon_drifters_1, lat_drifters_1 = o.get_lonlats()
 lon_drifters_2, lat_drifters_2 = o2.get_lonlats()
