@@ -1,6 +1,10 @@
 History
 =======
 
+2024-06-27 / Release v1.11.10
+----------------------------
+* Using now standard env variable names COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD for reader_copernicus. Env variable COPERNICUSMARINE_CACHE_DIRECTORY can be set to empty string to disable caching.
+
 2024-06-27 / Release v1.11.9
 ----------------------------
 * New feature to blend model field with point measurement (Ugo Martinez)
