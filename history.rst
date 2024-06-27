@@ -1,6 +1,12 @@
 History
 =======
 
+2024-06-27 / Release v1.11.9
+----------------------------
+* New feature to blend model field with point measurement (Ugo Martinez)
+* Hack in generic reader to make sure wind from ECMWF files is at 10m height
+
+* Raising now error if all elements are seeded on land
 2024-06-26 / Release v1.11.8
 ----------------------------
 * Raising now error if all elements are seeded on land
