@@ -2300,6 +2300,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                    lscale=None,
                    fast=False,
                    hide_landmask=False,
+                   xlocs = None,
+                   ylocs = None,
                    **kwargs):
         """
         Generate Figure instance on which trajectories are plotted.
@@ -2455,7 +2457,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                                  latmax, fast, ocean_color,
                                                  land_color, lscale, globe)
 
-        gl = ax.gridlines(ccrs.PlateCarree(globe=globe), draw_labels=True)
+        gl = ax.gridlines(ccrs.PlateCarree(globe=globe), draw_labels=True, xlocs = xlocs, ylocs = ylocs)
         gl.top_labels = None
 
         fig.canvas.draw()
@@ -2539,6 +2541,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   fast=False,
                   blit=False,
                   frames=None,
+                  xlocs = None,
+                  ylocs = None,
                   **kwargs):
         """Animate last run."""
 
@@ -2600,7 +2604,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Find map coordinates and plot points with empty data
         fig, ax, crs, x, y, index_of_first, index_of_last = \
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
-                            fast=fast, hide_landmask=hide_landmask, **kwargs)
+                            fast=fast, hide_landmask=hide_landmask, xlocs = xlocs, ylocs = ylocs, **kwargs)
 
         gcrs = ccrs.PlateCarree(globe=crs.globe)
 
@@ -3268,6 +3272,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
              lalpha=None,
              bgalpha=1,
              clabel=None,
+             cpad=.05,
+             caspect=30,
+             cshrink=.8,
              surface_color=None,
              submerged_color=None,
              markersize=20,
@@ -3277,6 +3284,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
              lscale=None,
              fast=False,
              hide_landmask=False,
+             xlocs = None,
+             ylocs = None,
              **kwargs):
         """Basic built-in plotting function intended for developing/debugging.
 
@@ -3353,7 +3362,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                                       tlatmax)
 
         fig, ax, crs, x, y, index_of_first, index_of_last = \
-            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, **kwargs)
+            self.set_up_map(buffer=buffer, corners=corners, lscale=lscale, fast=fast, hide_landmask=hide_landmask, xlocs = xlocs, ylocs = ylocs, **kwargs)
 
         # x, y are longitude, latitude -> i.e. in a PlateCarree CRS
         gcrs = ccrs.PlateCarree(globe=crs.globe)
@@ -3619,9 +3628,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable,
                               orientation='horizontal',
-                              pad=.05,
-                              aspect=30,
-                              shrink=.8,
+                              pad=cpad,
+                              aspect=caspect,
+                              shrink=cshrink,
                               drawedges=False)
             # TODO: need better control of colorbar content
             if clabel is not None:
@@ -3684,7 +3693,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.warning(traceback.format_exc())
 
         #plt.gca().tick_params(labelsize=14)
-
         #fig.canvas.draw()
         if filename is not None:
             plt.savefig(filename)
