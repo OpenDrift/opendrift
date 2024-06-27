@@ -22,7 +22,7 @@ from opendrift.readers.reader_netCDF_CF_generic import Reader as Reader_CF_gener
 class Reader(Reader_CF_generic):
     '''A wrapper around reader_netCDF_CF_generic for CMEMS datasets'''
 
-    def __init__(self, dataset_id, username=None, password=None):
+    def __init__(self, dataset_id, username=None, password=None, cache_dir=None):
 
         try:
             import copernicusmarine
@@ -32,11 +32,17 @@ class Reader(Reader_CF_generic):
         if username is not None and password is not None:
             logger.info(f'Using CMEMS password for user {username} from provided variables')
 
+        if cache_dir is None:
+            cache_dir = os.getenv('COPERNICUSMARINE_CACHE_DIRECTORY')
+        if cache_dir == '':  # Set env variable COPERNICUSMARINE_CACHE_DIRECTORY to "" to disable cahcing
+            no_metadata_cache=True
+        else:
+            no_metadata_cache=False
         if username is None:
-            username = os.getenv('COPERNICUSMARINE_USER')
-            password = os.getenv('COPERNICUSMARINE_PASSWORD')
+            username = os.getenv('COPERNICUSMARINE_SERVICE_USERNAME')
+            password = os.getenv('COPERNICUSMARINE_SERVICE_PASSWORD')
             if username is not None and password is not None:
-                logger.info(f'Using CMEMS password for user {username} from environment variables COPERNICUSMARINE_USER and COPERNICUSMARINE_PASSWORD')
+                logger.info(f'Using CMEMS password for user {username} from environment variables COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD')
 
         if username is None:
             try:
@@ -60,9 +66,10 @@ class Reader(Reader_CF_generic):
                 pass
 
         if username is None:
-            raise ValueError('To use CMEMS datasets, provide username and password, or store these in .netrc file in home folder or main opendrift folder with machine name "copernicusmarine". Alternatively, creadentials can be stored as environment variables COPERNICUSMARINE_USER and COPERNICUSMARINE_PASSWORD.')
+            raise ValueError('To use CMEMS datasets, provide username and password, or store these in .netrc file in home folder or main opendrift folder with machine name "copernicusmarine". Alternatively, creadentials can be stored as environment variables COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD.')
 
-        ds = copernicusmarine.open_dataset(dataset_id=dataset_id, username=username, password=password)
+        ds = copernicusmarine.open_dataset(dataset_id=dataset_id, username=username, password=password,
+                                           no_metadata_cache=no_metadata_cache)
         ds['name'] = str(dataset_id)
 
         # Run constructor of parent Reader class
