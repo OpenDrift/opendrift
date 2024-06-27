@@ -335,6 +335,16 @@ class Reader(StructuredReader, BaseReader):
                 self.variable_mapping[standard_name] = str(var_name)
             else:
                 skipvars.append(var_name)
+        # Necessary hack for ECMWF with winds at several levels
+        # TODO: must provide variable mapping along with URLs to create readers
+        if self.variable_mapping.get('x_wind') is not None:
+            if 'x_wind_200m' in self.Dataset.variables and 'x_wind_10m' in self.Dataset.variables:
+                logger.warning('Shifting variable names of ECMWF data, to get winds at 10m')
+                self.variable_mapping['x_wind'] = 'x_wind_10m'
+                self.variable_mapping['y_wind'] = 'y_wind_10m'
+                if self.dimensions.get('y') == 'latitude1' and 'latitude' in self.Dataset.variables:
+                    self.dimensions['x'] = 'longitude'
+                    self.dimensions['y'] = 'latitude'
 
         if len(skipvars) > 0:
             logger.debug('Skipped variables without standard_name: %s' % skipvars)

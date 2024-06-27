@@ -123,8 +123,7 @@ o.add_reader([reader_norkyst])
 
 o.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=time_start, wind_drift_factor=wind_drift_factor)
 o.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output)
-o.plot(fast = False, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .023, markersize = 150, linewidth = 3, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
-
+o.plot(fast = False, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst only', 'Gaussian measurement'], buffer = .023, markersize = 150, linewidth = 3, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
 
 #%%
 # Measurement modified model simulation
@@ -139,8 +138,7 @@ o2.add_reader([c, reader_norkyst])
 o2.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=time_start, wind_drift_factor=wind_drift_factor)
 o2.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output)
 
-o.plot(fast = False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .023, markersize = 150, linewidth = 3, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
-
+o.plot(fast = False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst only', 'Gaussian measurement'], buffer = .023, markersize = 150, linewidth = 3, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
 
 #%%
 # Here, we generate more particles and look
@@ -161,8 +159,7 @@ o2.add_reader([c, reader_norkyst])
 o2.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=time_start, wind_drift_factor=wind_drift_factor)
 o2.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output)
 
-o.plot(fast = False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst onlyt', 'Gaussian measurment'], buffer = .023, markersize = 70, linewidth = 1, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
-
+o.plot(fast = False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst only', 'Gaussian measurement'], buffer = .023, markersize = 70, linewidth = 1, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
 
 lon_drifters_1, lat_drifters_1 = o.get_lonlats()
 lon_drifters_2, lat_drifters_2 = o2.get_lonlats()

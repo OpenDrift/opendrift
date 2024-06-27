@@ -55,7 +55,7 @@ import opendrift
 from opendrift.timer import Timeable
 from opendrift.errors import WrongMode
 from opendrift.models.physics_methods import PhysicsMethods
-from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
+from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED, CONFIG_LEVEL_ESSENTIAL
 
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 
@@ -915,6 +915,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          time=land_reader.start_time)[0]['land_binary_mask']
         if landgrid.min() == 1 or np.isnan(landgrid.min()):
             logger.warning('No ocean pixels nearby, cannot move elements.')
+            if land.min() == 1:
+                raise ValueError('All elements seeded on land')
             return lon, lat
 
         oceangridlons = longrid[landgrid == 0]

@@ -18,11 +18,9 @@ def test_radio_nuclide(test_data):
     o.set_config('vertical_mixing:timestep', 600.) # seconds
     o.set_config('drift:horizontal_diffusivity', 10)
     o.set_config('radionuclide:particle_diameter',5.e-6)  # m
-    o.set_config('radionuclide:transformations:Kd',2.e0) # (m3/kg)
-    o.set_config('radionuclide:sediment:resuspension_depth',2.)
-    o.set_config('radionuclide:sediment:resuspension_depth_uncert',0.1)
-    o.set_config('radionuclide:sediment:resuspension_critvel',0.15)
-    o.set_config('radionuclide:transfer_setup','Bokna_137Cs')
+    o.set_config('radionuclide:isotope','137Cs')
+    o.set_config('radionuclide:specie_setup','LMM + Rev')
+
     o.set_config('general:coastline_action', 'previous')
     o.set_config('seed:LMM_fraction',.45)
     o.set_config('seed:particle_fraction',.55)

@@ -9,7 +9,7 @@ def get_water_fractions():
     oot = OpenOil(location='Norway').oiltypes
     print(oot)
 
-    o = pd.read_excel('oljedatabase_alle-25.10.2023.xlsx')
+    o = pd.read_excel('oljedatabase_alle_03052024.xlsx')
     oljer = o['Oljetype'].unique().astype(list)
     oljer = oljer[0:-1]
     print(oljer)
@@ -84,6 +84,7 @@ def get_water_fractions():
         'GYDA 2002': 'Gyda 2002',
         'HAVIS 2013': 'Havis 2013',
         'HEIDRUN AaRE 2004': 'Heidrun Åre 2004',
+        'HEIDRUN AARE 2023': 'Heidrun Åre 2023',
         'HEIDRUN EXPORT BLEND 2004': 'Heidrun Åre 2004',
         'HEIDRUN TILJE 2004': 'Heidrun Åre 2004',
         'HULDRA KONDENSAT 1998': 'Huldra 1998',
@@ -111,6 +112,7 @@ def get_water_fractions():
         'NORNE BLEND 2010': 'Norne Blend 2010',
         'NORNE CRUDE 2017': 'Norne 2018',
         'ODA 2019': 'Oda 2019',
+        'OFELIA 2023': 'Ofelia 2023',
         'ORMEN LANGE KONDENSAT 2008': 'Ormen Lange 2008',
         'OSEBERG A 2013': 'Oseberg A 2013',
         'OSEBERG BLEND 2007': 'Oseberg Blend 2007',
@@ -182,8 +184,6 @@ def get_water_fractions():
     oilmax = {  # Some known limits not in NOFO excel file
             'MARINE GAS OIL 500 ppm S 2017':
                 {'temperatures': [15], 'max_water_fraction': [.1]},
-            'OFELIA 2023':
-                {'temperatures': [5, 15], 'max_water_fraction': [.4, .7]},
             }
 
     for ot in mapping:

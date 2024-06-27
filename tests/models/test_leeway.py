@@ -82,7 +82,7 @@ def test_capsize():
     o = Leeway(loglevel=20)
     o.set_config('environment:constant', {'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0,
                     'x_wind': 25, 'y_wind': 0, 'land_binary_mask': 0})
-    o.set_config('capsizing', True)
+    o.set_config('processes:capsizing', True)
     o.set_config('capsizing:wind_threshold', 30)
     o.set_config('capsizing:wind_threshold_sigma', 3)
     o.set_config('capsizing:leeway_fraction', .4)
@@ -94,7 +94,7 @@ def test_capsize():
 
     # Backward run, checking that forward capsizing is not happening
     ob = Leeway(loglevel=20)
-    ob.set_config('capsizing', True)
+    ob.set_config('processes:capsizing', True)
     ob.set_config('capsizing:wind_threshold', 30)
     ob.set_config('capsizing:wind_threshold_sigma', 3)
     ob.set_config('capsizing:leeway_fraction', .4)
@@ -108,7 +108,7 @@ def test_capsize():
 
     # Backward run, checking that backward capsizing does happen
     ob = Leeway(loglevel=20)
-    ob.set_config('capsizing', True)
+    ob.set_config('processes:capsizing', True)
     ob.set_config('capsizing:wind_threshold', 30)
     ob.set_config('capsizing:wind_threshold_sigma', 3)
     ob.set_config('capsizing:leeway_fraction', .4)

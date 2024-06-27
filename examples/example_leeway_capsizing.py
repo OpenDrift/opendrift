@@ -28,7 +28,7 @@ o.add_reader(reader_arome)
 #%%
 # Activating capsizing for high winds, with probability per hour given by
 # p(windspeed) = 0.5 + 0.5*tanh((windspeed-wind_threshold)/sigma)
-o.set_config('capsizing', True)
+o.set_config('processes:capsizing', True)
 o.set_config('capsizing:wind_threshold', 30)
 o.set_config('capsizing:wind_threshold_sigma', 5)
 o.set_config('capsizing:leeway_fraction', 0.4)  # Reducing leeway coefficients to 40% of original after capsize
@@ -62,7 +62,7 @@ o.animation(color='capsized', cmap=ListedColormap(['black','red']), fast=True)
 o = Leeway()
 o.add_reader(reader_norkyst)
 o.add_reader(reader_arome)
-o.set_config('capsizing', True)
+o.set_config('processes:capsizing', True)
 o.seed_elements(lon=4.4, lat=61.0, radius=100, number=1000,
                 capsized=1,  # now we seed all objects as already capsized
                 time=reader_arome.end_time, object_type=object_type)

@@ -340,8 +340,9 @@ class OpenDriftGUI(tk.Tk):
         self.text = tk.Text(self.output, wrap="word", height=18)
         self.text.grid(row=60, columnspan=6, sticky='nsw')
         self.text.tag_configure("stderr", foreground="#b22222")
-        sys.stdout = TextRedirector(self.text, "stdout")
-        sys.stderr = TextRedirector(self.text, "stderr")
+        if os.getenv('OPENDRIFT_GUI_OUTPUT', 'gui') == 'gui':
+            sys.stdout = TextRedirector(self.text, "stdout")
+            sys.stderr = TextRedirector(self.text, "stderr")
         s = tk.Scrollbar(self)
         s.grid(row=60, column=6, sticky='ns')
         s.config(command=self.text.yview)
@@ -546,7 +547,8 @@ class OpenDriftGUI(tk.Tk):
             else:
                 tab = self.subconfig[key.split(':')[0]]
                 keystr = ''.join(key.split(':')[1:])
-
+            if keystr == '':
+                keystr = key
             lab = tk.Label(tab, text=keystr)
             lab.grid(row=i, column=1, rowspan=1)
             if sc[key]['type'] in ['float', 'int']:
@@ -566,10 +568,12 @@ class OpenDriftGUI(tk.Tk):
                 self.config_input_var[i] = tk.StringVar()
                 vcmd = (tab.register(self.validate_config),
                     '%P', '%s', key)
+                max_length = sc[key].get('max_length') or 12
+                max_length = np.minimum(max_length, 64)
                 self.config_input[i] = tk.Entry(
                     tab, textvariable=self.config_input_var[i],
                     validate='key', validatecommand=vcmd,
-                    width=sc[key]['max_length'], justify=tk.RIGHT)
+                    width=max_length, justify=tk.RIGHT)
                 self.config_input[i].insert(0, str(sc[key]['default']))
                 self.config_input[i].grid(row=i, column=2, columnspan=3, rowspan=1)
                 #tk.Label(tab, text='').grid(row=i, column=3, rowspan=1)
@@ -641,9 +645,11 @@ class OpenDriftGUI(tk.Tk):
                     text=sc[i]['description'])
             else:
                 self.seed_input_var[i] = tk.StringVar()
+                max_length = sc[i].get('max_length') or 12
+                max_length = np.minimum(max_length, 64)
                 self.seed_input[i] = tk.Entry(
                     self.seed_frame, textvariable=self.seed_input_var[i],
-                    width=12, justify=tk.RIGHT)
+                    width=max_length, justify=tk.RIGHT)
                 self.seed_input[i].insert(0, actual_val)
             self.seed_input[i].grid(row=num, column=1)
 
@@ -717,11 +723,6 @@ class OpenDriftGUI(tk.Tk):
     def run_opendrift(self):
         sys.stdout.write('running OpenDrift')
 
-        # Creating fresh instance of the current model, but keeping config
-        adjusted_config = self.o._config
-        self.set_model(self.modelname, rebuild_gui=False)
-        self.o._config = adjusted_config
-
         try:
             self.budgetbutton.destroy()
         except Exception as e:
@@ -746,6 +747,23 @@ class OpenDriftGUI(tk.Tk):
             local_end = local.localize(end_time, is_dst=None)
             start_time = local_start.astimezone(pytz.utc).replace(tzinfo=None)
             end_time = local_end.astimezone(pytz.utc).replace(tzinfo=None)
+
+        # Creating fresh instance of the current model, but keeping config
+        adjusted_config = self.o._config
+        self.set_model(self.modelname, rebuild_gui=False)
+        self.o._config = adjusted_config
+
+        # Add secondary log-handler to file
+        if self.has_diana is True and True:
+            logfile = self.outputdir + '/opendrift_' + self.modelname + start_time.strftime('_%Y%m%d_%H%M.log')
+            import logging
+            if hasattr(self, 'handler'):
+                logging.getLogger('opendrift').removeHandler(self.handler)
+            self.handler = logging.FileHandler(logfile, mode='w')
+            self.handler.setFormatter(logging.getLogger('opendrift').handlers[0].formatter)
+            logging.getLogger('opendrift').addHandler(self.handler)
+            if len(logging.getLogger('opendrift').handlers) > 2:
+                raise ValueError('Too many log handlers')
 
         sys.stdout.flush()
         lon = float(self.lon.get())
@@ -874,4 +892,11 @@ def main():
     OpenDriftGUI().mainloop()
 
 if __name__ == '__main__':
+
+    # Add any argument to redirect output to terminal instead of GUI window.
+    # TODO: must be a better way to pass arguments to Tkinter?
+    if len(sys.argv) > 1:
+        os.environ['OPENDRIFT_GUI_OUTPUT'] = 'terminal'
+    else:
+        os.environ['OPENDRIFT_GUI_OUTPUT'] = 'gui'
     OpenDriftGUI().mainloop()

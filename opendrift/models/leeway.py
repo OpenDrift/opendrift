@@ -76,7 +76,7 @@ class LeewayObj(LagrangianArray):
          ('capsized', {
             'dtype': np.uint8,
             'units': '1',
-            'description': '0 is not capsized, changed to 1 after capsizing (irreversible). After capsizing, leeway coeffieiencts are reduced as given by config item "capsized:leeway_fraction"',
+            'description': '0 is not capsized, changed to 1 after capsizing (irreversible). After capsizing, leeway coeffieiencts are reduced as given by config item capsized:leeway_fraction',
             'seed': True,
             'default': 0
         }),
@@ -231,7 +231,7 @@ class Leeway(OpenDriftSimulation):
                 'units': 'probability',
                 'level': CONFIG_LEVEL_BASIC
             },
-              'capsizing': {
+            'processes:capsizing': {
                 'type': 'bool',
                 'default': False,
                 'min': 0,
@@ -424,7 +424,7 @@ class Leeway(OpenDriftSimulation):
         winddir = np.arctan2(self.environment.x_wind, self.environment.y_wind)
 
         # Capsizing
-        if self.get_config('capsizing') is True:
+        if self.get_config('processes:capsizing') is True:
             wind_threshold = self.get_config('capsizing:wind_threshold')
             wind_threshold_sigma = self.get_config('capsizing:wind_threshold_sigma')
             # For forward run, elements can be capsized, but for backwards run, only capsized elements can be un-capsized
