@@ -57,8 +57,11 @@ from opendrift.errors import WrongMode
 from opendrift.models.physics_methods import PhysicsMethods
 from opendrift.config import Configurable, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED, CONFIG_LEVEL_ESSENTIAL
 
-Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
+import roaring_landmask
+from roaring_landmask import RoaringLandmask
 
+Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
+rl = roaring_landmask.RoaringLandmask.new()
 
 def require_mode(mode: Union[Mode, List[Mode]], post_next_mode=False, error=None):
     if not isinstance(mode, list):
@@ -329,6 +332,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'previous means that objects will move back to the previous location '
                 'if they hit land'
             },
+            'general:coastline_approximation_precision': {
+                'type': 'float',
+                'default': None,
+                'min': 0.0001,
+                'max': 0.005,
+                'units': 'degrees',
+                'description': 'The precision of the particle position approximation to the coastline.',
+                'level': CONFIG_LEVEL_BASIC
+            },
             'general:time_step_minutes': {
                 'type': 'float',
                 'min': .01,
@@ -577,7 +589,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def store_present_positions(self, IDs=None, lons=None, lats=None):
         """Store present element positions, in case they shall be moved back"""
-        if self.get_config('general:coastline_action') == 'previous' or (
+        if self.get_config('general:coastline_action') in ['previous', 'stranding'] or (
                 'general:seafloor_action' in self._config
                 and self.get_config('general:seafloor_action') == 'previous'):
             if not hasattr(self, 'previous_lon'):
@@ -630,6 +642,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if self.num_elements_active() == 0:
             return
         i = self.get_config('general:coastline_action')
+        coastline_approximation_precision = self.get_config('general:coastline_approximation_precision')
         if not hasattr(self, 'environment') or not hasattr(
                 self.environment, 'land_binary_mask'):
             return
@@ -645,9 +658,51 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.environment.land_binary_mask = en.land_binary_mask
 
         if i == 'stranding':  # Deactivate elements on land, but not in air
-            self.deactivate_elements((self.environment.land_binary_mask == 1) &
-                                     (self.elements.z <= 0),
-                                     reason='stranded')
+            on_land = np.where(self.environment.land_binary_mask == 1)[0]
+            if len(on_land) == 0:
+                logger.debug('No elements hit coastline.')
+                return
+
+            logger.debug('%s elements hit land, moving them to the coastline.' % len(on_land))
+
+            self.deactivate_elements(
+                (self.environment.land_binary_mask == 1) & (self.elements.z <= 0),
+                reason='stranded'
+            )
+            
+            if not coastline_approximation_precision:
+                return
+            
+            for on_land_id, on_land_prev_id in zip(on_land, self.elements.ID[on_land]):
+                lon = self.elements.lon[on_land_id]
+                lat = self.elements.lat[on_land_id]
+                prev_lon = self.previous_lon[on_land_prev_id - 1]
+                prev_lat = self.previous_lat[on_land_prev_id - 1]
+
+                step_degrees = float(coastline_approximation_precision)
+                
+                x_degree_diff = np.abs(prev_lon - lon)
+                x_samples = np.floor(x_degree_diff / step_degrees).astype(np.int64) if x_degree_diff > step_degrees else 1
+                x = np.linspace(prev_lon, lon, x_samples)
+
+                y_degree_diff = np.abs(prev_lat - lat)
+                y_samples = np.floor(y_degree_diff/ step_degrees).astype(np.int64) if y_degree_diff > step_degrees else 1
+                y = np.linspace(prev_lat, lat, y_samples)
+
+                xx, yy = np.meshgrid(x,y)
+                xx, yy = xx.ravel(), yy.ravel()
+
+                rl_mask = rl.contains_many(xx.ravel(), yy.ravel())
+                if np.any(rl_mask):
+                    index = np.argmax(rl_mask)
+                    new_lon = xx[index]
+                    new_lat = yy[index]
+
+                    self.elements.lon[on_land_id] = new_lon
+                    self.elements.lat[on_land_id] = new_lat
+
+            self.environment.land_binary_mask[on_land] = 0
+            
         elif i == 'previous':  # Go back to previous position (in water)
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
