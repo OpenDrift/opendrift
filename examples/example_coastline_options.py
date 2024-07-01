@@ -22,7 +22,9 @@ reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=1,
 # Coastline option "stranding"
 # ============================
 #
-# Note that particles are "jumping" a distance onto land, depending on calculation timestep
+# Particles are moved forward with forcing velocity (e.g. current and wind drift) times the time step.
+# If the next position is on land, the particle is deactivated.
+# Note that particles may "jump" a distance onto land, depending on the calculation timestep.
 o = OceanDrift(loglevel=50)
 o.add_reader([reader_osc])
 o.set_config('environment:fallback:y_sea_water_velocity', .2)
@@ -39,7 +41,8 @@ o.animation()
 # Coastline option "stranding" with higher precision
 # ==================================================
 #
-# by setting config "general:coastline_approximation_precision" to desired accuracy in degrees.
+# By setting config "general:coastline_approximation_precision" to desired accuracy in degrees,
+# a more exact coastline crossing is calculated by the deactivated particles.
 # Note that with a (too) large compuation time step, particles may still "jump" over islands.
 # An alternative to avoid this possibility is to use a smaller timestep for the simulation, though at a larger computational cost.
 o = OceanDrift(loglevel=50)
@@ -55,12 +58,12 @@ o.animation()
 #%%
 # .. image:: /gallery/animations/example_coastline_options_1.gif
 
-#%
+#%%
 # Coastline option "previous"
 # ===========================
 #
-# Particles hitting land are moved back to last position in water,
-# and may move offshore if currents/winds/forcing changes direction.
+# Particles hitting land are moved back to previous position in water,
+# and may move offshore if currents/winds/forcing change direction.
 # Here we see that several particles are jumping over small island.
 # Reducing timestep to e.g. 15 minutes will reduce this problem.
 o = OceanDrift(loglevel=50)
@@ -75,7 +78,7 @@ o.animation()
 #%%
 # .. image:: /gallery/animations/example_coastline_options_2.gif
 
-#%
+#%%
 # Coastline option "none"
 # =======================
 #
