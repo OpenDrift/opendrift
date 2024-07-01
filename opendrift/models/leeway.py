@@ -234,11 +234,8 @@ class Leeway(OpenDriftSimulation):
             'processes:capsizing': {
                 'type': 'bool',
                 'default': False,
-                'min': 0,
-                'max': 1,
                 'description':
                 'If True, elements can be capsized when wind exceeds threshold given by config item capsize:wind_threshold',
-                'units': 'fraction',
                 'level': CONFIG_LEVEL_BASIC
             },
              'capsizing:leeway_fraction': {
