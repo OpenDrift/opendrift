@@ -45,7 +45,7 @@ lons, lats = np.meshgrid(lons, lats)
 
 #%%
 # Simulating first backwards for 24 hours:
-o.seed_elements(lon=ilon, lat=ilat, radius=5000, radius_type='uniform', number=30000,
+o.seed_elements(lon=ilon, lat=ilat, radius=5000, radius_type='uniform', number=15000,
                  time=end_time, object_type=object_type)
 o.run(duration=duration, time_step=-900, time_step_output=3600, outfile=outfile)
 od = opendrift.open_xarray(outfile)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Using wind measurements
-===============
+=======================
 """
 
 from datetime import datetime, timedelta, date
