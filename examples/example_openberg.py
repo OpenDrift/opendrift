@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Icebergs (openberg)
-====================
+Icebergs (OpenBerg module)
+==========================
 """
 
 from opendrift.models.openberg import OpenBerg

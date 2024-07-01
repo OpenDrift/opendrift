@@ -40,8 +40,8 @@ text = [{'s': 'Observation', 'x': ilon, 'y': ilat, 'fontsize': 20, 'color': 'g',
 # Define domain of possible origin
 lons = np.arange(3.4, 5, .1/20)
 lats = np.arange(59.7, 60.8, .05/20)
-lons = lons[0::2]  # using every second, due to memory limitation on CircleCI
-lats = lats[0::2]
+#lons = lons[0::2]  # using every second, due to memory limitation on CircleCI
+#lats = lats[0::2]
 corners = [lons[0], lons[-1], lats[0], lats[-1]]
 lons, lats = np.meshgrid(lons, lats)
 
@@ -87,7 +87,8 @@ o.animation(compare=o_hit, legend=['Elements not hitting target', 'Elements hitt
 #%%
 # .. image:: /gallery/animations/example_leeway_backtrack_0.gif
 
-o.plot(compare=o_hit, legend=['Elements not hitting target', 'Elements hitting target'], show_elements=False, fast=True, corners=corners, text=text)
+o.plot(compare=o_hit, legend=['Elements not hitting target', 'Elements hitting target'],
+       show_elements=False, fast=True, corners=corners, text=text)
 
 #%%
 # Plot the initial density of elements that actually hit the target after 24 hours. To be compared with the density figure from backwards simulation (see top)
