@@ -1,8 +1,13 @@
 History
 =======
 
+Next release
+------------
+* New feature by TheSylex to move stranded particles closer to the actual coastline with a precision given by config setting `general:coastline_approximation_precision` in unit of degrees (1deg approx 111 km)
+* Major updates to OpenBerg iceberg drift model (Achref Othmani, Lenny Hucher)
+
 2024-06-27 / Release v1.11.10
-----------------------------
+-----------------------------
 * Using now standard env variable names COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD for reader_copernicus. Env variable COPERNICUSMARINE_CACHE_DIRECTORY can be set to empty string to disable caching.
 
 2024-06-27 / Release v1.11.9
@@ -11,6 +16,7 @@ History
 * Hack in generic reader to make sure wind from ECMWF files is at 10m height
 
 * Raising now error if all elements are seeded on land
+
 2024-06-26 / Release v1.11.8
 ----------------------------
 * Raising now error if all elements are seeded on land

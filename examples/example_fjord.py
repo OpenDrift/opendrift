@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Fjord
-==================================
+=====
 """
 
 from datetime import timedelta
@@ -40,4 +40,3 @@ o.animation()
 # .. image:: /gallery/animations/example_fjord_0.gif
 
 o.plot()
-
