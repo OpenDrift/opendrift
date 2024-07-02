@@ -27,6 +27,12 @@ import numpy as np
 from opendrift.models.openoil import OpenOil
 
 
+def test_new_oil():
+    o = OpenOil(loglevel=50, location='Norway')
+    oiltypes = o._config['seed:oil_type']['enum']
+    assert 'HEIDRUN AARE 2023' in oiltypes
+    assert len(oiltypes) >= 179
+
 def test_oils():
     o = OpenOil(loglevel=50, weathering_model='noaa')
 
