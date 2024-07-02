@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
-o = OpenOil(loglevel=20, weathering_model='noaa')
+o = OpenOil(loglevel=20, location='Norway')
 
 print(o.oiltypes)  # Print available oil types
 
