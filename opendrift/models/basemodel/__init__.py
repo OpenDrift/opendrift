@@ -3114,7 +3114,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if cmap is None:
             cmap = 'jet'
         if isinstance(cmap, str):
-            cmap = matplotlib.cm.get_cmap(cmap)
+            cmap = matplotlib.colormaps[cmap]
         if color is not False:
             if isinstance(color, str):
                 colorarray = self.get_property(color)[0].T
@@ -3499,7 +3499,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                         lvmax = param.max()
                     lc = LineCollection(
                         segments,
-                        #cmap=plt.get_cmap('Spectral'),
+                        #cmap=plt.colormaps['Spectral'],
                         cmap=cmap,
                         norm=plt.Normalize(lvmin, lvmax),
                         transform=gcrs)
