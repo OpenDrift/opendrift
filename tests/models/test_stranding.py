@@ -111,6 +111,7 @@ class TestStranding(unittest.TestCase):
                     time_step = -900
                 o = OceanDrift(loglevel=50)
                 o.set_config('general:coastline_action', option)
+                o.set_config('general:coastline_approximation_precision', None)
                 o.add_reader([reader_osc, reader_global])
                 # Adding northwards drift
                 o.set_config('environment:constant:y_sea_water_velocity', .1)
