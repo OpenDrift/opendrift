@@ -29,6 +29,7 @@ o = OceanDrift(loglevel=50)
 o.add_reader([reader_osc])
 o.set_config('environment:fallback:y_sea_water_velocity', .2)
 o.set_config('general:coastline_action', 'stranding')
+o.set_config('general:coastline_approximation_precision', None)
 o.seed_elements(lon=12.2, lat=67.7, radius=5000, number=number, time=reader_osc.zero_time)
 o.run(duration=duration, time_step=time_step)
 print(f'Calculation time: {o.timing["total time"]}')
@@ -41,7 +42,7 @@ o.animation()
 # Coastline option "stranding" with higher precision
 # ==================================================
 #
-# By setting config "general:coastline_approximation_precision" to desired accuracy in degrees,
+# By setting config "general:coastline_approximation_precision" to desired accuracy in degrees (default is 0.01 as in this example),
 # a more exact coastline crossing is calculated by the deactivated particles.
 # Note that with a (too) large compuation time step, particles may still "jump" over islands.
 # An alternative to avoid this possibility is to use a smaller timestep for the simulation, though at a larger computational cost.
