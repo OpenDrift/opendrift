@@ -5,15 +5,22 @@ from opendrift.readers.unstructured import shyfem
 from opendrift.models.oceandrift import OceanDrift
 
 ismar = 'https://iws.ismar.cnr.it/thredds/dodsC/emerge/shyfem_unstructured_adriatic.nc'
-
-
-def test_open():
+try:
     r = shyfem.Reader(ismar)
-    print(r)
-    # r.plot_mesh()
-    # plt.show()
+    shyfem_available = True
+except:
+    shyfem_available = False
 
+#def test_open():
+#    r = shyfem.Reader(ismar)
+#    print(r)
+#    # r.plot_mesh()
+#    # plt.show()
 
+need_shyfem = pytest.mark.skipif(shyfem_available == False,
+                                 reason='Shyfem sample file not available/readable from iws.ismar.cnr.it/thredds')
+
+@need_shyfem
 def test_get_variables(benchmark):
     r = shyfem.Reader(ismar)
 
@@ -28,11 +35,13 @@ def test_get_variables(benchmark):
     assert u.shape == (len(x),)
     assert len(u) == len(x)
 
+@need_shyfem
 def test_z_polarity():
     r = shyfem.Reader(ismar)
     assert r.zmax > r.zmin
     assert (r.z < 0).all()
 
+@need_shyfem
 def test_get_values():
     r = shyfem.Reader(ismar)
 
