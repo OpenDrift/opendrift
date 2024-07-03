@@ -1,10 +1,13 @@
 History
 =======
 
-Next release
-------------
+2024-07-04 / Release v1.11.11
+-----------------------------
 * New feature by TheSylex to move stranded particles closer to the actual coastline with a precision given by config setting `general:coastline_approximation_precision` in unit of degrees (1deg approx 111 km)
 * Major updates to OpenBerg iceberg drift model (Achref Othmani, Lenny Hucher)
+* Changed location to Norway for oil HEIDRUN AARE 2023
+* Replacing matplotlib.cm.get_cmap with matplotlib.colormaps[color], ready for matplotlib 3.9
+* Requiring Trajan >= 0.6.3 for Numpy >= 2.0
 
 2024-06-27 / Release v1.11.10
 -----------------------------
