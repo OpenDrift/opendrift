@@ -319,22 +319,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                         'default': '', 'level': CONFIG_LEVEL_BASIC,
                                         'description': 'Name of simulation'},
             'general:coastline_action': {
-                'type':
-                'enum',
+                'type': 'enum',
                 'enum': ['none', 'stranding', 'previous'],
-                'default':
-                'stranding',
-                'level':
-                CONFIG_LEVEL_BASIC,
-                'description':
-                'None means that objects may also move over land. '
-                'stranding means that objects are deactivated if they hit land. '
-                'previous means that objects will move back to the previous location '
-                'if they hit land'
+                'default': 'stranding',
+                'level': CONFIG_LEVEL_BASIC,
+                'description': 'None means that objects may also move over land. '
+                    'stranding means that objects are deactivated if they hit land. '
+                    'previous means that objects will move back to the previous location '
+                    'if they hit land'
             },
             'general:coastline_approximation_precision': {
                 'type': 'float',
-                'default': None,
+                'default': 0.001,
                 'min': 0.0001,
                 'max': 0.005,
                 'units': 'degrees',

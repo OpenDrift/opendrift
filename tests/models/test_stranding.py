@@ -39,6 +39,7 @@ class TestStranding(unittest.TestCase):
         o.add_reader(reader_nordic)
         o.set_config('environment:fallback:y_wind', 10)  # Some wind for mixing
         o.set_config('general:coastline_action', 'stranding')
+        o.set_config('general:coastline_approximation_precision', None)
         o.set_config('vertical_mixing:timestep', 120)
         o.set_config('drift:max_speed', .1)
         o.seed_elements(lon=14.0, lat=68.15, radius=2000, number=100,
@@ -128,7 +129,6 @@ class TestStranding(unittest.TestCase):
                 self.assertIsNone(np.testing.assert_array_almost_equal(
                     el.lon, lons[i], 3))
 
-
     def test_interact_coastline_global(self):
         reader_global = reader_global_landmask.Reader()
 
@@ -143,6 +143,20 @@ class TestStranding(unittest.TestCase):
         self.assertAlmostEqual(lons[0], 5, 2)
         self.assertAlmostEqual(lons[-2], 5.092, 2)
         self.assertAlmostEqual(lons[-1], 5.092, 2)
+
+    def test_stranding_approximation(self):
+        o = OceanDrift(loglevel=0)
+        o.set_config('environment:constant:x_sea_water_velocity', 1)
+        o.set_config('general:coastline_approximation_precision', None)
+        o.seed_elements(lon=4.55, lat=60, time=datetime.now())
+        o.run(steps=10)
+        o2 = OceanDrift(loglevel=0)
+        o2.set_config('environment:constant:x_sea_water_velocity', 1)
+        o2.set_config('general:coastline_approximation_precision', .001)
+        o2.seed_elements(lon=4.55, lat=60, time=datetime.now())
+        o2.run(steps=10)
+        self.assertAlmostEqual(o.elements_deactivated.lon[0], 5.066, 3)
+        self.assertAlmostEqual(o2.elements_deactivated.lon[0], 5.051, 3)
 
 
 if __name__ == '__main__':
