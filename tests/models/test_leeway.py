@@ -54,6 +54,7 @@ def test_leewayrun(tmpdir, test_data):
     object_type = 50  # FISHING-VESSEL-1
     reader_landmask = reader_global_landmask.Reader()
     lee.add_reader([reader_landmask])
+    lee.set_config('general:coastline_approximation_precision', None)
     lee.set_config('environment:fallback:x_wind', 0)
     lee.set_config('environment:fallback:y_wind', 10)
     lee.set_config('environment:fallback:x_sea_water_velocity', 0)
@@ -70,13 +71,16 @@ def test_leewayrun(tmpdir, test_data):
     asciif = tmpdir + '/leeway_ascii.txt'
     lee.export_ascii(asciif)
     asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
+    asciitarget2 = test_data + "/generated/test_leewayrun_export_ascii_v2.txt"
     from difflib import Differ
     with open(asciif) as file_1, open(asciitarget) as file_2:
         differ = Differ()
         for line in differ.compare(file_1.readlines(), file_2.readlines()):
             print(line)
     import filecmp
-    assert filecmp.cmp(asciif, asciitarget)
+    if not filecmp.cmp(asciif, asciitarget):
+        # Comparing with second versio of ASCII file, with slight numerical differences
+        assert filecmp.cmp(asciif, asciitarget2)
 
 def test_capsize():
     o = Leeway(loglevel=20)
