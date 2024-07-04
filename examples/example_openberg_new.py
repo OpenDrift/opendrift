@@ -4,7 +4,7 @@ Icebergs (openberg)
 ====================
 """
 
-from opendrift.models.openberg_AO import OpenBerg
+from opendrift.models.openberg import OpenBerg
 from datetime import datetime,timedelta
  
 o = OpenBerg()
