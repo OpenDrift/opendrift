@@ -15,9 +15,18 @@
 # Copyright 2015, 2023, Knut-Frode Dagestad, MET Norway
 # Copyright 2023, Achref Othmani & 2024, Lenny Hucher, NERSC, Norway
 
+"""
+This code is initiated from the following reference with posterior modifications. 
+
+Reference:
+Keghouche, I., F. Counillon, and L. Bertino (2010), Modeling dynamics and thermodynamics
+of icebergs in the Barents Sea from 1987 to 2005, J. Geophys. Res., 115, C12062, doi:10.1029/2010JC006165. 
+"""
+
 import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+from opendrift.config import CONFIG_LEVEL_BASIC
 from opendrift.models.physics_methods import PhysicsMethods
 from scipy.integrate import solve_ivp
 
@@ -31,6 +40,7 @@ rho_iceb = 900
 g = 9.81
 csi = 1  # Sea ice coefficient of resistance
 wave_drag_coef = 0.3
+omega = 7.2921e-5
 
 
 class IcebergObj(Lagrangian3DArray):
@@ -67,21 +77,18 @@ class IcebergObj(Lagrangian3DArray):
         ])
 
 
-
 # Define the functions needed
-def water_drag(iceb_vel, water_vel, Ao, rho_water, water_drag_coef):
+def ocean_force(iceb_vel, water_vel, Ao, rho_water, water_drag_coef):
     """ Ocean force
     Args:
-        iceb_vel  : Iceberg velocity at time t
+        iceb_vel  : Iceberg's velocity at time t
         water_vel : Ocean current velocity
         Ao : Iceberg's area exposed to the ocean current(length x draft)
         rho_water : Water density
         water_drag_coef : Co is the drag coefficient applied on the iceberg's draft
-    Returns:
-        Ocean force
     """
-    vxo, vyo = water_vel[0], water_vel[1]    # water velocity
-    x_vel, y_vel = iceb_vel[0], iceb_vel[1]  # iceberg velocity
+    vxo, vyo = water_vel[0], water_vel[1]
+    x_vel, y_vel = iceb_vel[0], iceb_vel[1]
     rel_water_x_vel = vxo - x_vel
     rel_water_y_vel = vyo - y_vel
     rel_water_norm = np.sqrt(rel_water_x_vel**2 + rel_water_y_vel**2)
@@ -90,19 +97,17 @@ def water_drag(iceb_vel, water_vel, Ao, rho_water, water_drag_coef):
     return np.array([F_ocean_x, F_ocean_y])
 
 
-def wind_drag(iceb_vel, wind_vel, Aa, wind_drag_coef):
+def wind_force(iceb_vel, wind_vel, Aa, wind_drag_coef):
     """ Wind force
     Args:
-        iceb_vel : Iceberg velocity at time t
+        iceb_vel : Iceberg's velocity at time t
         wind_vel : Wind velocity
         Aa : Iceberg's area exposed to the wind (length x sail)
         rho_air : Air density
         wind_drag_coef : Ca is the drag coefficient applied on the iceberg's sail
-    Returns:
-        Wind force
     """
-    vxa, vya = wind_vel[0], wind_vel[1] # wind velocity
-    x_vel, y_vel = iceb_vel[0], iceb_vel[1] # iceberg velocity
+    vxa, vya = wind_vel[0], wind_vel[1]
+    x_vel, y_vel = iceb_vel[0], iceb_vel[1]
     rel_wind_x_vel = vxa - x_vel
     rel_wind_y_vel = vya - y_vel
     rel_wind_norm = np.sqrt(rel_wind_x_vel**2 + rel_wind_y_vel**2)
@@ -133,9 +138,8 @@ def advect_iceberg_no_acc(f, water_vel, wind_vel):
         f : Wind drift factor
         water_vel : Ocean current velocity
         wind_vel  : Wind velocity
-
     Returns:
-        Iceberg velocity without acceleration
+        Iceberg's velocity without acceleration
     """
     vxo, vyo = water_vel[0], water_vel[1]
     vxa, vya = wind_vel[0], wind_vel[1]
@@ -151,14 +155,12 @@ def sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, iceb_w
     """ Sea ice force
     Args:
         iceb_vel : Iceberg velocity at time t
-        sea_ice_conc : Sea ice concentration [%]
-        sea_ice_thickness : Sea ice thickness [m]
-        sea_ice_vel : Sea ice velocity [m/s]
+        sea_ice_conc : Sea ice concentration
+        sea_ice_thickness : Sea ice thickness
+        sea_ice_vel : Sea ice velocity
         rho_ice : Sea ice density
         iceb_width : Iceberg width
         sum_force : Effect of all other forces exerted on the iceberg (apart from the sea ice force)
-    Returns:
-        Sea ice force
     """
     ice_x, ice_y = sea_ice_vel
     x_vel, y_vel = iceb_vel[0], iceb_vel[1]
@@ -175,9 +177,17 @@ def sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, iceb_w
     return np.array([F_ice_x, F_ice_y])
 
 
+def coriolis_force(iceb_vel, mass, lat):
+    f = 2 * omega * np.sin(lat)
+    assert len(iceb_vel) == 2
+    x_vel, y_vel = iceb_vel[0], iceb_vel[1]
+    Fc_x = mass * f * y_vel
+    Fc_y = -mass * f * x_vel
+    return np.array([Fc_x, Fc_y])
+
+
 def melwav(iceb_length, iceb_width, x_wind, y_wind, sst, sea_ice_conc, dt):
     """ Update the iceberg's dimensions (length and width) due to wave erosion
-    Parameterization from Keghouche et al. 2009    
     Args:
         iceb_length : Iceberg's length
         iceb_width : Iceberg's width
@@ -198,9 +208,9 @@ def melwav(iceb_length, iceb_width, x_wind, y_wind, sst, sea_ice_conc, dt):
     new_iceb_width[new_iceb_width < 0] = 0
     return new_iceb_length, new_iceb_width
 
+
 def mellat(iceb_length, iceb_width, tempib, salnib, dt): 
     """ Update the iceberg's dimensions (length and width) due to lateral melting
-    Parameterization from Keghouche et al. 2009 
     Args:
         iceb_length : Iceberg's length
         iceb_width  : Iceberg's width
@@ -213,7 +223,7 @@ def mellat(iceb_length, iceb_width, tempib, salnib, dt):
     deltaT = tempib - Tfp
     deltaT = np.concatenate([2.78 * deltaT, 0.47 * deltaT**2], axis=0)
     sumVb = np.nansum(deltaT, axis=0)
-    dx = sumVb / 365 / 86400 * dt  # Convert sumVb from (meter/year) to (meter per second)
+    dx = sumVb / 365 / 86400 * dt
     
     new_iceb_length = np.zeros_like(iceb_length)
     new_iceb_width = np.zeros_like(iceb_width)
@@ -223,10 +233,9 @@ def mellat(iceb_length, iceb_width, tempib, salnib, dt):
     new_iceb_width[new_iceb_width < 0] = 0
     return new_iceb_length, new_iceb_width
 
+
 def melbas(iceb_draft, iceb_sail, iceb_length, salnib, tempib, x_water_vel, y_water_vel, x_iceb_vel, y_iceb_vel, dt):
-    """ Update the iceberg's dimensions (draft and sail) due to forced convection
-    Parameterization from Keghouche et al. 2009 
-    """
+    """ Update the iceberg's dimensions (draft and sail) due to forced convection """
     # Temperature at the base layer of the iceberg
     absv = np.sqrt(((x_water_vel - x_iceb_vel) ** 2 + (y_water_vel - y_iceb_vel) ** 2))
     TfS = -0.036 - 0.0499 * salnib - 0.000112 * salnib**2
@@ -265,19 +274,18 @@ class OpenBerg(OceanDrift):
         "land_binary_mask": {"fallback": None},
     }
 
+
     def get_profile_masked(self, variable):
         """ Apply a mask to extract data from the surface down to the iceberg's draft """
         draft = self.elements.draft
         profile = self.environment_profiles[variable]
         z = self.environment_profiles["z"]
-        if len(z) == 1:
-            if z == np.array([None]):  # Convert None values to zeros for surface current
-                z = np.zeros_like(z)
-        mask = draft[:, np.newaxis] < -z
-        mask = mask.T
-        mask[np.argmax(mask, axis=0), np.arange(mask.shape[1])] = False
-        return np.ma.masked_array(profile, mask, fill_value=np.nan)
-    
+        mask = np.less.outer(draft, -z)
+        mask = np.cumsum(mask, axis=0) == 0
+        masked_profile = np.ma.masked_array(profile, mask, fill_value=np.nan)
+        return masked_profile
+
+
     def get_basal_env(self, variable):
         """ Get the basal layer of the variable for the icebergs """
         profile = self.get_profile_masked(variable)
@@ -286,29 +294,82 @@ class OpenBerg(OceanDrift):
 
 
     # Configuration
-    def __init__(
-        self,
-        add_stokes_drift: bool = True,
-        wave_rad: bool = True,
-        grounding: bool = False,
-        vertical_profile: bool = False,
-        melting: bool = False,
-        choose_melting: dict[bool] = {"wave": True, "lateral": True, "basal": True},
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args, **kwargs):
 
         # The constructor of parent class must always be called
         # to perform some necessary common initialisation tasks:
         super(OpenBerg, self).__init__(*args, **kwargs)
-        self.wave_rad = wave_rad
-        self.add_stokes_drift = add_stokes_drift
-        self.grounding = grounding
-        self.vertical_profile = vertical_profile
-        self.melting = (melting)   #Activate the melting
-        self.choose_melting = (choose_melting)   #Choose how it melts
 
-    def advect_iceberg(self, rho_water, stokes_drift=True, wave_rad=True, grounding=False, vertical_profile=False):
+        self._add_config({
+            'drift:wave_rad':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, wave radiation force is added',
+                'level': CONFIG_LEVEL_BASIC
+            },
+            'drift:stokes_drift':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, stokes drift force is added',
+                'level': CONFIG_LEVEL_BASIC
+            },
+            'drift:coriolis':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, coriolis force is added',
+                'level': CONFIG_LEVEL_BASIC,
+            },
+            'drift:vertical_profile':{
+                'type': 'bool',
+                'default': False,
+                'description': 'If True, depth integrated currents are applied',
+                'level': CONFIG_LEVEL_BASIC
+            },
+            'processes:grounding':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, grounding is enabled',
+                'level': CONFIG_LEVEL_BASIC
+            },
+            'processes:roll_over':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, roll over is enabled',
+                'level': CONFIG_LEVEL_BASIC
+            },
+            'processes:melting':{
+                'type': 'bool',
+                'default': False,
+                'description': 'If True, melting is enabled',
+                'level': CONFIG_LEVEL_BASIC
+            },
+            'melting:wave':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, melting due to wave erosion is enabled',
+                'level': CONFIG_LEVEL_BASIC
+            },            
+            'melting:lateral':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, lateral melting is enabled',
+                'level': CONFIG_LEVEL_BASIC
+            },  
+            'melting:basal':{
+                'type': 'bool',
+                'default': True,
+                'description': 'If True, basal melting is enabled',
+                'level': CONFIG_LEVEL_BASIC
+            },  
+          
+        })
+
+        
+
+    def advect_iceberg(self):
+        T = self.environment.sea_water_temperature
+        S = self.environment.sea_water_salinity
+        rho_water = PhysicsMethods.sea_water_density(T, S)
         draft = self.elements.draft
         length = self.elements.length
         Ao = abs(draft) * length  ### Area_wet
@@ -317,11 +378,18 @@ class OpenBerg(OceanDrift):
         k = (rho_air * self.elements.wind_drag_coeff * Aa / (rho_water * self.elements.water_drag_coeff * Ao))
         f = np.sqrt(k) / (1 + np.sqrt(k))
 
-        if not vertical_profile:
-            water_vel = np.array([self.environment.x_sea_water_velocity + int(stokes_drift) * self.environment.sea_surface_wave_stokes_drift_x_velocity,
-                                self.environment.y_sea_water_velocity + int(stokes_drift) * self.environment.sea_surface_wave_stokes_drift_y_velocity])
+        wave_rad = self.get_config('drift:wave_rad')
+        stokes_drift = self.get_config('drift:stokes_drift')
+        coriolis = self.get_config('drift:coriolis')
+        grounding = self.get_config('processes:grounding')
+        
+                
+        if self.get_config('drift:vertical_profile') is False:
+            logger.info("Surface Currents ...")
+            water_vel = np.array([self.environment.x_sea_water_velocity + (int(stokes_drift) * self.environment.sea_surface_wave_stokes_drift_x_velocity),
+                                  self.environment.y_sea_water_velocity + (int(stokes_drift) * self.environment.sea_surface_wave_stokes_drift_y_velocity)])
         else:
-            logger.info("Calculating the Depth Integrated Currents ...")
+            logger.info("Depth Integrated Currents ...")
             uprof = self.get_profile_masked("x_sea_water_velocity")
             vprof = self.get_profile_masked("y_sea_water_velocity")
 
@@ -331,6 +399,8 @@ class OpenBerg(OceanDrift):
             uprof_mean_inter = (uprof[1:] + uprof[:-1]) / 2
             vprof_mean_inter = (vprof[1:] + vprof[:-1]) / 2
             mask = mask[:-1]
+            thickness_reshaped = np.tile(thickness, (1, mask.shape[1]))
+            thickness_reshaped[mask] = np.nan
             thickness_reshaped = np.tile(thickness, (1, mask.shape[1]))
             thickness_reshaped[mask] = np.nan
             umean = np.nansum(thickness_reshaped * uprof_mean_inter, axis=0) / np.nansum(thickness_reshaped, axis=0)
@@ -346,18 +416,20 @@ class OpenBerg(OceanDrift):
         sea_ice_vel = np.array([self.environment.sea_ice_x_velocity, self.environment.sea_ice_y_velocity])
 
         def dynamic(t,iceb_vel, water_vel, wind_vel, wave_height, wave_direction, Ao,
-                    Aa, rho_water, water_drag_coef, wind_drag_coef, iceb_length, mass):
+                    Aa, rho_water, water_drag_coef, wind_drag_coef, iceb_length, mass,lat):
             """ Function required by solve_ivp. The t and iceb_vel parameters are required by solve_ivp, shouldn't be deleted """
-            sum_force = (water_drag(iceb_vel, water_vel, Ao, rho_water, water_drag_coef)
-                         + wind_drag(iceb_vel,wind_vel, Aa, wind_drag_coef)
-                         + int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length))
+            iceb_vel = iceb_vel.reshape((2, -1))  # Reshape needed to keep it consistent
+            sum_force = (ocean_force(iceb_vel, water_vel, Ao, rho_water, water_drag_coef)
+                         + wind_force(iceb_vel,wind_vel, Aa, wind_drag_coef)
+                         + (int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length))
+                         + (int(coriolis) * coriolis_force(iceb_vel, mass, lat)))
             
             sum_force = sum_force + sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, self.elements.width, sum_force)
             return 1 / mass * sum_force
         
         V0 = advect_iceberg_no_acc(f, water_vel, wind_vel)  # Approximation of the solution of the dynamic equation for the iceberg velocity
         V0[:, sea_ice_conc >= 0.9] = sea_ice_vel[:, sea_ice_conc >= 0.9]  # With this criterium, the iceberg moves with the sea ice
-        V0 = V0.flatten()
+        V0 = V0.flatten() # V0 needs to be 1D
         hwall = draft - water_depth
         grounded = np.logical_and(hwall >= 0, grounding)
         if any(grounded) and grounding:
@@ -369,7 +441,8 @@ class OpenBerg(OceanDrift):
                               self.elements.water_drag_coeff,
                               self.elements.wind_drag_coeff,
                               self.elements.length,
-                              mass),
+                              mass,
+                              self.elements.lat),
                               vectorized=True,
                               t_eval=np.array([self.time_step.total_seconds()]),
                               )
@@ -382,7 +455,10 @@ class OpenBerg(OceanDrift):
         self.elements.iceb_x_velocity, self.elements.iceb_y_velocity = Vx, Vy
 
     def melt(self):
-        """ Activate melting """
+        """ Enable melting """
+        if self.get_config('processes:melting') is False:
+            logger.debug('Melting is disabled')
+            return
         x_wind = self.environment.x_wind
         y_wind = self.environment.y_wind
         uoib = self.get_basal_env("x_sea_water_velocity")
@@ -394,13 +470,13 @@ class OpenBerg(OceanDrift):
         sea_ice_conc = self.environment.sea_ice_area_fraction
 
         # Wave melting
-        if self.choose_melting["wave"]:
+        if self.get_config('melting:wave'):
             self.elements.length, self.elements.width = melwav(self.elements.length, self.elements.width, x_wind, y_wind, T_profile[0], sea_ice_conc, self.time_step.total_seconds())
         # Lateral melting
-        if self.choose_melting["lateral"]:
+        if self.get_config('melting:lateral'):
             self.elements.length, self.elements.width = mellat(self.elements.length, self.elements.width, T_profile, S_profile, self.time_step.total_seconds())
         # Basal melting
-        if self.choose_melting["basal"]:
+        if self.get_config('melting:basal'):
             self.elements.draft, self.elements.sail = melbas(self.elements.draft, self.elements.sail, self.elements.length, Sn, Tn, uoib, voib, self.elements.iceb_x_velocity, self.elements.iceb_y_velocity, self.time_step.total_seconds())
         
         # Deactivate elements less than 1 meter
@@ -410,8 +486,15 @@ class OpenBerg(OceanDrift):
         self.deactivate_elements(self.elements.sail < 1, "Iceberg melted")
 
 
-    def roll_over(self, rho_water):
-        """ Iceberg's stability criterium: Parameterization from Keghouche et al. 2009 with a correction from Wagner et al. 2017 """
+    def roll_over(self):
+        """ Iceberg's stability criterium """
+
+        if self.get_config('processes:roll_over') is False:
+            logger.debug('Rollover is disabled')
+            return
+        T = self.environment.sea_water_temperature
+        S = self.environment.sea_water_salinity
+        rho_water = PhysicsMethods.sea_water_density(T, S)
         L = self.elements.length
         W = self.elements.width
         H = self.elements.draft + self.elements.sail
@@ -430,16 +513,9 @@ class OpenBerg(OceanDrift):
         self.elements.sail = sailib
         self.elements.draft = depthib
 
-    def prepare_run(self):
-        self.profiles_depth = self.elements_scheduled.draft.max()
-        logger.info(f"Icebergs max draft is : {self.profiles_depth} meters")
 
     def update(self):
         """ Update positions and properties of particles """
-        T = self.environment.sea_water_temperature
-        S = self.environment.sea_water_salinity
-        rho_water = PhysicsMethods.sea_water_density(T, S)
-        self.roll_over(rho_water)
-        if self.melting:
-            self.melt()
-        self.advect_iceberg(rho_water, self.add_stokes_drift, self.wave_rad, self.grounding, self.vertical_profile)
+        self.roll_over()
+        self.melt()
+        self.advect_iceberg()
