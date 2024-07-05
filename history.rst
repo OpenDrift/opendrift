@@ -1,6 +1,10 @@
 History
 =======
 
+2024-07-05 / Release v1.11.12
+-----------------------------
+* New internal method to avid trying non-applicable readers (e.g. copernicus reader for files/URLs, or netCDF-readers for copernicus products ids)
+
 2024-07-04 / Release v1.11.11
 -----------------------------
 * New feature by TheSylex to move stranded particles closer to the actual coastline with a precision given by config setting `general:coastline_approximation_precision` in unit of degrees (1deg approx 111 km)
