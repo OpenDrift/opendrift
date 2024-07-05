@@ -26,22 +26,7 @@ import sys
 import argparse
 from datetime import datetime
 import numpy as np
-
-try:
-    from opendrift.readers import reader_netCDF_CF_generic
-    from opendrift.readers import reader_netCDF_CF_unstructured
-    from opendrift.readers import reader_ROMS_native
-    from opendrift.readers import reader_copernicusmarine
-
-    readers = [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured, reader_copernicusmarine]
-    try:
-        from opendrift.readers import reader_grib
-        readers.append(reader_grib)
-    except:
-        pass
-
-except ImportError: # development
-    sys.exit('Please add opendrift folder to your PYTHONPATH.')
+from opendrift.readers import applicable_readers
 
 
 def main():
@@ -67,6 +52,10 @@ def main():
                         help='Report data from position at time [YYYYmmddHHMM].')
 
     args = parser.parse_args()
+
+    readers = applicable_readers(args.filename)
+    if len(readers) == 0:
+        raise ValueError(f'No applicable readers for {args.filename}')
 
     for reader in readers:
         try:

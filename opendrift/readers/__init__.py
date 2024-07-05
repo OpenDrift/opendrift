@@ -27,6 +27,10 @@ import glob
 import json
 import opendrift
 import xarray as xr
+from opendrift.readers import reader_netCDF_CF_generic
+from opendrift.readers import reader_netCDF_CF_unstructured
+from opendrift.readers import reader_ROMS_native
+from opendrift.readers import reader_copernicusmarine
 
 def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time=None, freq=None, timedim='time'):
     if time_series is None:
@@ -41,6 +45,16 @@ def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time
     ds = xr.concat(datasets, dim=timedim,
                    compat='override', combine_attrs='override', join='override', coords='minimal', data_vars='minimal')
     return ds
+
+def applicable_readers(url):
+    '''Return a list of readers that are possible candidates for a given URL, filename or product ID'''
+
+    if len(glob.glob(url)) > 0 or any(e in url for e in [':', '/']):
+        return [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured]
+    elif '_' in url:  # should have better indentificator
+        return [reader_copernicusmarine] 
+    else:
+        return []
 
 def reader_from_url(url, timeout=10):
     '''Make readers from URLs or paths to datasets'''
@@ -63,28 +77,14 @@ def reader_from_url(url, timeout=10):
     except:
         pass
 
-    if len(glob.glob(url)) == 0:  # Check if this is a URL, and not giving timeout
-        import requests
+    reader_modules = applicable_readers(url)
+
+    for reader_module in reader_modules:
         try:
-            resp = requests.get(url, timeout=timeout)
-        except requests.exceptions.MissingSchema:
-
-            logger.info('Neither a file or a URL, could still be a CMEMS product ID: ' + url)
-            #return None
-        except:
-            logger.info('Connection error for ' + url)
-            return None
-
-    reader_modules = ['reader_netCDF_CF_generic',
-                      'reader_ROMS_native',
-                      'reader_copernicusmarine']
-
-    for rm in reader_modules:
-        reader_module = importlib.import_module('opendrift.readers.' + rm)
-        try:
+            logger.debug(f'Testing reader {reader_module}')
             r = reader_module.Reader(url)
             return r
         except Exception as e:
-            print('Could not open %s with %s' % (url, rm))
+            logger.debug('Could not open %s with %s' % (url, reader_module))
 
     return None  # No readers worked
