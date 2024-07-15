@@ -46,18 +46,43 @@ class Combine:
         """
         from .readerops import Combined as ReaderCombined
 
-        def gaussian_melting(a, b, lon, lat, lon_center, lat_center, std):
+        def gaussian_factor(lon, lat, lon_center, lat_center, std):
             geod = pyproj.Geod(ellps='WGS84')
-            if  ( isinstance(lon_center, float) or len(lon_center) == 1 )  and len(lon) != 1 :
-                lon_center = lon_center * np.ones(len(lon))
-            if ( isinstance(lat_center, float) or len(lat_center) == 1 ) and len(lat) != 1 :
-                lat_center = lat_center * np.ones(len(lat))
-            _, _, distance = geod.inv(lon, lat, lon_center, lat_center)
-            exponential_factor = np.exp( -np.power(distance/std, 2.) / 2)
-            res = a * (1 - exponential_factor) + b * exponential_factor
-            return res
 
-        return ReaderCombined(a = self, b = measurement_reader, op = gaussian_melting, op_type= "combine_gaussian", external_params = std)
+            assert isinstance(np.broadcast_arrays(lon, lat), list), f"requested lon and lat not broadcastable"
+            lon, lat = np.broadcast_arrays(lon, lat)
+            requested_shape = lon.shape
+            requested_ndim = len(requested_shape)
+
+            ##
+            if isinstance(lon_center, float) :
+                    lon_center = lon_center * np.ones(requested_shape)
+            #
+            elif lon_center.shape != requested_shape :
+                lon_center = np.expand_dims(lon_center,  tuple(range(1, requested_ndim+1)))
+                lon, lon_center = np.broadcast_arrays(lon_center, lon)
+
+            ##
+            if isinstance(lat_center, float) :
+                    lat_center = lat_center * np.ones(requested_shape)
+            #
+            elif lat_center.shape != requested_shape :
+                lat_center = np.expand_dims(lat_center,  tuple(range(1, requested_ndim+1)))
+                lat, lat_center = np.broadcast_arrays(lat_center, lat)
+
+            ##
+            if isinstance(std, float) :
+                std = std * np.ones(requested_shape)
+            elif lon_center.shape != requested_shape :
+                std = np.expand_dims(std,  tuple(range(1, requested_ndim+1)))
+                std, _ = np.broadcast_arrays(std, lat)
+
+            _, _, distance = geod.inv(lon, lat, lon_center, lat_center)
+            print("mean distance : ", np.mean(distance))
+            exponential_factor = np.exp( -np.power(distance/std, 2.) / 2)
+            return exponential_factor
+
+        return ReaderCombined(a = self, b = measurement_reader, op = gaussian_factor, op_type= "combine_gaussian", external_params = std)
 
 
 
