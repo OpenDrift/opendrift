@@ -78,7 +78,6 @@ class Combine:
                 std, _ = np.broadcast_arrays(std, lat)
 
             _, _, distance = geod.inv(lon, lat, lon_center, lat_center)
-            print("mean distance : ", np.mean(distance))
             exponential_factor = np.exp( -np.power(distance/std, 2.) / 2)
             return exponential_factor
 
