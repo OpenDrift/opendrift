@@ -1,6 +1,10 @@
 History
 =======
 
+2024-07-24 / Release v1.11.13
+-----------------------------
+* Ensuring that Leeway ascii output contains lat/lon without [brackets] regardless of seeding method used
+
 2024-07-05 / Release v1.11.12
 -----------------------------
 * New internal method to avid trying non-applicable readers (e.g. copernicus reader for files/URLs, or netCDF-readers for copernicus products ids)
