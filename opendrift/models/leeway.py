@@ -482,6 +482,8 @@ class Leeway(OpenDriftSimulation):
 
         for inp in ['lon', 'lat', 'radius', 'time']:
             if len(np.atleast_1d(self.ascii[inp])) == 1:
+                if isinstance(self.ascii[inp], np.ndarray):
+                    self.ascii[inp] = self.ascii[inp].item()
                 self.ascii[inp] = [self.ascii[inp], self.ascii[inp]]
         f.write('# Drift simulation initiated [UTC]:\n')
         f.write('simDate simTime\n')
