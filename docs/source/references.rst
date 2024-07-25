@@ -3,6 +3,16 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Nadal I, Picciulin M, Falcieri FM, García-Lafuente J, Sammartino S, and Ghezzo M (2024). Spatio-temporal connectivity and dispersal seasonal patterns in the Adriatic Sea using a retention clock approach. Front. Mar. Sci. 11, 1-18, https://doi.org/10.3389/fmars.2024.1360077.
+
+Cristiani J., Emily M. Rubidge, Patrick L. Thompson, Carolyn K. Robb, Margot Hessing-Lewis, and Mary I. O'Connor. 2024. Quantifying marine larval dispersal to assess MPA network connectivity and inform future national and transboundary planning efforts. Canadian Journal of Fisheries and Aquatic Sciences. 81(6): 670-686. https://doi.org/10.1139/cjfas-2023-0188
+
+Clavel-Henry M, Bahamon N, Aguzzi J,Navarro J, Lopez M, Company JB (2024). Indicators to assess temporal variability in marineconnectivity processes: A semi-theoreticalapproach. PLoS ONE 19(7), https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0297730
+
+Clavel-Henry M, Bahamon N, Aguzzi J,Navarro J, Lopez M, Company JB (2024). Limited spatiotemporal larval mixing of the Norway lobster from no-take marine protected areas in the northwestern Mediterranean Sea. Aquatic Conservation Marine and Freshwater Ecosystems. https://onlinelibrary.wiley.com/doi/10.1002/aqc.4175
+
+Falcão et al. (2024). DSSE: An environment for simulation of reinforcement learning-empowered drone swarm maritime search and rescuemissions. Journal of Open Source Software, 9(99), 6746. https://doi.org/10.21105/joss.06746.1
+
 Pärt S, Björkqvist J-V., Alari V., Maljutenko I., Uiboupin R., An ocean–wave–trajectory forecasting system for the eastern Baltic Sea: Validation against drifting buoys and implementation for oil spill modeling, Marine Pollution Bulletin Volume 195, October 2023, https://doi.org/10.1016/j.marpolbul.2023.115497
 
 Aghito, M., Calgaro, L., Dagestad, K.-F., Ferrarin, C., Marcomini, A., Breivik, Ø., and Hole, L. R.: ChemicalDrift 1.0: an open-source Lagrangian chemical-fate and transport model for organic aquatic pollutants, Geosci. Model Dev., 16, 2477–2494, https://doi.org/10.5194/gmd-16-2477-2023, 2023.
