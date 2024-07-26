@@ -268,7 +268,7 @@ class BaseReader(Variables, Combine, Filter):
             lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
-        f = cfeature.GSHHSFeature(scale=lscale, levels=[1])
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1,5,6])
         f._geometries_cache = {}
         ax.add_geometries(
             #f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
