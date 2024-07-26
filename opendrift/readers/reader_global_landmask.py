@@ -108,7 +108,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
     if fast:
         show_landmask_roaring(get_mask())
     else:
-        land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=globe)
+        land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=globe, levels=[1,5,6])
 
         ax.add_feature(land, zorder=2,
                        facecolor=land_color,

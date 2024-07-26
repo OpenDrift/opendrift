@@ -770,7 +770,7 @@ class Reader(BaseReader,UnstructuredReader):
             #              resolution='c', projection='cyl')
 
         # GSHHS coastlines
-        f = cfeature.GSHHSFeature(scale=lscale, levels=[1],
+        f = cfeature.GSHHSFeature(scale=lscale, levels=[1,5,6],
                                   facecolor=cfeature.COLORS['land'])
         ax.add_geometries(
             f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
