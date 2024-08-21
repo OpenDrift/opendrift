@@ -1738,7 +1738,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             outfile=None,
             export_variables=None,
             export_buffer_length=100,
-            stop_on_error=False):
+            stop_on_error=False,
+            progress_bar=False):
         """Start a trajectory simulation, after initial configuration.
 
         Performs the main loop:
@@ -2009,7 +2010,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.timer_end('preparing main loop')
         self.timer_start('main loop')
         self.memory_usage = np.array([])
-        for i in range(self.expected_steps_calculation):
+
+        if progress_bar:
+            from tqdm.auto import trange
+            iterator = trange
+        else:
+            iterator = range
+        for i in iterator(self.expected_steps_calculation):
             self.memory_usage = np.append(self.memory_usage, psutil.virtual_memory().used / (1024.0**3))
             try:
                 # Release elements
