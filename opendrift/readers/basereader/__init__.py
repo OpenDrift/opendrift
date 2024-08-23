@@ -95,7 +95,10 @@ class BaseReader(Variables, Combine, Filter):
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
         'x_wind': 'eastward_wind', 'y_wind': 'northward_wind',
         'sea_surface_wave_stokes_drift_x_velocity': 'eastward_surface_stokes_drift',
-        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift'}
+        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift',
+        'sea_ice_x_velocity': 'eastward_sea_ice_velocity',
+        'sea_ice_y_velocity': 'northward_sea_ice_velocity',
+        }
 
     def __init__(self):
         """Common constructor for all readers"""
