@@ -416,7 +416,7 @@ workflows:
 
   test-and-package:
     jobs:
-      - python_312 # disabled because of missing netcdf dependency
+      # - python_312 # disabled because of missing netcdf dependency
       - python_311
       - python_310
       # - python_39
