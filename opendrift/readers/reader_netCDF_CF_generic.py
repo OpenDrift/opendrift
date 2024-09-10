@@ -269,6 +269,8 @@ class Reader(StructuredReader, BaseReader):
                 self.dimensions['x'] = lon_var.dims[0]
                 self.dimensions['y'] = lat_var.dims[1]
                 self.projected = False
+                self.proj = None
+                self.proj4 = None
             elif lon_var.ndim == 3:
                 logger.debug('Lon lat are 3D arrays, reading first time')
                 self.lon = lon_var[0,:,:].data
@@ -276,6 +278,8 @@ class Reader(StructuredReader, BaseReader):
                 self.dimensions['x'] = lon_var.dims[1]
                 self.dimensions['y'] = lat_var.dims[2]
                 self.projected = False
+                self.proj = None
+                self.proj4 = None
         else:
             if self.proj4 is None:
                 logger.info('Grid coordinates are detected, but proj4 string not given: assuming latlong')
