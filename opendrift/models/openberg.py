@@ -13,7 +13,8 @@
 # along with OpenDrift.  If not, see <https://www.gnu.org/licenses/>.
 #
 # Copyright 2015, 2023, Knut-Frode Dagestad, MET Norway
-# Copyright 2023, Achref Othmani & 2024, Lenny Hucher, NERSC, Norway
+# Copyright 2024, Lenny Hucher, NERSC, Norway
+# Copyright 2023, 2024, Achref Othmani, NERSC, Norway
 
 """
 This code is initiated from the following reference with posterior modifications. 
@@ -23,13 +24,12 @@ Keghouche, I., F. Counillon, and L. Bertino (2010), Modeling dynamics and thermo
 of icebergs in the Barents Sea from 1987 to 2005, J. Geophys. Res., 115, C12062, doi:10.1029/2010JC006165. 
 """
 
-import numpy as np
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from opendrift.config import CONFIG_LEVEL_BASIC
 from opendrift.models.physics_methods import PhysicsMethods
 from scipy.integrate import solve_ivp
-
+import numpy as np
 
 
 # Constants
@@ -181,8 +181,8 @@ def coriolis_force(iceb_vel, mass, lat):
     f = 2 * omega * np.sin(lat)
     assert len(iceb_vel) == 2
     x_vel, y_vel = iceb_vel[0], iceb_vel[1]
-    Fc_x = mass * f * y_vel
-    Fc_y = -mass * f * x_vel
+    Fc_x = -mass * f * y_vel
+    Fc_y = mass * f * x_vel
     return np.array([Fc_x, Fc_y])
 
 
@@ -276,14 +276,17 @@ class OpenBerg(OceanDrift):
 
 
     def get_profile_masked(self, variable):
-        """ Apply a mask to extract data from the surface down to the iceberg's draft """
+        """
+        Apply a mask to extract data from the surface down to the iceberg's draft.
+        """
         draft = self.elements.draft
         profile = self.environment_profiles[variable]
         z = self.environment_profiles["z"]
-        mask = np.less.outer(draft, -z)
-        mask = np.cumsum(mask, axis=0) == 0
-        masked_profile = np.ma.masked_array(profile, mask, fill_value=np.nan)
-        return masked_profile
+        if z is None or (len(z) == 1 and z[0] is None):
+            z = np.zeros_like(profile)
+        mask = draft[:, np.newaxis] < -z
+        mask[np.argmax(mask, axis=0), np.arange(mask.shape[1])] = False
+        return np.ma.masked_array(profile, mask.T, fill_value=np.nan)
 
 
     def get_basal_env(self, variable):
@@ -392,15 +395,13 @@ class OpenBerg(OceanDrift):
             logger.info("Depth Integrated Currents ...")
             uprof = self.get_profile_masked("x_sea_water_velocity")
             vprof = self.get_profile_masked("y_sea_water_velocity")
-
             z = self.environment_profiles["z"]
             thickness = -(z[1:] - z[:-1]).reshape((-1, 1))
+            thickness = thickness.astype(float)
             mask = uprof.mask
             uprof_mean_inter = (uprof[1:] + uprof[:-1]) / 2
             vprof_mean_inter = (vprof[1:] + vprof[:-1]) / 2
             mask = mask[:-1]
-            thickness_reshaped = np.tile(thickness, (1, mask.shape[1]))
-            thickness_reshaped[mask] = np.nan
             thickness_reshaped = np.tile(thickness, (1, mask.shape[1]))
             thickness_reshaped[mask] = np.nan
             umean = np.nansum(thickness_reshaped * uprof_mean_inter, axis=0) / np.nansum(thickness_reshaped, axis=0)
@@ -418,7 +419,7 @@ class OpenBerg(OceanDrift):
         def dynamic(t,iceb_vel, water_vel, wind_vel, wave_height, wave_direction, Ao,
                     Aa, rho_water, water_drag_coef, wind_drag_coef, iceb_length, mass,lat):
             """ Function required by solve_ivp. The t and iceb_vel parameters are required by solve_ivp, shouldn't be deleted """
-            iceb_vel = iceb_vel.reshape((2, -1))  # Reshape needed to keep it consistent
+            iceb_vel = iceb_vel.reshape((2, -1))
             sum_force = (ocean_force(iceb_vel, water_vel, Ao, rho_water, water_drag_coef)
                          + wind_force(iceb_vel,wind_vel, Aa, wind_drag_coef)
                          + (int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length))
