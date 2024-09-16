@@ -23,8 +23,8 @@ import opendrift
 
 
 # # Credentials of CMEMS Account
-# USERNAME='aothmani'
-# PASSWORD='ach@REF4098'
+# USERNAME='USERNAME'
+# PASSWORD='PASSWORD'
 
 # # Define datasets
 # Wind = '/Volumes/ACH_HDD/DATA_ACCIBERG/Wind/6h.10m_wind_2021.nc'
