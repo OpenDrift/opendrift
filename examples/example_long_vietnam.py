@@ -13,7 +13,7 @@ o = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 # - Ocean forecast from global Hycom
 # - Weather forecast from NOAA/NCEP
 o.add_readers_from_list([
-    'https://www.ncei.noaa.gov/thredds-coastal/dodsC/hycom/hycom_sfc_agg/HYCOM_Surface_Aggregation_best.ncd',
+    'https://tds.hycom.org/thredds/dodsC/FMRC_ESPC-D-V02_uv3z/FMRC_ESPC-D-V02_uv3z_best.ncd',
     'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 # Seed some particles
