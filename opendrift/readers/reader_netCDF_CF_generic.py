@@ -469,23 +469,22 @@ class Reader(StructuredReader, BaseReader):
                 if var.ndim == 2:
                     left = var[indy, indx_left]
                     right = var[indy, indx_right]
-                    variables[par] = np.ma.concatenate((left, right), 1)
+                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
                 elif var.ndim == 3:
                     left = var[indxTime, indy, indx_left]
                     right = var[indxTime, indy, indx_right]
-                    variables[par] = np.ma.concatenate((left, right), 1)
+                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
                 elif var.ndim == 4:
                     left = var[indxTime, indz, indy, indx_left]
                     right = var[indxTime, indz, indy, indx_right]
-                    variables[par] = np.ma.concatenate((left, right), 2)
+                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
                 elif var.ndim == 5:  # Ensemble data
                     left = var[indxTime, indz, indrealization,
                                indy, indx_left]
                     right = var[indxTime, indz, indrealization,
                                 indy, indx_right]
-                    variables[par] = np.ma.concatenate((left, right), 3)
-
-            variables[par] = np.asarray(variables[par])
+                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+                variables[par] = np.ma.masked_invalid(variables[par])
 
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par],
@@ -516,6 +515,12 @@ class Reader(StructuredReader, BaseReader):
                 self.Dataset.variables[self.xname][indx]*self.unitfactor
             variables['y'] = \
                 self.Dataset.variables[self.yname][indy]*self.unitfactor
+            if continuous is False and variables['x'][0] > variables['x'][-1]:
+                # We need to shift so that x-coordinate (longitude) is continous
+                if self.lon_range() == '-180to180':
+                    variables['x'][variables['x']>0] -= 360
+                elif self.lon_range() == '0to360':
+                    variables['x'][variables['x']<0] += 360
         else:
             variables['x'] = indx
             variables['y'] = indy
