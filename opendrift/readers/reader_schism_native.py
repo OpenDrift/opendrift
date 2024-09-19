@@ -988,7 +988,7 @@ class ReaderBlockUnstruct():
         # self._initialize_interpolator(x, y, z)
 
         env_dict = {}
-        if not profiles:
+        if profiles is not []:
             profiles_dict = {'z': self.z} # probably not valid...
         for varname, data in self.data_dict.items():
             nearest = False
