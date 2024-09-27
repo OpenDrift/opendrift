@@ -182,40 +182,14 @@ def coriolis_force(iceb_vel, mass, lat):
     f = 2 * omega * np.sin(lat)
     assert len(iceb_vel) == 2
     x_vel, y_vel = iceb_vel[0], iceb_vel[1]
-    Fc_x = -mass * f * y_vel
-    Fc_y = mass * f * x_vel
+    Fc_x = mass * f * y_vel
+    Fc_y = -mass * f * x_vel
     return np.array([Fc_x, Fc_y])
 
 
-def sea_surface_slope_force(mass, ssh, lat):
-    # Calculate delta_lat_deg and delta_lon_deg from consecutive points
-    delta_lat_deg = 0.01  # Latitude spacing in degrees (fixed for now)
-    delta_lon_deg = 0.01  # Longitude spacing in degrees (fixed for now)
-
-    # Convert degree differences to meters
-    delta_lat_m = delta_lat_deg * 111320  # Approx. meters for latitude
-    delta_lon_m = delta_lon_deg * (111320 * np.cos(np.radians(lat)))
-
-    # Create empty arrays for slope forces
-    slope_force_x = np.zeros_like(ssh)
-    slope_force_y = np.zeros_like(ssh)
-    
-    # Loop over each point to calculate forces, skipping boundary points
-    for i in range(1, len(ssh) - 1):
-        ssh_north = ssh[i + 1] if i + 1 < len(ssh) else ssh[i]
-        ssh_south = ssh[i - 1] if i - 1 >= 0 else ssh[i]
-        ssh_east = ssh[i + 1] if i + 1 < len(ssh) else ssh[i]
-        ssh_west = ssh[i - 1] if i - 1 >= 0 else ssh[i]
-
-        # Calculate the slope in the y and x directions
-        slope_y = (ssh_north - ssh_south) / (2 * delta_lat_m)
-        slope_x = (ssh_east - ssh_west) / (2 * delta_lon_m[i])  # Use i-th value of delta_lon_m
-        
-        # Calculate the forces in x and y directions
-        slope_force_x[i] = mass[i] * g * slope_x
-        slope_force_y[i] = mass[i] * g * slope_y
-
-    return np.array([slope_force_x, slope_force_y])
+# def sea_surface_slope_force(mass, ssh, lat):
+# Will be implemented later
+#     return np.array([slope_force_x, slope_force_y])
 
 
 
@@ -292,7 +266,7 @@ class OpenBerg(OceanDrift):
         "x_sea_water_velocity": {"fallback": None, "profiles": True},
         "y_sea_water_velocity": {"fallback": None, "profiles": True},
         "sea_floor_depth_below_sea_level": {"fallback": 10000},
-        "sea_surface_height": {"fallback": 0},
+        ###"sea_surface_height": {"fallback": 0},
         "x_wind": {"fallback": 0, "important": False},
         "y_wind": {"fallback": 0, "important": False},
         "sea_surface_wave_significant_height": {"fallback": 0},
@@ -470,7 +444,7 @@ class OpenBerg(OceanDrift):
             wind_force_val = wind_force(iceb_vel, wind_vel, Aa, wind_drag_coef)
             wave_radiation_force_val = int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length)
             coriolis_force_val = int(coriolis) * coriolis_force(iceb_vel, mass, lat)
-            sea_surface_slope_val = int(sea_surface_slope) * sea_surface_slope_force(mass, ssh, lat)
+            sea_surface_slope_val = 0 # Will be corrected Later  ### int(sea_surface_slope) * sea_surface_slope_force(mass, ssh, lat)
             
             # Sum of the individual forces
             sum_force = (ocean_force_val + wind_force_val + wave_radiation_force_val + coriolis_force_val + sea_surface_slope_val)
