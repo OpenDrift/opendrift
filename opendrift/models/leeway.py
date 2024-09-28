@@ -154,6 +154,15 @@ class Leeway(OpenDriftSimulation):
         'y_sea_water_velocity': {
             'fallback': None
         },
+        'sea_surface_wave_stokes_drift_x_velocity': {
+            'fallback': 0,
+            'important': False
+        },
+        'sea_surface_wave_stokes_drift_y_velocity': {
+            'fallback': 0,
+            'important': False
+        },
+
         'land_binary_mask': {
             'fallback': None
         },
@@ -268,6 +277,10 @@ class Leeway(OpenDriftSimulation):
                 'units': 'm/s',
                 'level': CONFIG_LEVEL_BASIC
             },
+                'drift:stokes_drift': {'type': 'bool', 'default': False,
+                    'description': 'Advection elements with surface Stokes drift (wave orbital motion). Note that this is originally considered to be implicit in Leeway coefficients.',
+                    'level': CONFIG_LEVEL_ADVANCED},
+
         })
 
         self._set_config_default('general:time_step_minutes', 10)
@@ -471,6 +484,12 @@ class Leeway(OpenDriftSimulation):
         self.elements.orientation[jib] = 1 - self.elements.orientation[jib]
         logger.debug('Jibing %i out of %i elements.' %
                      (np.sum(jib), self.num_elements_active()))
+
+        # Move elements with Stokes drift, if activated.
+        # Note: Stokesdrift is originally considered to be implicit in Leeway coefficients,
+        # however, this study by Sutherland (2024) indicates it should be added explicitly:
+        # https://link.springer.com/article/10.1007/s10236-024-01600-3
+        self.stokes_drift()
 
     def export_ascii(self, filename):
         '''Export output to ASCII format of original version'''

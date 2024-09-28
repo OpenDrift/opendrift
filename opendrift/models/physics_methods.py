@@ -942,7 +942,7 @@ class PhysicsMethods:
             logger.debug('Stokes drift is available, but not Tp: using Tp=8 for Stokes profile')
             wave_period = 8
 
-        stokes_profile = self.get_config('drift:stokes_drift_profile')
+        stokes_profile = self.get_config('drift:stokes_drift_profile', default='monochromatic')
         if stokes_profile == 'monochromatic':
             stokes_u, stokes_v, s = stokes_drift_profile_monochromatic(
                 self.environment.sea_surface_wave_stokes_drift_x_velocity,
