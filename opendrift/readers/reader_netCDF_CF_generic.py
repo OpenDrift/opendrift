@@ -162,7 +162,6 @@ class Reader(StructuredReader, BaseReader):
                 lat_var_name = var_name
             if (axis == 'X' or standard_name == 'projection_x_coordinate' or standard_name == 'grid_longitude') \
                     and var.ndim == 1:
-                self.xname = var_name
                 if len(var.dims)==1:
                     self.dimensions['x'] = var.dims[0]
                 # Fix for units; should ideally use udunits package
@@ -252,8 +251,6 @@ class Reader(StructuredReader, BaseReader):
             # We load lon and lat arrays into memory
             lon_var = self.Dataset.variables[lon_var_name]
             lat_var = self.Dataset.variables[lat_var_name]
-            self.xname = lon_var_name
-            self.yname = lat_var_name
             if lon_var.ndim == 1:
                 logger.debug('Lon and lat are 1D arrays - using as projection coordinates')
                 x = lon_var.data
@@ -266,11 +263,21 @@ class Reader(StructuredReader, BaseReader):
                 logger.debug('Lon and lat are 2D arrays - dataset is unprojected')
                 self.lon = lon_var.data
                 self.lat = lat_var.data
-                self.dimensions['x'] = lon_var.dims[0]
-                self.dimensions['y'] = lat_var.dims[1]
-                self.projected = False
-                self.proj = None
-                self.proj4 = None
+                # Check if 2D arrays are repeated 1D arrays
+                if np.array_equal(self.lon[0,:], self.lon[-1,:]) and np.array_equal(self.lat[:,0], self.lat[:,-1]):
+                    logger.info('Lon and lat are repeated 1D arrays - i.e. lonlat projection')
+                    x = self.lon[0,:]
+                    y = self.lat[:,0]
+                    self.dimensions['x'] = lon_var.dims[1]
+                    self.dimensions['y'] = lat_var.dims[0]
+                    if self.proj4 is None:
+                        self.proj4 = '+proj=latlong'
+                else:
+                    self.dimensions['x'] = lon_var.dims[0]
+                    self.dimensions['y'] = lat_var.dims[1]
+                    self.projected = False
+                    self.proj = None
+                    self.proj4 = None
             elif lon_var.ndim == 3:
                 logger.debug('Lon lat are 3D arrays, reading first time')
                 self.lon = lon_var[0,:,:].data
@@ -511,10 +518,8 @@ class Reader(StructuredReader, BaseReader):
         except:
             variables['z'] = None
         if self.projected is True:
-            variables['x'] = \
-                self.Dataset.variables[self.xname][indx]*self.unitfactor
-            variables['y'] = \
-                self.Dataset.variables[self.yname][indy]*self.unitfactor
+            variables['x'] = self.x[indx]
+            variables['y'] = self.y[indy]
             if continuous is False and variables['x'][0] > variables['x'][-1]:
                 # We need to shift so that x-coordinate (longitude) is continous
                 if self.lon_range() == '-180to180':

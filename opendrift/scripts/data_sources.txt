@@ -11,7 +11,6 @@ https://thredds.met.no/thredds/dodsC/cmems/mywavewam3km/dataset-wam-arctic-1hr3k
 https://thredds.met.no/thredds/dodsC/ww3_4km_agg
 https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml
 /vol/vvfelles/opendrift/forcing_data/topaz6/topaz6_aggregate.nc
-https://thredds.met.no/thredds/dodsC/aromearcticlatest/latest/arome_arctic_lagged_12_h_latest_2_5km_latest.nc
 https://thredds.met.no/thredds/dodsC/aromearcticlatest/latest/arome_arctic_lagged_6_h_latest_2_5km_latest.nc
 /vol/vvfelles/opendrift/forcing_data/aromearctic/aromearctic_aggregate.nc
 cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H
