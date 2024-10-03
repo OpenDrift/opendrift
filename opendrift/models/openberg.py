@@ -188,7 +188,7 @@ def coriolis_force(iceb_vel, mass, lat):
 
 
 def sea_surface_slope_force(sea_slope_x, sea_slope_y, mass):
-    """ This functions assumes you provide the sea slope slope from an external file """
+    """ This functions assumes you provide the sea surfacs slope from an external file """
     # Constants
     g = 9.81  # Acceleration due to gravity in m/s²
     F_sea_slope_x = -mass * g * sea_slope_x
@@ -503,10 +503,6 @@ class OpenBerg(OceanDrift):
         grounded = np.logical_and(hwall >= 0, grounding)
         if any(grounded) and grounding:
             logger.info(f"Grounding condition : Icebergs grounded = {len(hwall[hwall>0])}, hwall={np.round(hwall[hwall>0],3)} meters")
-
-        # print('self.time_step ==', self.time_step)
-        # print('self.time_step.total_seconds() ==', self.time_step.total_seconds())
-        # print('time intervals ==', [0, self.time_step.total_seconds()])
        
         sol = solve_ivp(dynamic, [0, self.time_step.total_seconds()], V0,
                         args=(water_vel, wind_vel, wave_height, wave_direction, Ao, Aa, rho_water,
