@@ -33,14 +33,15 @@ import numpy as np
 
 
 # Constants
-rho_water = 1027  # Density of water (kg/m^3)
-rho_air = 1.293
-rho_ice = 917
-rho_iceb = 900
-g = 9.81
-csi = 1  # Sea ice coefficient of resistance
-wave_drag_coef = 0.3
+rho_water = 1027   # Density of water (kg/m^3)
+rho_air = 1.293    # Density of air (kg/m^3)
+rho_ice = 917      # Density of ice (kg/m^3)
+rho_iceb = 900     # Density of water (kg/m^3)
+g = 9.81           # Acceleration due to gravity in m/s²
 omega = 7.2921e-5  # Angular frequency (rad/s)
+csi = 1            # Sea ice coefficient of resistance
+wave_drag_coef = 0.3
+
 
 
 class IcebergObj(Lagrangian3DArray):
@@ -143,9 +144,9 @@ def advect_iceberg_no_acc(f, water_vel, wind_vel):
     """
     vxo, vyo = water_vel[0], water_vel[1]
     vxa, vya = wind_vel[0], wind_vel[1]
-    no_acc_model_x = (1 - f) * vxo + f * vxa
-    no_acc_model_y = (1 - f) * vyo + f * vya
-    V = np.array([no_acc_model_x, no_acc_model_y])
+    no_acc_vel_x = (1 - f) * vxo + f * vxa
+    no_acc_vel_y = (1 - f) * vyo + f * vya
+    V = np.array([no_acc_vel_x, no_acc_vel_y])
     if not np.isfinite(V).all():
         logger.error("Infinite value in iceberg's velocity without acceleration: Please check the wind drift factor f ")
     return V
@@ -178,8 +179,7 @@ def sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, iceb_w
 
 
 def coriolis_force(iceb_vel, mass, lat):
-    lat = np.radians(lat)
-    f = 2 * omega * np.sin(lat)
+    f = 2 * omega * np.sin(np.radians(lat))
     assert len(iceb_vel) == 2
     x_vel, y_vel = iceb_vel[0], iceb_vel[1]
     F_cor_x = mass * f * y_vel
@@ -189,7 +189,6 @@ def coriolis_force(iceb_vel, mass, lat):
 
 def sea_surface_slope_force(sea_slope_x, sea_slope_y, mass):
     """ This functions assumes you provide the sea surfacs slope from an external file """
-    # Constants
     g = 9.81  # Acceleration due to gravity in m/s²
     F_sea_slope_x = -mass * g * sea_slope_x
     F_sea_slope_y = mass * g * sea_slope_y
@@ -392,8 +391,8 @@ class OpenBerg(OceanDrift):
         rho_water = PhysicsMethods.sea_water_density(T, S)
         draft = self.elements.draft
         length = self.elements.length
-        Ao = abs(draft) * length  ### Area_wet
-        Aa = self.elements.sail * length  ### Area_dry
+        Ao = abs(draft) * length          # Area_wet
+        Aa = self.elements.sail * length  # Area_dry
         mass = self.elements.width * (Aa + Ao) * rho_iceb
         lat = self.elements.lat
         sea_slope_x = self.environment.sea_surface_x_slope
@@ -419,8 +418,7 @@ class OpenBerg(OceanDrift):
             uprof = self.get_profile_masked("x_sea_water_velocity")
             vprof = self.get_profile_masked("y_sea_water_velocity")
             z = self.environment_profiles["z"]
-            thickness = -(z[1:] - z[:-1]).reshape((-1, 1))
-            thickness = thickness.astype(float)
+            thickness = -(z[1:] - z[:-1]).reshape((-1, 1)).astype(float)
             mask = uprof.mask
             uprof_mean_inter = (uprof[1:] + uprof[:-1]) / 2
             vprof_mean_inter = (vprof[1:] + vprof[:-1]) / 2
@@ -464,35 +462,35 @@ class OpenBerg(OceanDrift):
             sea_ice_force_val = sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, self.elements.width, sum_force)
             sum_force += sea_ice_force_val
 
-            ### Forces contribution
-            # Magnitudes
-            ocean_force_mag = np.hypot(*ocean_force_val)
-            wind_force_mag = np.hypot(*wind_force_val)
-            wave_radiation_force_mag = np.hypot(*wave_radiation_force_val)
-            coriolis_force_mag = np.hypot(*coriolis_force_val)
-            sea_surface_slope_mag = np.hypot(*sea_surface_slope_val)
-            sea_ice_force_mag = np.hypot(*sea_ice_force_val)
-            # Total force
-            total_force_magnitude = ocean_force_mag+ wind_force_mag+ wave_radiation_force_mag+ coriolis_force_mag+ sea_surface_slope_mag+ sea_ice_force_mag 
+            # ### Forces contribution
+            # # Magnitudes
+            # ocean_force_mag = np.hypot(*ocean_force_val)
+            # wind_force_mag = np.hypot(*wind_force_val)
+            # wave_radiation_force_mag = np.hypot(*wave_radiation_force_val)
+            # coriolis_force_mag = np.hypot(*coriolis_force_val)
+            # sea_surface_slope_mag = np.hypot(*sea_surface_slope_val)
+            # sea_ice_force_mag = np.hypot(*sea_ice_force_val)
+            # # Total force
+            # total_force_magnitude = ocean_force_mag+ wind_force_mag+ wave_radiation_force_mag+ coriolis_force_mag+ sea_surface_slope_mag+ sea_ice_force_mag 
             
-            if total_force_magnitude[0] > 0:
-                # Calculate percentages
-                ocean_force_percentage = (ocean_force_mag[0] / total_force_magnitude[0]) * 100
-                wind_force_percentage = (wind_force_mag[0] / total_force_magnitude[0]) * 100 
-                wave_radiation_force_percentage = (wave_radiation_force_mag[0] / total_force_magnitude[0]) * 100
-                coriolis_force_percentage = (coriolis_force_mag[0] / total_force_magnitude[0]) * 100
-                sea_surface_slope_percentage = (sea_surface_slope_mag[0] / total_force_magnitude[0]) * 100
-                sea_ice_force_percentage = (sea_ice_force_mag[0] / total_force_magnitude[0]) * 100
+            # if total_force_magnitude[0] > 0:
+            #     # Calculate percentages
+            #     ocean_force_percentage = (ocean_force_mag[0] / total_force_magnitude[0]) * 100
+            #     wind_force_percentage = (wind_force_mag[0] / total_force_magnitude[0]) * 100 
+            #     wave_radiation_force_percentage = (wave_radiation_force_mag[0] / total_force_magnitude[0]) * 100
+            #     coriolis_force_percentage = (coriolis_force_mag[0] / total_force_magnitude[0]) * 100
+            #     sea_surface_slope_percentage = (sea_surface_slope_mag[0] / total_force_magnitude[0]) * 100
+            #     sea_ice_force_percentage = (sea_ice_force_mag[0] / total_force_magnitude[0]) * 100
 
-                print('###'*10)
-                logger.info('Ocean Contribution == %s', ocean_force_percentage)
-                logger.info('Wind Contribution == %s', wind_force_percentage)
-                logger.info('Wave Radiation Contribution == %s', wave_radiation_force_percentage)
-                logger.info('Coriolis Contribution == %s', coriolis_force_percentage)
-                logger.info('Sea Surface Slope Contribution == %s', sea_surface_slope_percentage)
-                logger.info('Sea Ice Contribution == %s', sea_ice_force_percentage)
-                print('###'*10)
-            ###
+            #     print('###'*10)
+            #     logger.info('Ocean Contribution == %s', ocean_force_percentage)
+            #     logger.info('Wind Contribution == %s', wind_force_percentage)
+            #     logger.info('Wave Radiation Contribution == %s', wave_radiation_force_percentage)
+            #     logger.info('Coriolis Contribution == %s', coriolis_force_percentage)
+            #     logger.info('Sea Surface Slope Contribution == %s', sea_surface_slope_percentage)
+            #     logger.info('Sea Ice Contribution == %s', sea_ice_force_percentage)
+            #     print('###'*10)
+            # ###
             return (sum_force / mass)
 
         # Running the simulation
