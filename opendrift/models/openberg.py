@@ -36,7 +36,7 @@ import numpy as np
 rho_water = 1027   # Density of water (kg/m^3)
 rho_air = 1.293    # Density of air (kg/m^3)
 rho_ice = 917      # Density of ice (kg/m^3)
-rho_iceb = 900     # Density of water (kg/m^3)
+rho_iceb = 900     # Density of iceberg (kg/m^3)
 g = 9.81           # Acceleration due to gravity in m/s²
 omega = 7.2921e-5  # Angular frequency (rad/s)
 csi = 1            # Sea ice coefficient of resistance
