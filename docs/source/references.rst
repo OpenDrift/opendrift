@@ -3,6 +3,12 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Mao, S., Shropshire, T., & He, R. (2024). Quantifying surface shelf water export inthe southern middle Atlantic Bight using aLagrangian particle tracking approach. Journal of Geophysical Research: Oceans,129, https://doi.org/10.1029/2023JC020752
+
+Vasilijevic, A.; Brönner, U; Dunn, M.; García-Valle, G.; Fabrini, J.; Stevenson-Jones, R.; Bye, B.L.; Mayer, I.; Berre, A.; Ludvigsen, M.; et al. A Digital Twin of the Trondheim Fjord for Environmental Monitoring-A Pilot Case.
+
+Espenes H., Carrasco A., Dagestad K.-F., Christensen K.H., Drivdal M., Isachsen P.E., Stokes drift in crossing windsea and swell, and its effect on near-shore particle transport in Lofoten, Northern Norway, Ocean Modelling, Volume 191, October 2024, https://doi.org/10.1016/j.ocemod.2024.102407
+
 Nadal I, Picciulin M, Falcieri FM, García-Lafuente J, Sammartino S, and Ghezzo M (2024). Spatio-temporal connectivity and dispersal seasonal patterns in the Adriatic Sea using a retention clock approach. Front. Mar. Sci. 11, 1-18, https://doi.org/10.3389/fmars.2024.1360077.
 
 Cristiani J., Emily M. Rubidge, Patrick L. Thompson, Carolyn K. Robb, Margot Hessing-Lewis, and Mary I. O'Connor. 2024. Quantifying marine larval dispersal to assess MPA network connectivity and inform future national and transboundary planning efforts. Canadian Journal of Fisheries and Aquatic Sciences. 81(6): 670-686. https://doi.org/10.1139/cjfas-2023-0188

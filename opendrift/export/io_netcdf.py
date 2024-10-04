@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import logging; logging.captureWarnings(True); logger = logging.getLogger(__name__)
 import string
 from shutil import move
+import pandas as pd
 
 import numpy as np
 from netCDF4 import Dataset, num2date, date2num
@@ -31,10 +32,14 @@ def init(self, filename):
     self.outfile.variables['trajectory'].cf_role = 'trajectory_id'
     self.outfile.variables['trajectory'].units = '1'
 
-    self.outfile.Conventions = 'CF-1.6'
-    self.outfile.standard_name_vocabulary = 'CF-1.6'
+    self.outfile.Conventions = 'CF-1.11, ACDD-1.3'
+    self.outfile.standard_name_vocabulary = 'CF Standard Name Table v85'
     self.outfile.featureType = 'trajectory'
+    self.outfile.title = 'OpenDrift trajectory simulation'
+    self.outfile.summary = 'Output from simulation with OpenDrift framework'
+    self.outfile.keywords = 'trajectory, drift, lagrangian, simulation'
     self.outfile.history = 'Created ' + str(datetime.now())
+    self.outfile.date_created = datetime.now().isoformat()
     self.outfile.source = 'Output from simulation with OpenDrift'
     self.outfile.model_url = 'https://github.com/OpenDrift/opendrift'
     self.outfile.opendrift_class = self.__class__.__name__
@@ -141,6 +146,8 @@ def close(self):
 
     # Write final timesteps to file
     self.outfile.time_coverage_end = str(self.time)
+    self.outfile.time_coverage_duration = pd.Timedelta(self.time-self.start_time).isoformat()
+    self.outfile.time_coverage_resolution = pd.Timedelta(self.time_step).isoformat()
 
     # Write performance data
     self.outfile.performance = self.performance()
@@ -157,14 +164,20 @@ def close(self):
             self.outfile.variables[var].setncattr('maxval', self.maxvals[var])
 
     # Write bounds metadata
-    self.outfile.geospatial_lat_min = self.history['lat'].min()
-    self.outfile.geospatial_lat_max = self.history['lat'].max()
+    self.outfile.geospatial_bounds_crs = 'EPSG:4326'
+    self.outfile.geospatial_bounds_vertical_crs = 'EPSG:5831'
+    self.outfile.geospatial_lat_min = self.minvals['lat']
+    self.outfile.geospatial_lat_max = self.maxvals['lat']
     self.outfile.geospatial_lat_units = 'degrees_north'
     self.outfile.geospatial_lat_resolution = 'point'
-    self.outfile.geospatial_lon_min = self.history['lon'].min()
-    self.outfile.geospatial_lon_max = self.history['lon'].max()
+    self.outfile.geospatial_lon_min = self.minvals['lon']
+    self.outfile.geospatial_lon_max = self.maxvals['lon']
     self.outfile.geospatial_lon_units = 'degrees_east'
     self.outfile.geospatial_lon_resolution = 'point'
+    if 'z' in self.minvals:
+        self.outfile.geospatial_vertical_min = self.minvals['z']
+        self.outfile.geospatial_vertical_max = self.maxvals['z']
+        self.outfile.geospatial_vertical_positive = 'up'
     self.outfile.runtime = str(self.timing['total time'])
 
     self.outfile.close()  # Finally close file

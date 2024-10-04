@@ -116,7 +116,7 @@ jobs:
     docker:
       - image: condaforge/mambaforge
     environment:
-      - PYTHON_VERSION=3.9
+      - PYTHON_VERSION=3.11
 
     steps:
       - checkout
@@ -144,7 +144,7 @@ jobs:
     docker:
       - image: condaforge/mambaforge
     environment:
-      - PYTHON_VERSION=3.9
+      - PYTHON_VERSION=3.11
 
     steps:
       - checkout
@@ -186,11 +186,11 @@ jobs:
       - COVERALLS_UPLOAD=1
       - PYTHON_VERSION=3.10
 
-  python_39:
-    <<: *test-template
-    parallelism: 5
-    environment:
-      - PYTHON_VERSION=3.9
+  # python_39:
+  #   <<: *test-template
+  #   parallelism: 5
+  #   environment:
+  #     - PYTHON_VERSION=3.9
 
   docs-build-examples:
     docker:
@@ -419,12 +419,12 @@ workflows:
       # - python_312 # disabled because of missing netcdf dependency
       - python_311
       - python_310
-      - python_39
+      # - python_39
       - build_package
       - publish_package:
           requires:
             - build_package
-            - python_39
+            - python_311
           filters:
             tags:
               only: /^v.*/

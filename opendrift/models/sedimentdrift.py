@@ -54,7 +54,8 @@ class SedimentDrift(OceanDrift):
         'sea_surface_wave_period_at_variance_spectral_density_maximum': {'fallback': 0},
         'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
         'land_binary_mask': {'fallback': None},
-        'ocean_vertical_diffusivity': {'fallback': 0.02},
+        'ocean_vertical_diffusivity': {'fallback': 0.02,
+                                      'profiles': True},
         'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         }

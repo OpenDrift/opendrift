@@ -72,9 +72,16 @@ class BaseReader(Variables, Combine, Filter):
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
         'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity',
+        'ocean_vertical_salt_diffusivity' : 'ocean_vertical_diffusivity',
+        'ocean_vertical_tracer_diffusivity' : 'ocean_vertical_diffusivity',
         'ocean_mixed_layer_thickness_defined_by_sigma_theta': 'ocean_mixed_layer_thickness',
         'sea_floor_depth_below_sea_surface' : 'sea_floor_depth_below_sea_level',
         'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level',
+        'sea_surface_elevation': 'sea_surface_height',
+        'sea_surface_elevation_anomaly': 'sea_surface_height',
+        'sea_surface_height_above_mean_sea_level': 'sea_surface_height',
+        'sea_surface_height_above_sea_level': 'sea_surface_height',
+        'sea_surface_height_above_geoid': 'sea_surface_height',
         'mass_concentration_of_suspended_matter_in_sea_water' : 'spm'
         }
 
@@ -95,7 +102,10 @@ class BaseReader(Variables, Combine, Filter):
                                  'surface_northward_geostrophic_sea_water_velocity_assuming_sea_level_for_geoid'],
         'x_wind': 'eastward_wind', 'y_wind': 'northward_wind',
         'sea_surface_wave_stokes_drift_x_velocity': 'eastward_surface_stokes_drift',
-        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift'}
+        'sea_surface_wave_stokes_drift_y_velocity': 'northward_surface_stokes_drift',
+        'sea_ice_x_velocity': 'eastward_sea_ice_velocity',
+        'sea_ice_y_velocity': 'northward_sea_ice_velocity',
+        }
 
     def __init__(self):
         """Common constructor for all readers"""

@@ -91,18 +91,16 @@ class Reader(BaseReader, StructuredReader):
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
 
-        # Map ROMS variable names to CF standard_name
+        # Map ROMS variable names to CF standard_name, for cases where standard_name attribute is missing
         self.ROMS_variable_mapping = {
-            # Removing (temoprarily) land_binary_mask from ROMS-variables,
-            # as this leads to trouble with linearNDFast interpolation
             'mask_rho': 'land_binary_mask',
-            # 'mask_psi': 'land_binary_mask',  # don't want two variables mapping together - raises error now
+            'mask_psi': 'land_binary_mask',
             'h': 'sea_floor_depth_below_sea_level',
             'zeta': 'sea_surface_height',
             'u': 'x_sea_water_velocity',
             'v': 'y_sea_water_velocity',
-            #'u_eastward': 'x_sea_water_velocity',  # these are wrognly rotated below
-            #'v_northward': 'y_sea_water_velocity',
+            'u_eastward': 'eastward_sea_water_velocity',
+            'v_northward': 'northward_sea_water_velocity',
             'w': 'upward_sea_water_velocity',
             'temp': 'sea_water_temperature',
             'salt': 'sea_water_salinity',
@@ -277,24 +275,60 @@ class Reader(BaseReader, StructuredReader):
         self.precalculate_s2z_coefficients = True
 
         # Find all variables having standard_name
-        self.variables = []
+        self.standard_name_mapping = {}  # Inverse and unique mapping standard_name -> variable name
+        unmapped_variables = []
         for var_name in list(self.Dataset.variables):
             var = self.Dataset.variables[var_name]
             if 'standard_name' in var.attrs and var_name not in self.ROMS_variable_mapping.keys():
-                self.ROMS_variable_mapping[var_name] = var.attrs['standard_name']
-            if var_name in self.ROMS_variable_mapping.keys():
-                self.variables.append(self.ROMS_variable_mapping[var_name])
+                standard_name = var.attrs['standard_name']
+            elif var_name in self.ROMS_variable_mapping:
+                standard_name = self.ROMS_variable_mapping[var_name]
+            else:
+                unmapped_variables.append(var_name)
+                continue  # Variable cannot be mapped to standard_name
+            selected_variable = var_name
+            if standard_name in self.standard_name_mapping:  # We have a duplicate
+                if var_name in standard_name_mapping:  # provided by user
+                    selected_variable = var_name
+                    discarded_variable = self.standard_name_mapping[standard_name]
+                else:
+                    discarded_variable = var_name
+                    selected_variable = self.standard_name_mapping[standard_name]
+                logger.warning(f'Duplicate variables for {standard_name}, selecting {selected_variable}, '
+                            f'and discarding {discarded_variable}')
+            if standard_name in self.variable_aliases:  # Mapping for aliases
+                standard_name = self.variable_aliases[standard_name]
+            self.standard_name_mapping[standard_name] = selected_variable
+
+        if len(unmapped_variables) > 0:
+            logger.info(f'The following variables without standard_name are discarded: {unmapped_variables}')
 
         # A bit hackish solution:
         # If variable names or their standard_name contain "east" or "north", 
         # these should not be rotated from xi-direction to east-direction
         self.do_not_rotate = []
-        for var, stdname in self.ROMS_variable_mapping.items():
+        for stdname, var in self.standard_name_mapping.copy().items():
+            # Renaming east-north-names to x-y, as CRS of ROMS reader is always east-north,
+            # and we want to avoid rotating velocities if not neceassary
+            for xvar, eastnorthvar in self.xy2eastnorth_mapping.items():
+                if stdname in eastnorthvar:
+                    logger.info(f'Mapping {stdname} to {xvar} to avoid unnecessary rotation')
+                    self.standard_name_mapping[xvar] = var
+                    del self.standard_name_mapping[stdname]
+                    self.do_not_rotate.append(xvar)    
+
+        for stdname, var in self.standard_name_mapping.copy().items():
+            # Also avoid rotation of these variables
             if 'east' in var.lower() or 'east' in stdname.lower() or \
                     'north' in var.lower() or 'north' in stdname.lower():
-                self.do_not_rotate.append(stdname)
+                if stdname not in self.do_not_rotate:
+                    self.do_not_rotate.append(stdname)
+
         if len(self.do_not_rotate)>0:
             logger.debug('The following ROMS vectors are considered east-north, and will not be rotated %s' % self.do_not_rotate)
+
+
+        self.variables = list(self.standard_name_mapping)
 
         # Run constructor of parent Reader class
         super(Reader, self).__init__()
@@ -528,14 +562,8 @@ class Reader(BaseReader, StructuredReader):
 
         masks_store = {}  # To store masks for various grids
         for par in requested_variables:
-            varname = [name for name, cf in
-                       self.ROMS_variable_mapping.items() if cf == par]
-            if len(varname) > 1:
-                raise ValueError("Multiple variables exist with standard name and "
-                                 "are present in reader. Either remove the duplicate mapping "
-                                 "or remove the variable from the reader."
-                                 "Variables: " + str(varname))
-            var = self.Dataset.variables[varname[0]]
+            varname = self.standard_name_mapping[par]
+            var = self.Dataset.variables[varname]
 
             if par == 'land_binary_mask':
                 variables[par] = self.land_binary_mask[imask]
@@ -579,7 +607,7 @@ class Reader(BaseReader, StructuredReader):
             if var.ndim == 4:
                 # Regrid from sigma to z levels
                 if len(np.atleast_1d(indz)) > 1:
-                    logger.debug('sigma to z for ' + varname[0])
+                    logger.debug('sigma to z for ' + varname)
                     if self.precalculate_s2z_coefficients is True:
                         M = self.sea_floor_depth_below_sea_level.shape[0]
                         N = self.sea_floor_depth_below_sea_level.shape[1]

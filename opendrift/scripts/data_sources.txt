@@ -11,11 +11,11 @@ https://thredds.met.no/thredds/dodsC/cmems/mywavewam3km/dataset-wam-arctic-1hr3k
 https://thredds.met.no/thredds/dodsC/ww3_4km_agg
 https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml
 /vol/vvfelles/opendrift/forcing_data/topaz6/topaz6_aggregate.nc
-https://thredds.met.no/thredds/dodsC/aromearcticlatest/latest/arome_arctic_lagged_12_h_latest_2_5km_latest.nc
+https://thredds.met.no/thredds/dodsC/aromearcticlatest/latest/arome_arctic_lagged_6_h_latest_2_5km_latest.nc
 /vol/vvfelles/opendrift/forcing_data/aromearctic/aromearctic_aggregate.nc
 cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H
 https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd
 cmems_mod_glo_wav_anfc_0.083deg_PT3H-i
 cmems_mod_glo_phy_anfc_merged-uv_PT1H-i
 /vol/vvfelles/opendrift/forcing_data/mercator/mercator_aggregate.nc
-https://www.ncei.noaa.gov/thredds-coastal/dodsC/hycom/hycom_sfc_agg/HYCOM_Surface_Aggregation_best.ncd
+https://tds.hycom.org/thredds/dodsC/FMRC_ESPC-D-V02_uv3z/FMRC_ESPC-D-V02_uv3z_best.ncd

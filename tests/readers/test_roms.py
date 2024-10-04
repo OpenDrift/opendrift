@@ -50,13 +50,6 @@ class TestROMSReader(unittest.TestCase):
         )
     
     
-    def test_catch_multiple_variables(self):
-        """Catch if multiple variables are present."""
-        standard_mapping = {"u_eastward": 'x_sea_water_velocity'}
-        reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_mapping)
-        with pytest.raises(ValueError):
-            reader.get_variables("x_sea_water_velocity", datetime(1970, 1, 1), 0, 0, 0)
-
     def test_get_variables_u_eastward_wetdry_mask_rho(self):
         """get a variable from the dataset and verify correct mask was used
         
@@ -107,8 +100,9 @@ class TestROMSReader(unittest.TestCase):
         
         wetdry_mask_u is not available so mask_u should be used.
         """
-        standard_mapping = {'u': 'x_sea_water_velocity'} 
-        reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_mapping)
+        standard_mapping = {'u': 'x_sea_water_velocity', 'v': 'y_sea_water_velocity'} 
+        reader = reader_ROMS_native.Reader(self.ds.drop_vars(['u_eastward','v_northward']),
+                                           standard_name_mapping=standard_mapping)
         # drop wetdry_mask_rho to test that mask_rho is used
         reader.Dataset = reader.Dataset.drop_vars("wetdry_mask_rho")
         var, key = "u", "x_sea_water_velocity"
@@ -126,7 +120,8 @@ class TestROMSReader(unittest.TestCase):
     def test_get_variables_u_depth_zeta_zero(self):
         """get a variable from the dataset and verify in depth."""
         standard_mapping = {'u': 'x_sea_water_velocity'}
-        reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_mapping)
+        reader = reader_ROMS_native.Reader(self.ds.drop_vars(['u_eastward','v_northward']),
+                                           standard_name_mapping=standard_mapping)
         # drop wetdry_mask_rho to test that mask_rho is used
         reader.Dataset = reader.Dataset.drop_vars("wetdry_mask_rho")
         var, key = "u", "x_sea_water_velocity"
@@ -145,6 +140,24 @@ class TestROMSReader(unittest.TestCase):
         """get a variable from the dataset and verify in depth."""
         standard_mapping = {'u': 'x_sea_water_velocity'}
         reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_mapping)
+        # drop wetdry_mask_rho to test that mask_rho is used
+        reader.Dataset = reader.Dataset.drop_vars("wetdry_mask_rho")
+        var, key = "u", "x_sea_water_velocity"
+        zeta = np.ones((2,2,3))*2
+        reader.Dataset["zeta"] = (["ocean_time", "eta_rho", "xi_rho"], zeta)
+
+        output = reader.get_variables(key, datetime(1970, 1, 1), 0, 0, [-5], testing=False)
+
+        u_expected = [1.81428571, 1.91428571]
+        assert key in output
+        assert reader.do_not_rotate == ['x_sea_water_velocity', 'y_sea_water_velocity']
+        assert np.allclose(output[key].data[1,0,:], u_expected)
+
+    def test_get_variables_u_depth_zeta_nonzero_noeastnorth(self):
+        """get a variable from the dataset and verify in depth."""
+        standard_mapping = {'u': 'x_sea_water_velocity'}
+        # Here we remove u_eastward and v_northward, so that u and v are used (and needs rotation)
+        reader = reader_ROMS_native.Reader(self.ds.drop_vars(['u_eastward','v_northward']), standard_name_mapping=standard_mapping)
         # drop wetdry_mask_rho to test that mask_rho is used
         reader.Dataset = reader.Dataset.drop_vars("wetdry_mask_rho")
         var, key = "u", "x_sea_water_velocity"
@@ -194,7 +207,7 @@ class TestROMSReaderRotation(unittest.TestCase):
         # in opendrift
         standard_name_mapping = {"u": 'eastward_sea_water_velocity', "v": 'northward_sea_water_velocity'}
         reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_name_mapping)
-        assert reader.do_not_rotate == ['eastward_sea_water_velocity', 'northward_sea_water_velocity']
+        assert reader.do_not_rotate == ['x_sea_water_velocity', 'y_sea_water_velocity']
         
         # currents have unusual clearly east/north variable names and should not
         # be rotated
@@ -206,12 +219,14 @@ class TestROMSReaderRotation(unittest.TestCase):
         # analogous for winds
         standard_name_mapping = {"Uwind": 'eastward_wind', "Vwind": 'northward_wind'}
         reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_name_mapping)
-        assert reader.do_not_rotate == ['eastward_wind', 'northward_wind']
+        assert reader.do_not_rotate == ['x_sea_water_velocity', 'y_sea_water_velocity',
+                                        'x_wind', 'y_wind']
 
         self.ds = self.ds.rename_vars({"Uwind": "Uwind_eastward", "Vwind": "Vwind_northward"})
         standard_name_mapping = {"Uwind_eastward": 'x_wind', "Vwind_northward": 'y_wind'}
         reader = reader_ROMS_native.Reader(self.ds, standard_name_mapping=standard_name_mapping)
-        assert reader.do_not_rotate == ['x_wind', 'y_wind']
+        assert reader.do_not_rotate == ['x_sea_water_velocity', 'y_sea_water_velocity',
+                                        'x_wind', 'y_wind']
         
         
         
