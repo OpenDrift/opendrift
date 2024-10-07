@@ -188,8 +188,7 @@ def coriolis_force(iceb_vel, mass, lat):
 
 
 def sea_surface_slope_force(sea_slope_x, sea_slope_y, mass):
-    """ This functions assumes you provide the sea surfacs slope from an external file """
-    g = 9.81  # Acceleration due to gravity in m/s²
+    """ This functions assumes you provide the sea surface slope from an external file """
     F_sea_slope_x = -mass * g * sea_slope_x
     F_sea_slope_y = mass * g * sea_slope_y
     return np.array([F_sea_slope_x, F_sea_slope_y])
@@ -441,12 +440,6 @@ class OpenBerg(OceanDrift):
         def dynamic(t,iceb_vel, water_vel, wind_vel, wave_height, wave_direction, Ao,
                     Aa, rho_water, water_drag_coef, wind_drag_coef, iceb_length, mass,lat, sea_slope_x, sea_slope_y):
             """ Function required by solve_ivp. The t and iceb_vel parameters are required by solve_ivp, shouldn't be deleted """
-
-            # Track function calls
-            if not hasattr(dynamic, 'call_count'):
-                dynamic.call_count = 0
-            dynamic.call_count += 1
-
             iceb_vel = iceb_vel.reshape((2, -1))
             # Individual forces
             ocean_force_val = ocean_force(iceb_vel, water_vel, Ao, rho_water, water_drag_coef)
@@ -462,35 +455,6 @@ class OpenBerg(OceanDrift):
             sea_ice_force_val = sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, self.elements.width, sum_force)
             sum_force += sea_ice_force_val
 
-            # ### Forces contribution
-            # # Magnitudes
-            # ocean_force_mag = np.hypot(*ocean_force_val)
-            # wind_force_mag = np.hypot(*wind_force_val)
-            # wave_radiation_force_mag = np.hypot(*wave_radiation_force_val)
-            # coriolis_force_mag = np.hypot(*coriolis_force_val)
-            # sea_surface_slope_mag = np.hypot(*sea_surface_slope_val)
-            # sea_ice_force_mag = np.hypot(*sea_ice_force_val)
-            # # Total force
-            # total_force_magnitude = ocean_force_mag+ wind_force_mag+ wave_radiation_force_mag+ coriolis_force_mag+ sea_surface_slope_mag+ sea_ice_force_mag 
-            
-            # if total_force_magnitude[0] > 0:
-            #     # Calculate percentages
-            #     ocean_force_percentage = (ocean_force_mag[0] / total_force_magnitude[0]) * 100
-            #     wind_force_percentage = (wind_force_mag[0] / total_force_magnitude[0]) * 100 
-            #     wave_radiation_force_percentage = (wave_radiation_force_mag[0] / total_force_magnitude[0]) * 100
-            #     coriolis_force_percentage = (coriolis_force_mag[0] / total_force_magnitude[0]) * 100
-            #     sea_surface_slope_percentage = (sea_surface_slope_mag[0] / total_force_magnitude[0]) * 100
-            #     sea_ice_force_percentage = (sea_ice_force_mag[0] / total_force_magnitude[0]) * 100
-
-            #     print('###'*10)
-            #     logger.info('Ocean Contribution == %s', ocean_force_percentage)
-            #     logger.info('Wind Contribution == %s', wind_force_percentage)
-            #     logger.info('Wave Radiation Contribution == %s', wave_radiation_force_percentage)
-            #     logger.info('Coriolis Contribution == %s', coriolis_force_percentage)
-            #     logger.info('Sea Surface Slope Contribution == %s', sea_surface_slope_percentage)
-            #     logger.info('Sea Ice Contribution == %s', sea_ice_force_percentage)
-            #     print('###'*10)
-            # ###
             return (sum_force / mass)
 
         # Running the simulation
@@ -501,14 +465,12 @@ class OpenBerg(OceanDrift):
         grounded = np.logical_and(hwall >= 0, grounding)
         if any(grounded) and grounding:
             logger.info(f"Grounding condition : Icebergs grounded = {len(hwall[hwall>0])}, hwall={np.round(hwall[hwall>0],3)} meters")
-       
+        
         sol = solve_ivp(dynamic, [0, self.time_step.total_seconds()], V0,
                         args=(water_vel, wind_vel, wave_height, wave_direction, Ao, Aa, rho_water,
                               water_drag_coeff, wind_drag_coeff, length, mass, lat, sea_slope_x, sea_slope_y),
                               vectorized=True,
                               t_eval=np.array([self.time_step.total_seconds()]))
-
-        logger.info(f"The dynamic function was called {dynamic.call_count} times during the solve_ivp process")
         V = sol.y.reshape((2, -1))
         Vx, Vy = V[0], V[1]
         Vx[grounded] = 0
@@ -575,7 +537,6 @@ class OpenBerg(OceanDrift):
         self.elements.width = W
         self.elements.sail = sailib
         self.elements.draft = depthib
-
 
     def update(self):
         """ Update positions and properties of particles """

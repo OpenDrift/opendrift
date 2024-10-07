@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 """
 Icebergs (openberg)
@@ -18,58 +19,57 @@ from datetime import datetime,timedelta
 import numpy as np
 import os
 
-# ### Load credentials of CMEMS Account from an external file
-# with open("CMEMS_credentials.txt") as f:
-#      lines = f.read().splitlines()
-#      if len(lines) >= 2:
-#           username = lines[0]
-#           password = lines[1]
+### Load credentials of CMEMS Account from an external file
+#with open("CMEMS_credentials.txt") as f:
+#     lines = f.read().splitlines()
+#     if len(lines) >= 2:
+#          username = lines[0]
+#          password = lines[1]
 
-# USERNAME=username
-# PASSWORD=password
+#USERNAME=username
+#PASSWORD=password
 
-# ### Define datasets
-# Wind = '/Volumes/ACH_HDD/DATA_ACCIBERG/Wind/6h.10m_wind_2021.nc'
-# Ocean = 'cmems_mod_glo_phy_myint_0.083deg_P1D-m'
-# Wave = 'cmems_mod_glo_wav_my_0.2deg_PT3H-i'
+### Define datasets
+#Wind = '/Volumes/ACH_HDD/DATA_ACCIBERG/Wind/6h.10m_wind_2021.nc'
+#Ocean = 'cmems_mod_glo_phy_myint_0.083deg_P1D-m'
+#Wave = 'cmems_mod_glo_wav_my_0.2deg_PT3H-i'
 
-# ### Add Readers
-# reader_wind = Reader(Wind)
+### Add Readers
+#reader_wind = Reader(Wind)
 
-# ds_current = copernicusmarine.open_dataset(dataset_id=Ocean, username=USERNAME, password=PASSWORD)
-# reader_current = Reader(ds_current)
+#ds_current = copernicusmarine.open_dataset(dataset_id=Ocean, username=USERNAME, password=PASSWORD)
+#reader_current = Reader(ds_current)
 
-# ds_wave = copernicusmarine.open_dataset(dataset_id=Wave, username=USERNAME, password=PASSWORD)
-# reader_wave = Reader(ds_wave)
+#ds_wave = copernicusmarine.open_dataset(dataset_id=Wave, username=USERNAME, password=PASSWORD)
+#reader_wave = Reader(ds_wave)
 
 ###################################################################
 ### Run Normal
 o = OpenBerg()
 # Set configuration parameters
-o.set_config('drift:wave_rad', True)
-o.set_config('drift:stokes_drift', True)
-o.set_config('drift:coriolis', True)
-o.set_config('drift:sea_surface_slope', True) #### Slope
+
+o.set_config('drift:stokes_drift', False)
 o.set_config('drift:vertical_profile', True)
-o.set_config('processes:grounding', True)
-o.set_config('processes:roll_over', True)
-o.set_config('processes:melting', True)
+o.set_config('drift:wave_rad', False)
+o.set_config('drift:coriolis', False)
+o.set_config('drift:sea_surface_slope', False)
+o.set_config('processes:grounding', False)
+o.set_config('processes:roll_over', False)
+o.set_config('processes:melting', False)
 
 reader_current = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/TP5Metno_m09_m10_y2021/202109*_dm-metno-MODEL-topaz5-ARC-b2021*-fv02.0.nc') ###TP5 Metno 3D
-reader_wind = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/Wind/6h.10m_wind_2021.nc')
-reader_wave = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/Waves/MyWam3km_hindcast-cmems_202109*.nc')
-#o.add_reader([reader_current, reader_wind, reader_wave]) 
-o.add_reader([reader_current, reader_wind])
-#o.set_config('environment:constant', {'x_sea_water_velocity': 0, 'y_sea_water_velocity': 1})
+#reader_sea_slope = Reader('Sea_Slope.nc')
+#reader_wind = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/Wind/6h.10m_wind_2021.nc')
+#reader_wave = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/Waves/MyWam3km_hindcast-cmems_202109*.nc')
+#o.add_reader([reader_current]) #, reader_wind, reader_wave])
+o.add_reader([reader_current])
+#o.set_config('environment:constant', {'x_sea_water_velocity': 1, 'y_sea_water_velocity': 1})
 #o.set_config('environment:constant', {'x_wind': 0, 'y_wind': 0})
-### AO o.set_config("drift:max_age_seconds", 86401)
+# ### AO o.set_config("drift:max_age_seconds", 86401)
 
 o.seed_elements(lon= -57,lat= 69,time=datetime(2021,9,1,12,00),number=1,radius=500,sail=10,draft=50,length=90,width=40)
-o.run(steps=2)
-#o.run(duration=timedelta(days=1))
-#o.run(duration=timedelta(days=7),time_step=900, time_step_output=3600, outfile='NoCoriolis.nc')
+o.run(duration=timedelta(days=7),time_step=900, time_step_output=3600, outfile='Test.nc')
 o.plot(fast=True)
-### o.plot_property('draft')
 
 # ###################################################################
 # ### Run Ensembles
