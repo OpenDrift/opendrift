@@ -47,7 +47,6 @@ import os
 ### Run Normal
 o = OpenBerg()
 # Set configuration parameters
-
 o.set_config('drift:stokes_drift', False)
 o.set_config('drift:vertical_profile', True)
 o.set_config('drift:wave_rad', False)
@@ -58,14 +57,9 @@ o.set_config('processes:roll_over', False)
 o.set_config('processes:melting', False)
 
 reader_current = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/TP5Metno_m09_m10_y2021/202109*_dm-metno-MODEL-topaz5-ARC-b2021*-fv02.0.nc') ###TP5 Metno 3D
-#reader_sea_slope = Reader('Sea_Slope.nc')
 #reader_wind = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/Wind/6h.10m_wind_2021.nc')
 #reader_wave = Reader('/Volumes/ACH_HDD/DATA_ACCIBERG/Waves/MyWam3km_hindcast-cmems_202109*.nc')
-#o.add_reader([reader_current]) #, reader_wind, reader_wave])
 o.add_reader([reader_current])
-#o.set_config('environment:constant', {'x_sea_water_velocity': 1, 'y_sea_water_velocity': 1})
-#o.set_config('environment:constant', {'x_wind': 0, 'y_wind': 0})
-# ### AO o.set_config("drift:max_age_seconds", 86401)
 
 o.seed_elements(lon= -57,lat= 69,time=datetime(2021,9,1,12,00),number=1,radius=500,sail=10,draft=50,length=90,width=40)
 o.run(duration=timedelta(days=7),time_step=900, time_step_output=3600, outfile='Test.nc')
