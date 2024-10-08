@@ -72,9 +72,16 @@ class BaseReader(Variables, Combine, Filter):
         'barotropic_sea_water_x_velocity': 'sea_ice_x_velocity',
         'barotropic_sea_water_y_velocity': 'sea_ice_y_velocity',
         'salinity_vertical_diffusion_coefficient' : 'ocean_vertical_diffusivity',
+        'ocean_vertical_salt_diffusivity' : 'ocean_vertical_diffusivity',
+        'ocean_vertical_tracer_diffusivity' : 'ocean_vertical_diffusivity',
         'ocean_mixed_layer_thickness_defined_by_sigma_theta': 'ocean_mixed_layer_thickness',
         'sea_floor_depth_below_sea_surface' : 'sea_floor_depth_below_sea_level',
         'sea_floor_depth_below_geoid' : 'sea_floor_depth_below_sea_level',
+        'sea_surface_elevation': 'sea_surface_height',
+        'sea_surface_elevation_anomaly': 'sea_surface_height',
+        'sea_surface_height_above_mean_sea_level': 'sea_surface_height',
+        'sea_surface_height_above_sea_level': 'sea_surface_height',
+        'sea_surface_height_above_geoid': 'sea_surface_height',
         'mass_concentration_of_suspended_matter_in_sea_water' : 'spm'
         }
 

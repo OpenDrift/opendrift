@@ -14,7 +14,7 @@ o = OceanDrift()
 # - Ocean forecast from global HYCOM model
 # - Weather forecast from NOAA/NCEP
 o.add_readers_from_list([
-    'https://www.ncei.noaa.gov/thredds-coastal/dodsC/hycom/hycom_sfc_agg/HYCOM_Surface_Aggregation_best.ncd',
+    'https://tds.hycom.org/thredds/dodsC/FMRC_ESPC-D-V02_uv3z/FMRC_ESPC-D-V02_uv3z_best.ncd',
     'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 o.seed_elements(lat=24, lon=-81, time=datetime.utcnow(),

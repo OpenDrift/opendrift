@@ -5,14 +5,15 @@ Parameterised Stokesdrift
 """
 
 #%%
-#
-# If surface Stokes drift is not awailable from a wave model, there are two alternatives:
+# If surface Stokes drift is not available from a wave model, there are two alternatives:
 #    - one can increase the wind_drift_factor by e.g. 1.5%, as the Stokes Drift is typically 1.5% of the wind speed
 #    - or the surface Stokes drift can be parameterized from wind speed and fetch distance
 
 #%%
 # The latter option is activated in OpenDrift with the config setting
 # `o.set_config('drift:use_tabularised_stokes_drift', True)`
+
+#%%
 # This activates a paramterisation of Stokes drift with the following method, as implemented by Petter Nygren from SMHI:
 # https://opendrift.github.io/_modules/opendrift/models/physics_methods.html#wave_stokes_drift_parameterised
 # The code and corresponding plot below shows how the Stokes drift factor (fraction of wind speed) varies with wind speed and fetch (3 different tabulated fetch distances).
