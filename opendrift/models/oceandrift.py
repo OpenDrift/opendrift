@@ -189,8 +189,8 @@ class OceanDrift(OpenDriftSimulation):
         self.stokes_drift()
 
         # Turbulent Mixing
+        self.update_terminal_velocity()
         if self.get_config('drift:vertical_mixing') is True:
-            self.update_terminal_velocity()
             self.vertical_mixing()
         else:  # Buoyancy
             self.vertical_buoyancy()
