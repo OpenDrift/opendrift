@@ -7,7 +7,8 @@ This example runs an OceanDrift simulation
 with current data from CMEMS
 To run this example, you need a CMEMS account created at
 https://marine.copernicus.eu
-with username and password stored in a ``.netrc`` file with contents::
+with username and password stored as environment variables ``COPERNICUSMARINE_SERVICE_USERNAME`` and ``COPERNICUSMARINE_SERVICE_PASSWORD``
+or in a ``.netrc`` file with contents::
 
     machine copernicusmarine login <your username> password <your password>
 
