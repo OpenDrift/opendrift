@@ -33,14 +33,15 @@ import numpy as np
 
 
 # Constants
-rho_water = 1027
-rho_air = 1.293
-rho_ice = 917
-rho_iceb = 900
-g = 9.81
-csi = 1  # Sea ice coefficient of resistance
+rho_water = 1027   # Density of water (kg/m^3)
+rho_air = 1.293    # Density of air (kg/m^3)
+rho_ice = 917      # Density of ice (kg/m^3)
+rho_iceb = 900     # Density of iceberg (kg/m^3)
+g = 9.81           # Acceleration due to gravity in m/s²
+omega = 7.2921e-5  # Angular frequency (rad/s)
+csi = 1            # Sea ice coefficient of resistance
 wave_drag_coef = 0.3
-omega = 7.2921e-5
+
 
 
 class IcebergObj(Lagrangian3DArray):
@@ -143,9 +144,9 @@ def advect_iceberg_no_acc(f, water_vel, wind_vel):
     """
     vxo, vyo = water_vel[0], water_vel[1]
     vxa, vya = wind_vel[0], wind_vel[1]
-    no_acc_model_x = (1 - f) * vxo + f * vxa
-    no_acc_model_y = (1 - f) * vyo + f * vya
-    V = np.array([no_acc_model_x, no_acc_model_y])
+    no_acc_vel_x = (1 - f) * vxo + f * vxa
+    no_acc_vel_y = (1 - f) * vyo + f * vya
+    V = np.array([no_acc_vel_x, no_acc_vel_y])
     if not np.isfinite(V).all():
         logger.error("Infinite value in iceberg's velocity without acceleration: Please check the wind drift factor f ")
     return V
@@ -178,12 +179,19 @@ def sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, iceb_w
 
 
 def coriolis_force(iceb_vel, mass, lat):
-    f = 2 * omega * np.sin(lat)
+    f = 2 * omega * np.sin(np.radians(lat))
     assert len(iceb_vel) == 2
     x_vel, y_vel = iceb_vel[0], iceb_vel[1]
-    Fc_x = -mass * f * y_vel
-    Fc_y = mass * f * x_vel
-    return np.array([Fc_x, Fc_y])
+    F_cor_x = mass * f * y_vel
+    F_cor_y = -mass * f * x_vel
+    return np.array([F_cor_x, F_cor_y])
+
+
+def sea_surface_slope_force(sea_slope_x, sea_slope_y, mass):
+    """ This functions assumes you provide the sea surface slope from an external file """
+    F_sea_slope_x = -mass * g * sea_slope_x
+    F_sea_slope_y = mass * g * sea_slope_y
+    return np.array([F_sea_slope_x, F_sea_slope_y])
 
 
 def melwav(iceb_length, iceb_width, x_wind, y_wind, sst, sea_ice_conc, dt):
@@ -259,6 +267,8 @@ class OpenBerg(OceanDrift):
         "x_sea_water_velocity": {"fallback": None, "profiles": True},
         "y_sea_water_velocity": {"fallback": None, "profiles": True},
         "sea_floor_depth_below_sea_level": {"fallback": 10000},
+        "sea_surface_x_slope": {"fallback": 0},
+        "sea_surface_y_slope": {"fallback": 0},
         "x_wind": {"fallback": 0, "important": False},
         "y_wind": {"fallback": 0, "important": False},
         "sea_surface_wave_significant_height": {"fallback": 0},
@@ -322,6 +332,12 @@ class OpenBerg(OceanDrift):
                 'description': 'If True, coriolis force is added',
                 'level': CONFIG_LEVEL_BASIC,
             },
+            'drift:sea_surface_slope':{
+            'type': 'bool',
+            'default': True,
+            'description': 'If True, sea surface slope force is added',
+            'level': CONFIG_LEVEL_BASIC,
+            },
             'drift:vertical_profile':{
                 'type': 'bool',
                 'default': False,
@@ -367,7 +383,6 @@ class OpenBerg(OceanDrift):
           
         })
 
-        
 
     def advect_iceberg(self):
         T = self.environment.sea_water_temperature
@@ -375,9 +390,14 @@ class OpenBerg(OceanDrift):
         rho_water = PhysicsMethods.sea_water_density(T, S)
         draft = self.elements.draft
         length = self.elements.length
-        Ao = abs(draft) * length  ### Area_wet
-        Aa = self.elements.sail * length  ### Area_dry
+        Ao = abs(draft) * length          # Area_wet
+        Aa = self.elements.sail * length  # Area_dry
         mass = self.elements.width * (Aa + Ao) * rho_iceb
+        lat = self.elements.lat
+        sea_slope_x = self.environment.sea_surface_x_slope
+        sea_slope_y = self.environment.sea_surface_y_slope
+        water_drag_coeff = self.elements.water_drag_coeff
+        wind_drag_coeff = self.elements.wind_drag_coeff
         k = (rho_air * self.elements.wind_drag_coeff * Aa / (rho_water * self.elements.water_drag_coeff * Ao))
         f = np.sqrt(k) / (1 + np.sqrt(k))
 
@@ -385,6 +405,7 @@ class OpenBerg(OceanDrift):
         stokes_drift = self.get_config('drift:stokes_drift')
         coriolis = self.get_config('drift:coriolis')
         grounding = self.get_config('processes:grounding')
+        sea_surface_slope = self.get_config('drift:sea_surface_slope')
         
                 
         if self.get_config('drift:vertical_profile') is False:
@@ -396,8 +417,7 @@ class OpenBerg(OceanDrift):
             uprof = self.get_profile_masked("x_sea_water_velocity")
             vprof = self.get_profile_masked("y_sea_water_velocity")
             z = self.environment_profiles["z"]
-            thickness = -(z[1:] - z[:-1]).reshape((-1, 1))
-            thickness = thickness.astype(float)
+            thickness = -(z[1:] - z[:-1]).reshape((-1, 1)).astype(float)
             mask = uprof.mask
             uprof_mean_inter = (uprof[1:] + uprof[:-1]) / 2
             vprof_mean_inter = (vprof[1:] + vprof[:-1]) / 2
@@ -416,18 +436,28 @@ class OpenBerg(OceanDrift):
         sea_ice_thickness = self.environment.sea_ice_thickness
         sea_ice_vel = np.array([self.environment.sea_ice_x_velocity, self.environment.sea_ice_y_velocity])
 
+
         def dynamic(t,iceb_vel, water_vel, wind_vel, wave_height, wave_direction, Ao,
-                    Aa, rho_water, water_drag_coef, wind_drag_coef, iceb_length, mass,lat):
+                    Aa, rho_water, water_drag_coef, wind_drag_coef, iceb_length, mass,lat, sea_slope_x, sea_slope_y):
             """ Function required by solve_ivp. The t and iceb_vel parameters are required by solve_ivp, shouldn't be deleted """
             iceb_vel = iceb_vel.reshape((2, -1))
-            sum_force = (ocean_force(iceb_vel, water_vel, Ao, rho_water, water_drag_coef)
-                         + wind_force(iceb_vel,wind_vel, Aa, wind_drag_coef)
-                         + (int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length))
-                         + (int(coriolis) * coriolis_force(iceb_vel, mass, lat)))
+            # Individual forces
+            ocean_force_val = ocean_force(iceb_vel, water_vel, Ao, rho_water, water_drag_coef)
+            wind_force_val = wind_force(iceb_vel, wind_vel, Aa, wind_drag_coef)
+            wave_radiation_force_val = int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length)
+            coriolis_force_val = int(coriolis) * coriolis_force(iceb_vel, mass, lat)
+            sea_surface_slope_val = int(sea_surface_slope) * sea_surface_slope_force(sea_slope_x, sea_slope_y, mass)
             
-            sum_force = sum_force + sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, self.elements.width, sum_force)
-            return 1 / mass * sum_force
-        
+            # Sum of the individual forces
+            sum_force = (ocean_force_val+ wind_force_val+ wave_radiation_force_val+ coriolis_force_val+ sea_surface_slope_val)
+            
+            # Add sea ice force
+            sea_ice_force_val = sea_ice_force(iceb_vel, sea_ice_conc, sea_ice_thickness, sea_ice_vel, self.elements.width, sum_force)
+            sum_force += sea_ice_force_val
+
+            return (sum_force / mass)
+
+        # Running the simulation
         V0 = advect_iceberg_no_acc(f, water_vel, wind_vel)  # Approximation of the solution of the dynamic equation for the iceberg velocity
         V0[:, sea_ice_conc >= 0.9] = sea_ice_vel[:, sea_ice_conc >= 0.9]  # With this criterium, the iceberg moves with the sea ice
         V0 = V0.flatten() # V0 needs to be 1D
@@ -437,23 +467,17 @@ class OpenBerg(OceanDrift):
             logger.info(f"Grounding condition : Icebergs grounded = {len(hwall[hwall>0])}, hwall={np.round(hwall[hwall>0],3)} meters")
         
         sol = solve_ivp(dynamic, [0, self.time_step.total_seconds()], V0,
-                        args=(water_vel, wind_vel, wave_height, wave_direction,
-                              Ao, Aa, rho_water,
-                              self.elements.water_drag_coeff,
-                              self.elements.wind_drag_coeff,
-                              self.elements.length,
-                              mass,
-                              self.elements.lat),
+                        args=(water_vel, wind_vel, wave_height, wave_direction, Ao, Aa, rho_water,
+                              water_drag_coeff, wind_drag_coeff, length, mass, lat, sea_slope_x, sea_slope_y),
                               vectorized=True,
-                              t_eval=np.array([self.time_step.total_seconds()]),
-                              )
-
+                              t_eval=np.array([self.time_step.total_seconds()]))
         V = sol.y.reshape((2, -1))
         Vx, Vy = V[0], V[1]
         Vx[grounded] = 0
         Vy[grounded] = 0
         self.update_positions(Vx, Vy)
         self.elements.iceb_x_velocity, self.elements.iceb_y_velocity = Vx, Vy
+
 
     def melt(self):
         """ Enable melting """
@@ -513,7 +537,6 @@ class OpenBerg(OceanDrift):
         self.elements.width = W
         self.elements.sail = sailib
         self.elements.draft = depthib
-
 
     def update(self):
         """ Update positions and properties of particles """

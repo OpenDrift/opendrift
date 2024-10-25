@@ -29,7 +29,7 @@ dependencies:
   - cmocean
   - utm
   - roaring-landmask>=0.7
-  - trajan>=0.6.3
+  - trajan>=0.7
   - adios_db<1.2
   - copernicusmarine>=1.3.0
   - pip
