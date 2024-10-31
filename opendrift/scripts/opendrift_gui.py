@@ -19,7 +19,7 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.leeway import Leeway
 from opendrift.models.shipdrift import ShipDrift
-from opendrift.models.openberg_old import OpenBergOld
+from opendrift.models.openberg import OpenBerg
 from opendrift.models.plastdrift import PlastDrift
 from opendrift.models.radionuclides import RadionuclideDrift
 
@@ -86,7 +86,7 @@ class OpenDriftGUI(tk.Tk):
 
     # Supported models as dictionary {model_name:model_class}
     opendrift_models = {m.__name__:m for m in
-        [Leeway, OpenOil, ShipDrift, OpenBergOld, OceanDrift, PlastDrift, RadionuclideDrift]}
+        [Leeway, OpenOil, ShipDrift, OpenBerg, OceanDrift, PlastDrift, RadionuclideDrift]}
 
     extra_args = {'OpenOil': {'location': 'NORWAY'}}
 
