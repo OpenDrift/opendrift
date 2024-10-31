@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """
-CMEMS
-=============
+Copernicus Marine Client (CMEMS)
+================================
 
-This example runs an OceanDrift simulation
-with current data from CMEMS
-To run this example, you need a CMEMS account created at
-https://marine.copernicus.eu
-with username and password stored as environment variables ``COPERNICUSMARINE_SERVICE_USERNAME`` and ``COPERNICUSMARINE_SERVICE_PASSWORD``
+This example runs an OceanDrift simulation with current data from CMEMS.
+To run this example, you need a CMEMS account created at https://marine.copernicus.eu
+with username and password stored as environment variables
+``COPERNICUSMARINE_SERVICE_USERNAME`` and ``COPERNICUSMARINE_SERVICE_PASSWORD``
 or in a ``.netrc`` file with contents::
 
     machine copernicusmarine login <your username> password <your password>
@@ -15,7 +14,7 @@ or in a ``.netrc`` file with contents::
 This file must be stored in your home folder (and unreadable by others) or in the main OpenDrift folder
 
 Alternatively, an Xarray dataset can be created explicitly with the copernicusmarine client, and provided to reader_netCDF_CF_generic:
-https://opendrift.github.io/gallery/example_long_cmems_new.html
+https://opendrift.github.io/gallery/example_long_cmems_currents.html
 """
 
 from datetime import datetime, timedelta
@@ -36,6 +35,3 @@ o.run(duration=timedelta(days=3))
 
 o.animation(fast=True, clabel='Ocean current [m/s]',
             background=['x_sea_water_velocity', 'y_sea_water_velocity'])
-
-#%%
-# .. image:: /gallery/animations/example_cmems_0.gif

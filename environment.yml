@@ -13,6 +13,7 @@ dependencies:
   - xarray
   - dask
   - cfgrib
+  - cf_xarray
   - pygrib
   - xhistogram
   - requests
