@@ -4095,6 +4095,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         nc.createDimension('lat', len(lat_array))
         nc.createDimension('time', H.shape[0])
         times = self.get_time_array()[0]
+        if times[1] < times[0]:  # Revert for backward runs so that time is increasing
+            times = times[::-1]
+            H = np.flip(H, axis=0)
+            H_submerged = np.flip(H_submerged, axis=0)
+            H_stranded = np.flip(H_stranded, axis=0)
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time', ))
         nc.variables['time'][:] = date2num(times, timestr)
