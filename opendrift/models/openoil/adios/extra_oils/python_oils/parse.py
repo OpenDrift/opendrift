@@ -50,7 +50,7 @@ def parse():
         oil.sub_samples[i].metadata.short_name = s
 
     oil.sub_samples[0].SARA = Sara(asphaltenes=ads.MassFraction(value=d.asphaltenes_percent, unit='%'))
-    oil.sub_samples[0].bulk_composition.append(ads.MassFraction(value=d.wax_percent, unit='%'))
+    oil.sub_samples[0].bulk_composition.append(ads.MassFraction(value=d.wax_percent, unit='%'))  # Probably wrong, a BulkComposition object should be used here
 
     cut_temps = [c[0] for c in d.cuts]
     cut_frac = [c[1] for c in d.cuts]

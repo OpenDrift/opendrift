@@ -225,7 +225,7 @@ class Reader(StructuredReader, BaseReader):
                     self.time_step = None
             if standard_name == 'realization':
                 if ensemble_member == None:
-                    var_data = var.values
+                    var_data = np.atleast_1d(var.values)
                     self.realizations = var_data
                     logger.debug('%i ensemble members available'
                                 % len(self.realizations))
