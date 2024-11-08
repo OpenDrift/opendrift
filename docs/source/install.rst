@@ -4,7 +4,7 @@ Installing OpenDrift
 Alternative 1: Using Miniforge (or Miniconda) and Git (recommended)
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-1. Install `miniforge <https://github.com/conda-forge/miniforge?tab=readme-ov-file#download>`_
+1. Install `miniforge <https://conda-forge.org/miniforge/>`_
 2. Clone OpenDrift:
 
 .. code-block:: bash
@@ -31,7 +31,7 @@ Occasionally, new dependencies will be added to environment.yml. Then the local 
 Alternative 2: Using Miniforge (or Miniconda)
 +++++++++++++++++++++++++++++++++++++++++++++
 
-1. Install `miniforge <https://github.com/conda-forge/miniforge?tab=readme-ov-file#download>`_
+1. Install `miniforge <https://conda-forge.org/miniforge/>`_
 2. Set up a *Python 3* environment for opendrift and install opendrift
 
 .. code-block:: bash
