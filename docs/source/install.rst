@@ -1,8 +1,8 @@
 Installing OpenDrift
 =============================================
 
-Alternative 1: Using Miniforge (or Miniconda) and Git (recommended)
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Alternative 1: Using Mambaforge (or Miniforge) and Git (recommended)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 1. Install `miniforge <https://conda-forge.org/miniforge/>`_
 2. Clone OpenDrift:
@@ -28,8 +28,8 @@ Occasionally, new dependencies will be added to environment.yml. Then the local 
 
   $ mamba env update -f environment.yml
 
-Alternative 2: Using Miniforge (or Miniconda)
-+++++++++++++++++++++++++++++++++++++++++++++
+Alternative 2: Using Mambaforge (or Miniforge)
+++++++++++++++++++++++++++++++++++++++++++++++
 
 1. Install `miniforge <https://conda-forge.org/miniforge/>`_
 2. Set up a *Python 3* environment for opendrift and install opendrift
