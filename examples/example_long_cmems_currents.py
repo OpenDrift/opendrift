@@ -29,7 +29,7 @@ reader_default = Reader(ds, name='CMEMS default')
 
 #%%
 # Mapping other variables to required standard_name's
-reader_tides_only = Reader(ds, standard_name_mapping={
+reader_tides = Reader(ds, standard_name_mapping={
                         'utide': 'x_sea_water_velocity',
                         'vtide': 'y_sea_water_velocity',
                         }, name='Tides only')
@@ -45,11 +45,12 @@ reader_total = Reader(ds, standard_name_mapping={
 #%%
 # Run and compare simulations using the different current components
 cases = {'Eulerian current': reader_default,
-         'Tides only': reader_tides_only,
+         'Tides only': reader_tides,
          'Stokes drift only': reader_stokes,
          'Total current': reader_total,
-         'SUM: Eulerian + Tides': reader_default + reader_tides_only,  # Experimental feature
+         'SUM: Eulerian + Tides': reader_default + reader_tides,  # Experimental feature
          'SUM: Eulerian + Stokes': reader_default + reader_stokes,     # Experimental feature
+         'SUM: Eulerian + Tides + Stokes': reader_default + reader_tides + reader_stokes  # Experimental feature
          }
 
 simulations = []
