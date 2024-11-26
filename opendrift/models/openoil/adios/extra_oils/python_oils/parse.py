@@ -1,10 +1,12 @@
 def parse():
-    import NO00160_BREIDABLIKK as d
-    import NO00159_SVALE as d
-    import NO00161_STAER as d
-    import NO00162_YME as d
-    import NO00163_OFELIA as d
-    import NO00164_HEIDRUN_AARE as d
+    #import NO00160_BREIDABLIKK as d
+    #import NO00159_SVALE as d
+    #import NO00161_STAER as d
+    #import NO00162_YME as d
+    #import NO00163_OFELIA as d
+    #import NO00164_HEIDRUN_AARE as d
+    #import NO00165_LANGFJELLET as d
+    import NO00166_CALYPSO as d
     import adios_db.scripting as ads
     from adios_db.models.oil.values import Reference
     from adios_db.models.common.measurement import (MassFraction,
@@ -14,14 +16,16 @@ def parse():
 
     from adios_db.models.oil.physical_properties import DynamicViscosityPoint, PourPoint, FlashPoint
     from adios_db.models.oil.sara import Sara
+    from adios_db.models.oil.bulk_composition import BulkComposition, BulkCompositionList
     from adios_db.models.oil.distillation import DistCutList
-
 
     oil = ads.Oil(d.id)
     oil.metadata.name = d.name
     oil.metadata.API = (141.5/d.specific_gravity) - 131.5
     oil.metadata.product_type = d.product_type
     oil.metadata.reference = Reference(year=d.reference_year, reference=d.reference)
+    oil.metadata.sample_date = str(d.sample_date)
+    oil.metadata.location = d.location
 
     oil.sub_samples.extend([ads.Sample(), ads.Sample(), ads.Sample(), ads.Sample()])
     for i, (ss, w, vol, visc, dens) in enumerate(
@@ -50,7 +54,11 @@ def parse():
         oil.sub_samples[i].metadata.short_name = s
 
     oil.sub_samples[0].SARA = Sara(asphaltenes=ads.MassFraction(value=d.asphaltenes_percent, unit='%'))
-    oil.sub_samples[0].bulk_composition.append(ads.MassFraction(value=d.wax_percent, unit='%'))  # Probably wrong, a BulkComposition object should be used here
+    oil.sub_samples[0].bulk_composition = BulkCompositionList()
+    oil.sub_samples[0].bulk_composition.append(
+        BulkComposition(
+            name='wax_content',
+            measurement=ads.MassFraction(value=d.wax_percent, unit='%')))
 
     cut_temps = [c[0] for c in d.cuts]
     cut_frac = [c[1] for c in d.cuts]
