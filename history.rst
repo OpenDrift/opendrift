@@ -1,6 +1,33 @@
 History
 =======
 
+2024-11-26 / Release v1.12.0
+-----------------------------
+
+* Adapting OpenOil to Adios > 1.2
+* Replaced Mambaforge with Miniforge in installation instructions
+* `write_netcdf_density_map` now produces files with increasing time dimension also for backward simulations
+* Fixed bug in OceanDrift, terminal velocity not updated if vertical mixing deactivated. Thanks to Joao Lencart e Silva.
+* reader_landmask: use sequential version
+* Added possibility to add Stokes drift to Leeway model
+* Added aliases mapping ocean_vertical_salt_diffusivity (and corresponding for tracer) to ocean_vertical_diffusivity
+* Added some aliases for sea_surface_height
+* Forcing datasets:
+
+  * Replaced obsolete HYCOM thredds url with new ESPCD-v02
+  * Changing Arome arctic 12h to 6_h
+
+* reader_netCDF_CF_generic:
+
+  * if lon/lat arrays are repeated 1D arrays, these are now reduced to 1D, and reader becomes projected with lonlat
+  * Fixed bug with dateline
+  * Update for datasets where projection is available, but coordinate variable is missing
+  * Allowing for ensemble collection with a single member (invisible in coordinates)
+
+* Improved CF-compliance for netCDF output files
+* Cleaning of ROMS native reader
+* Fix for plotting Antarctica coastline, as well as ice sheet-water boorder on maps/plots
+
 2024-07-24 / Release v1.11.13
 -----------------------------
 * Ensuring that Leeway ascii output contains lat/lon without [brackets] regardless of seeding method used
