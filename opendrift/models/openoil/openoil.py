@@ -304,7 +304,7 @@ class OpenOil(OceanDrift):
     }
 
     duplicate_oils = ['ALVHEIM BLEND, STATOIL', 'DRAUGEN, STATOIL',
-                  'EKOFISK BLEND 2000', 'EKOFISK BLEND, STATOIL',
+                  'EKOFISK BLEND, STATOIL',
                   'EKOFISK, CITGO', 'EKOFISK, EXXON', 'EKOFISK, PHILLIPS',
                   'EKOFISK, STATOIL', 'ELDFISK', 'ELDFISK B',
                   'GLITNE, STATOIL', 'GOLIAT BLEND, STATOIL',
@@ -325,9 +325,6 @@ class OpenOil(OceanDrift):
         if self.oil_weathering_model == 'noaa':  # Currently the only option
             self.oiltypes = adios.get_oil_names(
                 location=kwargs.get('location', None))
-
-            # Update config with oiltypes
-            self.oiltypes.extend(adios.oil_name_alias.keys())
 
             # Sort alphabetically, but put GENERIC oils first
             generic_oiltypes = [o for o in self.oiltypes if o[0:7] == 'GENERIC']
@@ -1526,7 +1523,6 @@ class OpenOil(OceanDrift):
             self.__set_seed_config__('seed:oil_type', oiltype)
             logger.info(f'setting oil_type to: {oiltype}')
 
-        oiltype = adios.oil_name_alias.get(oiltype, oiltype)
         self.oil_name = oiltype
 
         if self.oil_weathering_model == 'noaa':
