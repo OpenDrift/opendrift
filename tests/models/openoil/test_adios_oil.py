@@ -15,7 +15,7 @@ def aasgard():
 def test_max_water_fraction():
     # Check that max water fraction is saturated to max values from Sintef model
     # Max water_fraction 0.317 for SST=0 from Sintef, for SST=10,20 from NOAA
-    for sst,expected_fraction in zip([0, 10, 20], [0.317, 0.443, 0.443]):
+    for sst,expected_fraction in zip([0, 5, 10, 15, 20], [0.62, 0.62, 0.673, 0.726, 0.726]):
         o = OpenOil(loglevel=50)
         o.set_config('environment:constant',
             {
@@ -27,8 +27,8 @@ def test_max_water_fraction():
             'land_binary_mask': 0
             })
         o.seed_elements(lon=3, lat=60, time=datetime.now(), number=100,
-                        oil_type='DUVA 2021')
-        o.run(duration=timedelta(hours=6))
+                        oil_type='BREIDABLIKK 2023')
+        o.run(duration=timedelta(hours=8))
         assert np.isclose(o.elements.water_fraction.max(), expected_fraction, atol=.001)
 
 def test_open_aasgard(aasgard):
@@ -40,7 +40,7 @@ def test_density_at_temp(aasgard):
 
 def test_kvis_at_temp(aasgard):
     # old oillibrary: 3.298187589355751e-05
-    assert np.isclose(aasgard.kvis_at_temp(285.), 3.29e-5)
+    assert np.isclose(aasgard.kvis_at_temp(285.), 3.402e-5)
 
 def test_mass_fraction(aasgard):
     assert np.isclose(aasgard.mass_fraction.sum(), 1.0)

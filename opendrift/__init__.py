@@ -125,16 +125,10 @@ def versions():
     import matplotlib
     import netCDF4
     import xarray
-    try:
-        import adios_db
-        adios_version = adios_db.__version__
-    except:
-        adios_version = ': Not installed'
-    try:
-        import copernicusmarine
-        copernicus_version = copernicusmarine.__version__
-    except:
-        copernicus_version = ': Not installed'
+    import adios_db
+    adios_version = adios_db.__version__
+    import copernicusmarine
+    copernicus_version = copernicusmarine.__version__
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'

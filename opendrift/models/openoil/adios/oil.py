@@ -76,6 +76,7 @@ class OpendriftOil:
         logger.debug(f'Parsing Oil: {self.id} / {self.name}')
         #self.oil = AdiosOil.from_py_json(data['attributes'])
         self.oil = AdiosOil.from_py_json(data)
+        self.oil.validate()
 
         if not self.oil.metadata.gnome_suitable:
             logger.error(f'{self.id} / {self.name}: is not GNOME suitable')
