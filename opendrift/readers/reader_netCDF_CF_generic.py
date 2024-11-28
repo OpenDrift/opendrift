@@ -173,7 +173,6 @@ class Reader(StructuredReader, BaseReader):
                 x = var_data*self.unitfactor
             if (axis == 'Y' or standard_name == 'projection_y_coordinate' or standard_name == 'grid_latitude') \
                     and var.ndim == 1:
-                self.yname = var_name
                 if len(var.dims)==1:
                     self.dimensions['y'] = var.dims[0]
                 # Fix for units; should ideally use udunits package
