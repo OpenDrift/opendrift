@@ -13,7 +13,7 @@ import numpy as np
 from PIL import ImageTk, Image
 import tkinter as tk
 from tkinter import ttk
-from importlib import resources
+from importlib_resources import files
 import opendrift
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
@@ -364,7 +364,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         self.set_model(list(self.opendrift_models)[0])
 
-        with resources.open_text('opendrift.scripts', 'data_sources.txt') as fd:
+        with open(files('opendrift.scripts').joinpath('data_sources.txt')) as fd:
             forcingfiles = fd.readlines()
 
         print(forcingfiles)
@@ -794,7 +794,7 @@ class OpenDriftGUI(tk.Tk):
                     nothing
             self.o.set_config(se, val)
 
-        with resources.path('opendrift.scripts', 'data_sources.txt') as f:
+        with files('opendrift.scripts').joinpath('data_sources.txt') as f:
             self.o.add_readers_from_file(f)
 
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
