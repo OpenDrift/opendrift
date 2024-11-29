@@ -14,9 +14,10 @@ def expand_numpy_array(data):
         logger.warning('Only NaNs, returning')
         return
     mask = ~np.isfinite(data)
-    data[mask] = np.finfo(np.float64).min
+    minval = np.finfo(data[mask].dtype).min
+    data[mask] = minval
     data[mask] = grey_dilation(data, size=3)[mask]
-    data[data==np.finfo(np.float64).min] = np.nan
+    data[data==minval] = np.nan
 
 
 ###########################
