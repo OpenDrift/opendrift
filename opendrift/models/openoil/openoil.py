@@ -79,13 +79,13 @@ After each wave breaking event, a new droplet diameter will be chosen based on t
 """
 
 from io import open
+from importlib_resources import files
 import numpy as np
 from datetime import datetime
 import pyproj
 import matplotlib.pyplot as plt
 import logging
 import json
-from importlib import resources
 
 logger = logging.getLogger(__name__)
 
@@ -684,8 +684,8 @@ class OpenOil(OceanDrift):
             logger.info('Oil-water surface tension is %f Nm' %
                         self.oil_water_interfacial_tension)
         try:
-            max_water_fractions = json.loads(
-                    resources.read_text('opendrift.models.openoil.adios', 'max_water_fraction.json'))
+            with open(files('opendrift.models.openoil.adios').joinpath('max_water_fraction.json')) as f:
+                max_water_fractions = json.loads(f.read())
             if self.oil_name in max_water_fractions:
                 self.max_water_fraction = max_water_fractions[self.oil_name]
                 T = self.max_water_fraction['temperatures']

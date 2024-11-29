@@ -4,6 +4,8 @@ from typing import List
 import pyproj
 import xarray as xr
 import numpy as np
+
+
 class Combine:
     """Combining two readers into a third one. You can use usual operators,
     but also more complex ones such as gaussian combining.
@@ -21,12 +23,18 @@ class Combine:
         else:
             return NotImplemented
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __mul__(self, other):
         from .numops import Combined as NumCombined
         if isinstance(other, Number):
             return NumCombined.mul(other, self)
         else:
             return NotImplemented
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
 
     def __truediv__(self, other):
         from .numops import Combined as NumCombined

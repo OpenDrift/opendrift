@@ -3,6 +3,7 @@ import requests
 import json
 import tarfile
 import lzma
+from importlib_resources import files
 from adios_db.models.oil.oil import Oil
 from adios_db.computation import gnome_oil
 
@@ -67,12 +68,10 @@ def download():
         json.dump(oils, c)
 
 def list_oils():
-    from importlib import resources
-    import lzma
-    with resources.open_binary('opendrift.models.openoil.adios',
-        'oils.xz') as archive:
-        with lzma.open(archive, 'rt') as c:
-            oils = json.load(c)
+    oil_file = files('opendrift.models.openoil.adios').joinpath('oils.xz')
+    with lzma.open(oil_file, 'rt') as archive:
+        oils = json.load(archive)
+
     print(oils)
     print(len(oils))
     for o in oils:
