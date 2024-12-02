@@ -338,11 +338,11 @@ class Leeway(OpenDriftSimulation):
         rdw = np.zeros(number)
         epsdw = np.zeros(number)
         for i in range(number):
-            rdw[i] = np.random.randn(1) # [0] reverted
+            rdw[i] = np.random.randn(1)[0]  # TODO1
             epsdw[i] = rdw[i] * dwstd
             # Avoid negative downwind slopes
             while downwind_slope[i] + epsdw[i] / 20.0 < 0.0:
-                rdw[i] = np.random.randn(1)[0]
+                rdw[i] = np.random.randn(1)[0]  # TODO2
                 epsdw[i] = rdw[i] * dwstd
         downwind_eps = epsdw
         # NB
