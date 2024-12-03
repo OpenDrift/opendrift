@@ -45,7 +45,7 @@ def test_reader_center(test_data):
     print(r)
     print(r.center())
 
-    assert r.center() == (4.717652840595962, 60.60320266262212)
+    assert r.center() == pytest.approx((4.717652840595962, 60.60320266262212))
 
 def test_timeseries_at_position():
     o = OceanDrift()
