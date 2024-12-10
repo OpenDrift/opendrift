@@ -26,3 +26,7 @@ def test_get_variables(benchmark, test_data):
 
     assert u.shape == (2 * r.buffer , 2 * r.buffer)
 
+def test_clean_up(test_data):
+    import glob
+    for f in glob.glob(os.path.join(test_data, caps1) + '*idx'):
+        os.remove(f)

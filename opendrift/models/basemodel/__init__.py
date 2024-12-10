@@ -703,8 +703,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
                     (self.environment.land_binary_mask == 1) &
-                    (self.elements.age_seconds
-                     == self.time_step.total_seconds()),
+                    (self.elements.age_seconds == 0),
                     reason='seeded_on_land')
             on_land = np.where(self.environment.land_binary_mask == 1)[0]
             if len(on_land) == 0:
@@ -2027,8 +2026,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                         self.time = self.time + self.time_step
                     continue
 
-                self.increase_age_and_retire()
-
                 self.interact_with_seafloor()
 
                 if self.show_continuous_performance is True:
@@ -2090,6 +2087,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 self.deactivate_elements(missing, reason='missing_data')
 
                 self.state_to_buffer()  # Append status to history array
+
+                self.increase_age_and_retire()
 
                 self.remove_deactivated_elements()
 
@@ -4095,6 +4094,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         nc.createDimension('lat', len(lat_array))
         nc.createDimension('time', H.shape[0])
         times = self.get_time_array()[0]
+        if times[1] < times[0]:  # Revert for backward runs so that time is increasing
+            times = times[::-1]
+            H = np.flip(H, axis=0)
+            H_submerged = np.flip(H_submerged, axis=0)
+            H_stranded = np.flip(H_stranded, axis=0)
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time', ))
         nc.variables['time'][:] = date2num(times, timestr)

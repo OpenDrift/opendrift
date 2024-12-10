@@ -136,7 +136,10 @@ class Reader(StructuredReader, BaseReader):
                         ' ' + str(var.attrs)))
                     try:  # parse proj4 with pyproj.CRS
                         crs = pyproj.CRS.from_cf(var.attrs)
-                        self.proj4 = crs.to_proj4()
+                        import warnings
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            self.proj4 = crs.to_proj4()
                     except:
                         logger.info('Could not parse CF grid_mapping')
                 if self.proj4 is None:
@@ -173,7 +176,6 @@ class Reader(StructuredReader, BaseReader):
                 x = var_data*self.unitfactor
             if (axis == 'Y' or standard_name == 'projection_y_coordinate' or standard_name == 'grid_latitude') \
                     and var.ndim == 1:
-                self.yname = var_name
                 if len(var.dims)==1:
                     self.dimensions['y'] = var.dims[0]
                 # Fix for units; should ideally use udunits package
@@ -225,7 +227,7 @@ class Reader(StructuredReader, BaseReader):
                     self.time_step = None
             if standard_name == 'realization':
                 if ensemble_member == None:
-                    var_data = var.values
+                    var_data = np.atleast_1d(var.values)
                     self.realizations = var_data
                     logger.debug('%i ensemble members available'
                                 % len(self.realizations))

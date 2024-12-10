@@ -14,7 +14,8 @@
 #
 # Copyright 2021, Gaute Hope, MET Norway
 
-from importlib import resources
+#from importlib import resources
+from importlib_resources import files
 from pathlib import Path
 import logging
 import json
@@ -22,7 +23,6 @@ import itertools
 from functools import lru_cache
 from adios_db.models.oil.oil import Oil as AdiosOil
 from adios_db.computation import gnome_oil
-
 
 from .oil import OpendriftOil
 
@@ -35,31 +35,26 @@ def __get_archive__():
 
     oils = []
 
-    with resources.open_binary('opendrift.models.openoil.adios',
-                               'oils.xz') as archive:
-        with lzma.open(archive, 'rt') as c:
-            oils = json.load(c)
+    oil_file = files('opendrift.models.openoil.adios').joinpath('oils.xz')
+    with lzma.open(oil_file, 'rt') as archive:
+        oils = json.load(archive)
 
     # Add additional oils
-    for f in resources.contents('opendrift.models.openoil.adios.extra_oils'):
-        if Path(f).suffix == '.json':
-            o = json.loads(resources.read_text('opendrift.models.openoil.adios.extra_oils', f))
-            #o = { 'data': { 'attributes' : o } }
-            #o['data']['_id'] = o['data']['attributes']['oil_id']
-            #o['data']['attributes']['metadata']['location'] = 'NORWAY'
-            o['metadata']['location'] = 'NORWAY'
-            #logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
-            oils.append(o)
+    #for f in resources.contents('opendrift.models.openoil.adios.extra_oils'):
+    #    if Path(f).suffix == '.json':
+    #        o = json.loads(resources.read_text('opendrift.models.openoil.adios.extra_oils', f))
+    #        #logger.debug(f"Adding additional oil: {f}..: {o['data']['_id']}, {o['data']['attributes']['metadata']['name']}")
+    #        oils.append(o)
 
     for o in oils:
         # For Norwegian oils, we add year to the name
         if o['oil_id'][0:2] == 'NO':
             yearstring = str(o['metadata']['reference']['year'])
             # Override with sample_date, if available
-            if 'sample_data' in o['metadata']:
+            if 'sample_date' in o['metadata']:
                 sd = o['metadata']['sample_date']
                 if sd.isnumeric():
-                    yearstring = sample_date
+                    yearstring = sd
                 elif sd[0:4].isnumeric():
                     yearstring = sd[0:4]
                 else:
@@ -73,8 +68,9 @@ def get_oil_names(location=None):
     a = __get_archive__()
 
     if location is not None:
-        a = [o for o in a if 'location' in o['metadata']
-                and o['metadata']['location'].lower() == location.lower()]
+        a = [o for o in a if
+             o['oil_id'][0:4] == 'AD04' or
+             ('location' in o['metadata'] and o['metadata']['location'].lower() == location.lower())]
 
     return [o['metadata']['name'] for o in a]
 

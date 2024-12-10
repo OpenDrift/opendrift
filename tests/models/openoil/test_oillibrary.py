@@ -31,7 +31,7 @@ def test_new_oil():
     o = OpenOil(loglevel=50, location='Norway')
     oiltypes = o._config['seed:oil_type']['enum']
     assert 'HEIDRUN AARE 2023' in oiltypes
-    assert len(oiltypes) >= 179
+    assert len(oiltypes) >= 178
 
 def test_oils():
     o = OpenOil(loglevel=50, weathering_model='noaa')
@@ -169,9 +169,9 @@ def test_dispersion():
                 meanlon = 4.816
             elif oil == 'SKRUGARD' and windspeed == 8:
                 fraction_dispersed = 0.139
-                fraction_submerged = 0.418
+                fraction_submerged = 0.471
                 fraction_evaporated = 0.123
-                meanlon = 4.825
+                meanlon = 4.819
             else:
                 fraction_dispersed = -1  # not defined
 
@@ -203,7 +203,7 @@ def test_no_dispersion():
     b = o.get_oil_budget()
     actual_dispersed = b['mass_dispersed'] / b['mass_total']
     np.testing.assert_almost_equal(actual_dispersed[-1], 0)
-    np.testing.assert_array_almost_equal(o.elements.lon[4:7], [4.816, 4.797, 4.803], 3)
+    np.testing.assert_array_almost_equal(o.elements.lon[4:7], [4.804, 4.802, 4.80], 3)
 
 
 def test_biodegradation():

@@ -94,7 +94,7 @@ class ParseOilPDF(tk.Tk):
         if not os.path.exists(b+'.zip'):
             print('Parsing %s, this may take some minutes...' % f)
             import camelot.io as camelot
-            tables = camelot.read_pdf(f, pages='all', backend='poppler')
+            tables = camelot.read_pdf(f, pages='all', backend='ghostscript')  # or 'poppler'
             print('Total tables extracted: %s\n' % tables.n)
             tables.export(b+'.csv', f='csv', compress=True)
 
@@ -139,17 +139,21 @@ class ParseOilPDF(tk.Tk):
             if df.iloc[:, 1:].isnull().all().all():
                 print('Skipping empty table\n')
                 continue  # Do not print empty tables
-            if len(df.columns) not in [2, 5]:
+            if len(df.columns) not in [2, 3, 5]:
                 print('Skipping table without 2 or 5 columns\n')
                 continue
 
             color='lightgray'
-            if len(df.columns) == 2:
+            if len(df.columns) == 2 or len(df.columns) == 3:
+                if len(df.columns) == 3 and 'temp' in df.columns[0].lower():
+                    print(df.columns, 'COLS')
                 if 'temp' in df.columns[0].lower() and (
                         'vol' in df.columns[0].lower() or 'vol' in df.columns[1].lower()):
                     parent = cuts
                     width=60
                 else:
+                    if len(df.columns) == 3:
+                        continue
                     parent = properties
                     width=60
             elif len(df.columns) == 5:
