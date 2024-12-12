@@ -368,15 +368,6 @@ class OceanDrift(OpenDriftSimulation):
         #logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
         self.update_positions(x_vel, y_vel)
 
-    def disable_vertical_motion(self):
-        """Deactivate any vertical processes/advection"""
-        conf = {
-                'drift:vertical_advection': False,
-                'drift:vertical_mixing': False}
-        for co, va in conf.items():
-            logger.info('Setting config: %s -> %s' % (co, va))
-            self.set_config(co, va)
-
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
                                  z_index=None):
         """Calculate terminal velocity due to bouyancy from own properties
