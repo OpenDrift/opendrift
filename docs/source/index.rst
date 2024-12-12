@@ -68,7 +68,6 @@ Running a simulation can be as simple as:
    >>> o = OceanDrift()
    >>> o.add_readers_from_list(
    >>>     ['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
-   >>> o.disable_vertical_motion()
    >>> o.seed_elements(lon=4.85, lat=60, time=datetime.now(), number=10000, radius=1000)
    >>>
    >>> o.run(duration=timedelta(hours=24))

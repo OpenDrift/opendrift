@@ -20,9 +20,6 @@ o.add_readers_from_list([
 o.set_config('processes:dispersion', True)
 o.set_config('processes:evaporation', False)
 o.set_config('processes:emulsification', True)
-o.disable_vertical_motion()
-#o.set_config('drift:vertical_mixing', False)
-#o.set_config('drift:vertical_mixing', False)
 
 #%%
 # Seed elements along cone, e.g. ship track with
