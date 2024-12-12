@@ -2574,6 +2574,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   density=False,
                   show_elements=True,
                   show_trajectories=False,
+                  linewidth=1,
                   trajectory_alpha=.1,
                   hide_landmask=False,
                   density_pixelsize_m=1000,
@@ -2758,7 +2759,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             y[z < 0] = np.nan
 
         if show_trajectories is True:
-            ax.plot(x, y, color='gray', alpha=trajectory_alpha, transform=gcrs)
+            ax.plot(x, y, color='gray', alpha=trajectory_alpha, transform=gcrs, linewidth=linewidth)
 
         if color is not False and show_elements is True:
             if isinstance(color, str):
