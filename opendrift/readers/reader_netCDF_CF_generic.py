@@ -21,8 +21,10 @@ from netCDF4 import num2date
 import logging
 logger = logging.getLogger(__name__)
 
-from opendrift.readers.basereader import BaseReader, StructuredReader
+import pandas as pd
 import xarray as xr
+from opendrift.readers.basereader import BaseReader, StructuredReader
+from opendrift.readers import open_dataset_opendrift
 
 
 class Reader(StructuredReader, BaseReader):
@@ -72,44 +74,51 @@ class Reader(StructuredReader, BaseReader):
     def __init__(self, filename=None, zarr_storage_options=None, name=None, proj4=None,
                  standard_name_mapping={}, ensemble_member=None):
 
-        if isinstance(filename, xr.Dataset):
-            self.Dataset = filename
-            if name is not None:
-                self.name = name
-            elif hasattr(self.Dataset, 'name'):
-                self.name = self.Dataset.name
-            else:
-                self.name = str(filename)
+        #if isinstance(filename, xr.Dataset):
+        #    self.Dataset = filename
+        #    if name is not None:
+        #        self.name = name
+        #    elif hasattr(self.Dataset, 'name'):
+        #        self.name = self.Dataset.name
+        #    else:
+        #        self.name = str(filename)
+        #else:
+        #    if zarr_storage_options is not None:
+        #        self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
+        #        if name is None:
+        #            self.name = filename
+        #        else:
+        #            self.name = name
+        #    else:
+        #        if filename is None:
+        #            raise ValueError('Need filename as argument to constructor')
+
+        #        filestr = str(filename)
+        #        if name is None:
+        #            self.name = filestr
+        #        else:
+        #            self.name = name
+
+        #        try:
+        #            # Open file, check that everything is ok
+        #            logger.info('Opening dataset: ' + filestr)
+        #            if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+        #                logger.info('Opening files with MFDataset')
+        #                self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
+        #                                                chunks={'time': 1}, decode_times=False)
+        #            elif ensemble_member is not None:
+        #                self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
+        #            else:
+        #                self.Dataset = xr.open_dataset(filename, decode_times=False)
+        #        except Exception as e:
+        #            raise ValueError(e)
+
+        self.Dataset = open_dataset_opendrift(source=filename, zarr_storage_options=zarr_storage_options)
+
+        if name is None:
+            self.name = str(filename)
         else:
-            if zarr_storage_options is not None:
-                self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
-                if name is None:
-                    self.name = filename
-                else:
-                    self.name = name
-            else:
-                if filename is None:
-                    raise ValueError('Need filename as argument to constructor')
-
-                filestr = str(filename)
-                if name is None:
-                    self.name = filestr
-                else:
-                    self.name = name
-
-                try:
-                    # Open file, check that everything is ok
-                    logger.info('Opening dataset: ' + filestr)
-                    if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                        logger.info('Opening files with MFDataset')
-                        self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
-                                                        chunks={'time': 1}, decode_times=False)
-                    elif ensemble_member is not None:
-                        self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
-                    else:
-                        self.Dataset = xr.open_dataset(filename, decode_times=False)
-                except Exception as e:
-                    raise ValueError(e)
+            self.name = name
 
         # NB: check below might not be waterproof
         if 'ocean_time' in self.Dataset.dims and 'eta_u' in self.Dataset.dims and \
@@ -197,28 +206,29 @@ class Reader(StructuredReader, BaseReader):
                         self.z = -var_data
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
-                var_data = var.values
-                time = var_data
-                time_units = units
+                #var_data = var.values
+                #time = var_data
+                #time_units = units
                 if len(var.dims)==1:
                     self.dimensions['time'] = var.dims[0]
 
-                if isinstance(time[0], np.bytes_):
-                    # This hack is probably only necessary for CERSAT/GELOBCURRENT
-                    time = [t.decode('ascii') for t in time]
-                    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
-                elif time.ndim == 2:
-                    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
-                else:
-                    if 'calendar' in var.attrs:
-                        calendar = var.attrs['calendar']
-                    else:
-                        calendar = 'standard'
-                    if np.issubdtype(var.dtype, np.datetime64):
-                        import pandas as pd
-                        self.times = [pd.to_datetime(str(d)) for d in time]
-                    else:
-                        self.times = num2date(time, time_units, calendar=calendar)
+                #if isinstance(time[0], np.bytes_):
+                #    # This hack is probably only necessary for CERSAT/GELOBCURRENT
+                #    time = [t.decode('ascii') for t in time]
+                #    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
+                #elif time.ndim == 2:
+                #    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
+                #else:
+                #    if 'calendar' in var.attrs:
+                #        calendar = var.attrs['calendar']
+                #    else:
+                #        calendar = 'standard'
+                #    if np.issubdtype(var.dtype, np.datetime64):
+                #        import pandas as pd
+                #        self.times = [pd.to_datetime(str(d)) for d in time]
+                #    else:
+                #        self.times = num2date(time, time_units, calendar=calendar)
+                self.times = pd.to_datetime(var).to_pydatetime()
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
