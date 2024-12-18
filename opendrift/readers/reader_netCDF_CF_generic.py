@@ -438,7 +438,7 @@ class Reader(StructuredReader, BaseReader):
             uniqx = np.unique(indx)
             diff_xind = np.diff(uniqx)
             # We split if >800 pixels between left/west and right/east blocks
-            if diff_xind.max() > np.minimum(800, 0.6*self.numx):
+            if len(diff_xind)>1 and diff_xind.max() > np.minimum(800, 0.6*self.numx):
                 logger.debug('Requested data block crosses lon-border, reading and concatinating two parts')
                 split = True
                 splitind = np.argmax(diff_xind)
