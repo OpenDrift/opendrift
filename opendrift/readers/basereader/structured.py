@@ -283,7 +283,8 @@ class StructuredReader(Variables):
                 )
             self.var_block_before[blockvars_before] = \
                 ReaderBlock(reader_data_dict,
-                            interpolation_horizontal=self.interpolation)
+                            interpolation_horizontal=self.interpolation,
+                            wrap_x=self.global_coverage())
             try:
                 len_z = len(self.var_block_before[blockvars_before].z)
             except:
@@ -304,7 +305,8 @@ class StructuredReader(Variables):
                 self.var_block_after[blockvars_after] = \
                     ReaderBlock(
                         reader_data_dict,
-                        interpolation_horizontal=self.interpolation)
+                        interpolation_horizontal=self.interpolation,
+                        wrap_x=self.global_coverage())
                 try:
                     len_z = len(self.var_block_after[blockvars_after].z)
                 except:

@@ -69,7 +69,16 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
 
     return ds
 
-
+def datetime_from_variable(var):
+    import pandas as pd
+    try:
+        return pd.to_datetime(var).to_pydatetime()
+    except:
+        logger.warning('Could not decode time with Pandas')
+        datetimeindex = var.to_index().to_datetimeindex()
+        times = pd.to_datetime(datetimeindex).to_pydatetime()
+        logger.info('Decoded time through datetimeindex')
+        return times
 
 def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time=None, freq=None, timedim='time'):
     if time_series is None:
