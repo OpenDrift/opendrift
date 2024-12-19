@@ -1,8 +1,62 @@
+import sys
+import logging
 from datetime import datetime, timedelta
 from opendrift.readers import reader_global_landmask
 from opendrift.models.leeway import Leeway
+from opendrift.models.oceandrift import OceanDrift
 import numpy as np
 import pytest
+
+def test_logging(tmpdir, capsys):
+
+    # Logging to console
+    logfile = None
+    o = OceanDrift(loglevel=0, logfile=logfile)
+    o.set_config('environment:fallback:x_wind', 1.5)
+    o.set_config('environment:fallback:y_wind', 10)
+    o.set_config('environment:fallback:x_sea_water_velocity', .5)
+    o.set_config('environment:fallback:y_sea_water_velocity', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime(2025, 1, 1))
+    o.run(steps=3, time_step=600, time_step_output=600)
+        
+    stdout, stderr = capsys.readouterr()
+    assert 'step 3 of 3 - 5 active elements (0 deactivated)' in stderr
+    assert 'Changed mode from Mode.Run to Mode.Result' in stderr
+    assert len(stderr.splitlines()) in (285, 288)  # Depending on from where pytest is run
+
+    # Logging to file
+    logfile = tmpdir+'/test_log.txt'
+    o = OceanDrift(loglevel=0, logfile=logfile)
+    o.set_config('environment:fallback:x_wind', 1.5)
+    o.set_config('environment:fallback:y_wind', 10)
+    o.set_config('environment:fallback:x_sea_water_velocity', .5)
+    o.set_config('environment:fallback:y_sea_water_velocity', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime(2025, 1, 1))
+    o.run(steps=3, time_step=600, time_step_output=600)
+    log = open(logfile).read()
+    assert 'step 3 of 3 - 5 active elements (0 deactivated)' in log
+    assert 'Changed mode from Mode.Run to Mode.Result' in log
+    assert len(log.splitlines()) == 285
+
+    # Logging to both file and terminal
+    logfile = [tmpdir+'/test_log2.txt', logging.StreamHandler(sys.stdout)]
+    o = OceanDrift(loglevel=0, logfile=logfile)
+    o.set_config('environment:fallback:x_wind', 1.5)
+    o.set_config('environment:fallback:y_wind', 10)
+    o.set_config('environment:fallback:x_sea_water_velocity', .5)
+    o.set_config('environment:fallback:y_sea_water_velocity', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime(2025, 1, 1))
+    o.run(steps=3, time_step=600, time_step_output=600)
+    log = open(logfile[0]).read()
+    assert 'step 3 of 3 - 5 active elements (0 deactivated)' in log
+    assert 'Changed mode from Mode.Run to Mode.Result' in log
+    stdout, stderr = capsys.readouterr()
+    assert 'step 3 of 3 - 5 active elements (0 deactivated)' in stdout
+    assert 'Changed mode from Mode.Run to Mode.Result' in stdout
+    assert len(stdout.splitlines()) in (285, 287)
+    assert len(log.splitlines()) == 285
+    assert stderr != log  # Since times are different
+
 
 def test_simulation_back_extent():
     # backward
