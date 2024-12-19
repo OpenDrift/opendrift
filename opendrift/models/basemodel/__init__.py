@@ -15,20 +15,20 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 # Copyright 2020, Gaute Hope, MET Norway
 
+import logging
+logging.captureWarnings(True)
+logger = logging.getLogger(__name__)
 import sys
 import os
 import types
 from typing import Union, List
 import traceback
 import inspect
-import logging
 import psutil
 
 from opendrift.models.basemodel.environment import Environment
 from opendrift.readers import reader_global_landmask
 
-logging.captureWarnings(True)
-logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 from abc import ABCMeta, abstractmethod, abstractproperty
 
@@ -201,7 +201,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                  seed=0,
                  iomodule='netcdf',
                  loglevel=logging.DEBUG,
-                 logtime='%H:%M:%S',
                  logfile=None):
         """Initialise OpenDriftSimulation
 
@@ -218,10 +217,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 `iomodule` is module/filename without preceeding `io_`
             loglevel: set to 0 (default) to retrieve all debug information.
                 Provide a higher value (e.g. 20) to receive less output.
-                Use the string 'custom' to configure logging from outside.
             logtime: if True, a time stamp is given for each logging line.
                      logtime can also be given as a python time specifier
                      (e.g. '%H:%M:%S')
+            logfile:
+                None (default) to send output to console.
+                A string to send output to logfile.
+                Or to get output to both terminal and file:
+                    [<filename.log>, logging.StreamHandler(sys.stdout)]
         """
 
         super().__init__()
@@ -262,41 +265,34 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
 
-        if loglevel != 'custom':
-            format = '%(levelname)-7s %(name)s:%(lineno)d: %(message)s'
-            datefmt = None
-            if logtime is not False:
-                format = '%(asctime)s ' + format
-                if logtime is not True:
-                    datefmt = logtime
-            formatter = logging.Formatter(format, datefmt=datefmt)
+        # Set up logging
+        logformat = '%(asctime)s %(levelname)-7s %(name)s:%(lineno)d: %(message)s'
+        datefmt = '%H:%M:%S'
 
-            if loglevel < 10:  # 0 is NOTSET, giving no output
-                loglevel = 10
+        if loglevel < 10:  # 0 is NOTSET, giving no output
+            loglevel = 10
+        loggerConf = logging.getLogger('opendrift')
+        loggerConf.setLevel(loglevel)
 
-            od_loggers = [
-                logging.getLogger('opendrift'),
-            ]
+        if logfile is not None:
+            if not isinstance(logfile, list):
+                logfile = [logfile]
+            for lh in logfile:
+                if not isinstance(lh, logging.Logger) and not isinstance(lh, logging.StreamHandler):
+                    lh = logging.FileHandler(lh)
+                lh.setLevel(loglevel)
+                lh.setFormatter(logging.Formatter(logformat, datefmt))
+                loggerConf.addHandler(lh)
+        else:  # logging only to console, with colors
+            import coloredlogs
+            fields = coloredlogs.DEFAULT_FIELD_STYLES
+            fields['levelname']['color'] = 'magenta'
 
-            if logfile is not None:
-                handler = logging.FileHandler(logfile, mode='w')
-                handler.setFormatter(formatter)
-                for l in od_loggers:
-                    l.setLevel(loglevel)
-                    l.handlers = []
-                    l.addHandler(handler)
-            else:
-                import coloredlogs
-                fields = coloredlogs.DEFAULT_FIELD_STYLES
-                fields['levelname']['color'] = 'magenta'
-
-                # coloredlogs does not create duplicate handlers
-                for l in od_loggers:
-                    coloredlogs.install(level=loglevel,
-                                        logger=l,
-                                        fmt=format,
-                                        datefmt=datefmt,
-                                        field_styles=fields)
+            # coloredlogs does not create duplicate handlers
+            coloredlogs.install(level=loglevel,
+                                fmt=logformat,
+                                datefmt=datefmt,
+                                field_styles=fields)
 
         # Prepare outfile
         try:
@@ -924,7 +920,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             reader_landmask = reader_global_landmask.Reader()
             seed_state = np.random.get_state(
             )  # Do not alter current random number generator
-            o = OceanDrift(loglevel='custom')
+            o = OceanDrift()
             np.random.set_state(seed_state)
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
@@ -3189,7 +3185,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if compare is not None:
             if type(compare) is str:
                 # Other is given as filename
-                other = self.__class__(loglevel=0)
+                other = self.__class__()
                 other.io_import_file(compare)
             else:
                 # Other is given as an OpenDrift object
@@ -3264,7 +3260,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             cd = compare_list[cn]  # pointer to dict with data
             if type(comp) is str:
                 # Other is given as filename
-                other = self.__class__(loglevel=0)
+                other = self.__class__()
                 other.io_import_file(comp)
             else:
                 # Other is given as an OpenDrift object
