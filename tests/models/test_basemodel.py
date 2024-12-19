@@ -53,7 +53,7 @@ def test_logging(tmpdir, capsys):
     stdout, stderr = capsys.readouterr()
     assert 'step 3 of 3 - 5 active elements (0 deactivated)' in stdout
     assert 'Changed mode from Mode.Run to Mode.Result' in stdout
-    assert len(stdout.splitlines()) == in(285, 287)
+    assert len(stdout.splitlines()) in (285, 287)
     assert len(log.splitlines()) == 285
     assert stderr != log  # Since times are different
 
