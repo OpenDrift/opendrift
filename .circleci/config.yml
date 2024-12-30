@@ -99,7 +99,7 @@ commands:
 
 test-template: &test-template
   docker:
-    - image: condaforge/mambaforge
+    - image: condaforge/miniforge
   resource_class: medium+
   steps:
     - checkout
@@ -114,7 +114,7 @@ test-template: &test-template
 jobs:
   build_package:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge
     environment:
       - PYTHON_VERSION=3.11
 
@@ -142,7 +142,7 @@ jobs:
 
   publish_package:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge
     environment:
       - PYTHON_VERSION=3.11
 
@@ -194,7 +194,7 @@ jobs:
 
   docs-build-examples:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge
     parallelism: 20
     steps:
       - checkout
@@ -291,7 +291,7 @@ jobs:
 
   docs-build:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge
     steps:
       - checkout
 
