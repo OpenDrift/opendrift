@@ -294,6 +294,8 @@ jobs:
   docs-build:
     docker:
       - image: condaforge/miniforge3
+    environment:
+      - PYTHON_VERSION=3.11  # 3.12 still not working due to locked netCDF
     steps:
       - checkout
 
