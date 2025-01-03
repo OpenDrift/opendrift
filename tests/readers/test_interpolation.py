@@ -104,7 +104,6 @@ class TestInterpolation(unittest.TestCase):
         o.add_readers_from_list([fc, fw])
         o.seed_elements(lon=[-175, 175], lat=[60, 60], time=start_time, wind_drift_factor=.1)
         o.run(steps=2)
-        #o.plot(fast=True)
         # Check that current give convergence, and that
         # wind is northwards east of 180 and southwards to the west
         np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
@@ -115,7 +114,6 @@ class TestInterpolation(unittest.TestCase):
         o.add_readers_from_list([fc, fw2])
         o.seed_elements(lon=[-175, 175], lat=[60, 60], time=start_time, wind_drift_factor=.1)
         o.run(steps=2)
-        #o.plot(fast=True)
         # Check that current give convergence, and that
         # wind is northwards east of 180 and southwards to the west
         np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
