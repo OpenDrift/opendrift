@@ -110,6 +110,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
 
             lons = np.arange(lonmin, lonmax, dlon)
             lats = np.arange(latmin, latmax, dlat)
+            lats, lons = np.meshgrid(lats, lons)
 
             extent=[lonmin, lonmax, latmin, latmax]
             transform = crs_lonlat
