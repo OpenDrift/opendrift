@@ -129,7 +129,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
     else:
         land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=crs_lonlat.globe, levels=[1,5,6])
 
-        ax.add_feature(land, zorder=2,
+        ax.add_feature(land, zorder=0,
                        facecolor=land_color,
                        edgecolor='black')
 
