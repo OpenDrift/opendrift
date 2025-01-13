@@ -127,6 +127,22 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
     if fast:
         show_landmask_roaring(get_mask())
     else:
+        if latmax-latmin < 2 and lonmax-lonmin < 2:
+            # Check first if there is land at all within map bounds
+            roaring = get_mask()
+            maxn = 512.
+            dlon = (lonmax - lonmin) / maxn
+            dlat = (latmax - latmin) / maxn
+            dlon = max(roaring.dx, dlon)
+            dlat = max(roaring.dy, dlat)
+            lons = np.arange(lonmin, lonmax, dlon)
+            lats = np.arange(latmin, latmax, dlat)
+            lats, lons = np.meshgrid(lats, lons)
+            img = roaring.mask.contains_many(lons.ravel(), lats.ravel()).reshape(lons.shape).T
+            if not img.any():
+                logger.debug('No raster land within plot area, skipping plotting of GSHHG vectors')
+                return
+
         land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=crs_lonlat.globe, levels=[1,5,6])
 
         ax.add_feature(land, zorder=0,
