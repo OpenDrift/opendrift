@@ -78,34 +78,58 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         logger.debug(f"Adding GSHHG shapes from cartopy, scale: {scale}, extent: {extent}..")
         return super().intersecting_geometries(extent)
 
-def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', globe=None):
+def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', crs_plot=None, crs_lonlat=None):
     """
     Plot the landmask or the shapes from GSHHG.
     """
     def show_landmask_roaring(roaring):
         maxn = 512.
-        dx = (lonmax - lonmin) / maxn
-        dy = (latmax - latmin) / maxn
-        dx = max(roaring.dx, dx)
-        dy = max(roaring.dy, dy)
 
-        x = np.arange(lonmin, lonmax, dx)
-        y = np.arange(latmin, latmax, dy)
+        if crs_plot is not None and crs_lonlat is not None:
+            # Make transformer and convert lon,lat to Mercator x,y
+            transformer = pyproj.Transformer.from_crs(crs_lonlat, crs_plot)
+            xmin, ymin = transformer.transform(lonmin, latmin)
+            xmax, ymax = transformer.transform(lonmax, latmax)
+            dx = (xmax-xmin) / maxn
+            dy = (ymax-ymin) / maxn
+            dx = max(roaring.dx, dx)
+            dy = max(roaring.dy, dy)
 
-        yy, xx = np.meshgrid(y, x)
-        img = roaring.mask.contains_many(xx.ravel(), yy.ravel()).reshape(yy.shape).T
+            x = np.arange(xmin, xmax, dx)
+            y = np.arange(ymin, ymax, dy)
+            yy, xx = np.meshgrid(y, x)
+            lons, lats = transformer.transform(xx, yy, direction='inverse')
+
+            extent=[xmin, xmax, ymin, ymax]
+            transform = crs_plot
+        else:
+            dlon = (lonmax - lonmin) / maxn
+            dlat = (latmax - latmin) / maxn
+            dlon = max(roaring.dx, dlon)
+            dlat = max(roaring.dy, dlat)
+
+            lons = np.arange(lonmin, lonmax, dlon)
+            lats = np.arange(latmin, latmax, dlat)
+            lats, lons = np.meshgrid(lats, lons)
+
+            extent=[lonmin, lonmax, latmin, latmax]
+            transform = crs_lonlat
+
+        img = roaring.mask.contains_many(lons.ravel(), lats.ravel()).reshape(lons.shape).T
 
         from matplotlib import colors
         cmap = colors.ListedColormap([ocean_color, land_color])
-        ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
-                  zorder=0,
-                    transform=ccrs.PlateCarree(globe=globe), cmap=cmap)
+
+        ax.imshow(img, origin = 'lower',
+                  extent=extent, zorder=0, cmap=cmap,
+                  transform=transform)
+
     if fast:
         show_landmask_roaring(get_mask())
     else:
-        land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=globe, levels=[1,5,6])
+        land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=crs_lonlat.globe, levels=[1,5,6])
 
-        ax.add_feature(land, zorder=2,
+        ax.add_feature(land, zorder=0,
                        facecolor=land_color,
                        edgecolor='black')
 
