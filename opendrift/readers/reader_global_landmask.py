@@ -22,7 +22,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.io.shapereader as shapereader
 import shapely.geometry as sgeom
-from shapely import wkb
+from shapely import wkb, clip_by_rect
 import logging
 import roaring_landmask
 
@@ -88,7 +88,10 @@ class LandmaskFeature(cfeature.GSHHSFeature):
                     geoms = tuple(shapereader.Reader(path).geometries())
 
                 # Unlike Caropy.GSHHSFeature, we clip the polygons to plot extent
-                geoms = [g.intersection(extent_geom) for g in geoms if g.intersects(extent_geom)]
+                #geoms = [g.intersection(extent_geom) for g in geoms if g.intersects(extent_geom)]
+                delta = .1  # Adding small delta to avoid segments along map borders
+                geoms = [clip_by_rect(g, extent[0]-delta, extent[2]-delta, extent[1]+delta, extent[3]+delta)
+                         for g in geoms if g.intersects(extent_geom)]
 
                 # Due to the above, the cache is also depending on extent
                 # Note: if plotting several extents within same session, it would be benefitial
@@ -97,6 +100,9 @@ class LandmaskFeature(cfeature.GSHHSFeature):
 
             for geom in geoms:
                 yield geom
+
+            if scale in ['f', 'full']:
+                return  # Only a single (combined) level with full resolution troaring_landmask
 
         # # If scale is full use the geometries from roaring landmask, otherwise
         # # fall back to Cartopy provider.
