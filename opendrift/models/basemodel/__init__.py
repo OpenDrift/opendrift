@@ -2509,8 +2509,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                                  crs_plot=self.crs_plot,
                                                  crs_lonlat=self.crs_lonlat)
 
-        fig.canvas.draw()
-        fig.set_layout_engine('tight')
+        #fig.canvas.draw()
+        #fig.set_layout_engine('tight')
 
         if not hasattr(self, 'ds'):
             try:

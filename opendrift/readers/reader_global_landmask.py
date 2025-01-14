@@ -20,7 +20,11 @@ import pyproj
 import numpy as np
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import cartopy.io.shapereader as shapereader
+import shapely.geometry as sgeom
+from shapely import wkb
 import logging
+import roaring_landmask
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +56,47 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         self.intersecting_geometries(extent=None)
 
     def intersecting_geometries(self, extent):
-        global __polys__
 
         if self._scale == 'auto':
             scale = self._scale_from_extent(extent)
         else:
             scale = self._scale[0]
+
+        if extent is not None:
+            extent_geom = sgeom.box(extent[0], extent[2],
+                                    extent[1], extent[3])
+        for level in self._levels:
+            geoms = cfeature.GSHHSFeature._geometries_cache.get((scale, level, extent_geom))
+            if geoms is None:
+                if scale in ['f', 'full']: # Getting fullres polygons from roaring_landmask
+                    geoms = cfeature.GSHHSFeature._geometries_cache.get('ROARING')
+                    if geoms is None:
+                        logger.debug('Getting fullres shapes from roaring landmask')
+                        provider = roaring_landmask.LandmaskProvider.Gshhg
+                        shapes = roaring_landmask.Shapes.new(provider)
+                        polys = roaring_landmask.Shapes.wkb(provider)
+                        __polys__ = wkb.loads(polys)
+                        geoms = __polys__.geoms
+                        cfeature.GSHHSFeature._geometries_cache['ROARING'] = geoms
+                    else:
+                        logger.debug('Getting fullres shapes from roaring landmask cache')
+                else:
+                    logger.debug('Loading shapes with Cartopy shapereader...')
+                    # Load GSHHS geometries from appropriate shape file.
+                    # TODO selective load based on bbox of each geom in file.
+                    path = shapereader.gshhs(scale, level)
+                    geoms = tuple(shapereader.Reader(path).geometries())
+
+                # Unlike Caropy.GSHHSFeature, we clip the polygons to plot extent
+                geoms = [g.intersection(extent_geom) for g in geoms if g.intersects(extent_geom)]
+
+                # Due to the above, the cache is also depending on extent
+                # Note: if plotting several extents within same session, it would be benefitial
+                #       with another cache independent of extent
+                cfeature.GSHHSFeature._geometries_cache[(scale, level, extent_geom)] = geoms
+
+            for geom in geoms:
+                yield geom
 
         # # If scale is full use the geometries from roaring landmask, otherwise
         # # fall back to Cartopy provider.
