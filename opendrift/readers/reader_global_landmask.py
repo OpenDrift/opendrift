@@ -81,7 +81,7 @@ class LandmaskFeature(cfeature.GSHHSFeature):
                     else:
                         logger.debug('Getting fullres shapes from roaring landmask cache')
                 else:
-                    logger.debug('Loading shapes with Cartopy shapereader...')
+                    logger.debug(f'Loading shapes (\'{scale}\' level {level}) with Cartopy shapereader...')
                     # Load GSHHS geometries from appropriate shape file.
                     # TODO selective load based on bbox of each geom in file.
                     path = shapereader.gshhs(scale, level)

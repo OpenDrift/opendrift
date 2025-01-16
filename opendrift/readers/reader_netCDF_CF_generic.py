@@ -438,7 +438,7 @@ class Reader(StructuredReader, BaseReader):
             uniqx = np.unique(indx)
             diff_xind = np.diff(uniqx)
             # We split if >800 pixels between left/west and right/east blocks
-            if len(diff_xind)>1 and diff_xind.max() > np.minimum(800, 0.6*self.numx):
+            if len(diff_xind)>=1 and diff_xind.max() > np.minimum(800, 0.6*self.numx):
                 logger.debug('Requested data block crosses lon-border, reading and concatinating two parts')
                 split = True
                 splitind = np.argmax(diff_xind)
@@ -473,17 +473,17 @@ class Reader(StructuredReader, BaseReader):
                 dimorder[ynum] = self.dimensions['x']
                 var = var.permute_dims(*dimorder)
 
+            # Remove any unknown dimensions
+            for dim in var.dims:
+                if dim not in self.dimensions.values() and dim != self.ensemble_dimension:
+                    logger.debug(f'Removing unknown dimension: {dim}')
+                    var = var.squeeze(dim=dim)
+            if self.ensemble_dimension is not None and self.ensemble_dimension in var.dims:
+                ensemble_dim = 0  # hardcoded, may not work for MEPS
             if split is False:
                 if True:  # new dynamic way
                     subset = {vdim:dimindices[dim] for dim,vdim in self.dimensions.items() if vdim in var.dims}
                     variables[par] = var.isel(subset)
-                    # Remove any unknown dimensions
-                    for dim in variables[par].dims:
-                        if dim not in self.dimensions.values() and dim != self.ensemble_dimension:
-                            logger.debug(f'Removing unknown dimension: {dim}')
-                            variables[par] = variables[par].squeeze(dim=dim)
-                    if self.ensemble_dimension is not None and self.ensemble_dimension in variables[par].dims:
-                        ensemble_dim = 0  # hardcoded, may not work for MEPS
                 #else:  # old hardcoded way, to be removed
                 #    if var.ndim == 2:
                 #        variables[par] = var[indy, indx]
@@ -560,12 +560,10 @@ class Reader(StructuredReader, BaseReader):
         if self.projected is True:
             variables['x'] = self.x[indx]
             variables['y'] = self.y[indy]
-            if split is True and variables['x'][0] > variables['x'][-1]:
-                # We need to shift so that x-coordinate (longitude) is continous
-                if self.lon_range() == '-180to180':
-                    variables['x'][variables['x']>0] -= 360
-                elif self.lon_range() == '0to360':
-                    variables['x'][variables['x']<0] += 360
+            if split is True and not np.all(np.diff(variables['x'])>0):  # not monotonously increasing
+                variables['x'] = np.mod(variables['x'], 360)  # Shift to 0-360
+                if not np.all(np.diff(variables['x'])>0):  # not increasing, shift again to -180-180
+                    variables['x'] = np.mod(variables['x'] + 180, 360) - 180
         else:
             variables['x'] = indx
             variables['y'] = indy

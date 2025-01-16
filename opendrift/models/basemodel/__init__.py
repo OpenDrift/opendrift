@@ -2441,6 +2441,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             fig = plt.figure(figsize=(figsize, figsize * aspect_ratio))
 
         ax = fig.add_subplot(111, projection=self.crs_plot)
+        if lonmin == -180 and lonmax == 180:
+            lonmax -= .1  # To avoid problem with Cartopy
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=self.crs_lonlat)
 
         gl = ax.gridlines(self.crs_lonlat, draw_labels=True, xlocs=xlocs, ylocs=ylocs)
