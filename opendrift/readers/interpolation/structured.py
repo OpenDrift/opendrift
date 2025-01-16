@@ -30,14 +30,22 @@ class ReaderBlock():
             del self.data_dict['z']
         except:
             self.z = None
-        self.wrap_x = wrap_x  # For global readers where longitude wraps at 360
-        if wrap_x is True:
-            if self.x.min() < 180:
-                logger.debug('Shifting reader block longitudes to -180 to 180')
-                self.x = np.mod(self.x+180, 360) - 180
-            elif self.x.max() > 360:
+
+        # For global readers where longitude wraps at 360
+        # data_dict[x] should be provided as monotonously incereasing
+        self.wrap_x = wrap_x
+        if self.wrap_x:
+            if not np.all(np.diff(self.x)>0):
+                raise ValueError('X-coordinate (congitude) is not monotonuously increasing: ', self.x)
+            if self.x.max() - self.x.min() > 360:
+                raise ValueError('Longitude spans more than 360 degrees: ', self.x)
+
+            # We shift longitude/x to be in interval -180 to 360
+            if self.x.min() < -180 or self.x.max() > 360:
                 logger.debug('Shifting reader block longitudes to 0 to 360')
                 self.x = np.mod(self.x, 360)
+                if not np.all(np.diff(x)>0):  # not increasing, shift again to -180-180
+                    self.x = np.mod(self.x + 180, 360) - 180
 
         # Mask any extremely large values, e.g. if missing netCDF _Fill_value
         filled_variables = set()
@@ -88,7 +96,7 @@ class ReaderBlock():
     def _initialize_interpolator(self, x, y, z=None):
         logger.debug('Initialising interpolator.')
         if self.wrap_x is True:
-            if self.x.min() > 0:
+            if self.x.min() >= 0:
                 x = np.mod(x, 360)  # Shift x/lons to 0-360
             else:
                 x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
@@ -154,18 +162,23 @@ class ReaderBlock():
                 result[layer, :] = self.interpolator2d(data[layer, :, :])
             return result
 
+    def _wrap_longitude(self, x):
+        # For global readers/blocks, we shift longitude/x to same quadrant as reader
+        if self.wrap_x is False:
+            return x
+        else:
+            if self.x.min() < 0:
+                return np.mod(x+180, 360) - 180
+            else:
+                return np.mod(x, 360)
+
     def covers_positions(self, x, y, z=None):
         '''Check if given positions are covered by this reader block.'''
 
-        if self.wrap_x is True:
-            if self.x.min() < 180:
-                logger.debug('Shifting longitudes to -180 to 180')
-                x = np.mod(x+180, 360) - 180
-            elif self.x.max() > 360:
-                logger.debug('Shifting longitudes to 0 to 360')
-                x = np.mod(x, 360)
+        x = self._wrap_longitude(x)
         indices = np.where((x >= self.x.min()) & (x <= self.x.max()) &
                            (y >= self.y.min()) & (y <= self.y.max()))[0]
+
         if len(indices) == len(x):
             return True
         else:

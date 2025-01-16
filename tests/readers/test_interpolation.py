@@ -119,6 +119,28 @@ class TestInterpolation(unittest.TestCase):
         np.testing.assert_array_almost_equal(o.elements.lon, [-175.129,  175.129], decimal=3)
         np.testing.assert_array_almost_equal(o.elements.lat, [60.006, 59.994], decimal=3)
 
+        # With elements spread globally (both around dateline and 0-meredian)
+        o = OceanDrift(loglevel=30)
+        o.add_readers_from_list([fc, fw])
+        lons = np.arange(-180, 181, 20)
+        lats = np.arange(-80, 81, 20)
+        lons, lats = np.meshgrid(lons, lats)
+        o.set_config('seed:ocean_only', False)
+        o.seed_elements(lon=lons, lat=lats, time=start_time, wind_drift_factor=.1)
+        o.run(steps=2, time_step=3600*12)
+        # Check expected drift direction for each quadrant
+        lon,lat = o.get_lonlats()
+        # North-westwards
+        np.testing.assert_array_almost_equal(lon[25,:], [-60, -60.77, -61.55], decimal=2)
+        np.testing.assert_array_almost_equal(lat[25,:], [-60, -59.96, -59.92], decimal=2)
+        np.testing.assert_array_almost_equal(lon[100,:], [-80, -80.41, -80.83], decimal=2)
+        np.testing.assert_array_almost_equal(lat[100,:], [20, 20.04, 20.08], decimal=2)
+        # South-eastwards
+        np.testing.assert_array_almost_equal(lon[35,:], [140, 140.77, 141.55], decimal=2)
+        np.testing.assert_array_almost_equal(lat[35,:], [-60, -60.04, -60.07], decimal=2)
+        np.testing.assert_array_almost_equal(lon[112,:], [160, 160.41, 160.83], decimal=2)
+        np.testing.assert_array_almost_equal(lat[112,:], [20, 19.96, 19.92], decimal=2)
+
         # Cleaning up
         os.remove(fw)
         os.remove(fw2)
