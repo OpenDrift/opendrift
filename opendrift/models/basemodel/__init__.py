@@ -475,9 +475,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             v = self.ElementType.variables[p]
             if 'seed' in v and v['seed'] is False:
                 continue  # Properties which may not be provided by user
-            minval = v['min'] if 'min' in v else None
-            maxval = v['max'] if 'max' in v else None
-            units = v['units'] if 'units' in v else None
             c['seed:%s' % p] = {
                 'type': v['type'] if 'type' in v else 'float',
                 'min': v['min'] if 'min' in v else None,
