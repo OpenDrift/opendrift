@@ -302,6 +302,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 fromlist=['init', 'write_buffer', 'close', 'import_file'])
         except ImportError:
             logger.info('Could not import iomodule ' + iomodule)
+            raise
         self.io_init = types.MethodType(io_module.init, self)
         self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
         self.io_close = types.MethodType(io_module.close, self)
@@ -662,10 +663,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 (self.environment.land_binary_mask == 1) & (self.elements.z <= 0),
                 reason='stranded'
             )
-            
+
             if not coastline_approximation_precision:
                 return
-            
+
             for on_land_id, on_land_prev_id in zip(on_land, self.elements.ID[on_land]):
                 lon = self.elements.lon[on_land_id]
                 lat = self.elements.lat[on_land_id]
@@ -673,7 +674,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 prev_lat = self.previous_lat[on_land_prev_id - 1]
 
                 step_degrees = float(coastline_approximation_precision)
-                
+
                 x_degree_diff = np.abs(prev_lon - lon)
                 x_samples = np.floor(x_degree_diff / step_degrees).astype(np.int64) if x_degree_diff > step_degrees else 1
                 x = np.linspace(prev_lon, lon, x_samples)
@@ -695,7 +696,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     self.elements.lat[on_land_id] = new_lat
 
             self.environment.land_binary_mask[on_land] = 0
-            
+
         elif i == 'previous':  # Go back to previous position (in water)
             if self.newly_seeded_IDs is not None:
                 self.deactivate_elements(
