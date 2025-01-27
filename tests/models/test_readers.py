@@ -244,8 +244,8 @@ class TestReaders(unittest.TestCase):
 
         o1 = Leeway(loglevel=0)
         #o1.set_config('environment:fallback:land_binary_mask', 0)
-        o1.required_variables = [r for r in o1.required_variables
-                                 if r != 'land_binary_mask']
+        o1.required_variables = {n:r for n,r in o1.required_variables.items()
+                                 if n != 'land_binary_mask'}
         o1.add_readers_from_list(reader_list, lazy=False)
         time = o1.env.readers['roms native'].start_time
         o1.seed_elements(lat=67.85, lon=14, time=time)
@@ -253,8 +253,8 @@ class TestReaders(unittest.TestCase):
 
         o2 = Leeway(loglevel=20)
         #o2.set_config('environment:fallback:land_binary_mask', 0)
-        o2.required_variables = [r for r in o1.required_variables
-                                 if r != 'land_binary_mask']
+        o2.required_variables = {n:r for n,r in o1.required_variables.items()
+                                 if n != 'land_binary_mask'}
         o2.add_readers_from_list(reader_list, lazy=True)
         o2.seed_elements(lat=67.85, lon=14, time=time)
         o2.run(steps=5)
