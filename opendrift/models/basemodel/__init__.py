@@ -34,6 +34,7 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import geojson
 import xarray as xr
+import pandas as pd
 import numpy as np
 import scipy
 import pyproj
@@ -1915,7 +1916,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if export_buffer_length is None:
             self.export_buffer_length = self.expected_steps_output
         else:
-            self.export_buffer_length = export_buffer_length
+            # TODO: Not clear why +1 is needed below, as this is already taken into account above
+            self.export_buffer_length = np.minimum(export_buffer_length, self.expected_steps_output+1)
 
         if self.time_step.days < 0:
             # For backwards simulation, we start at last seeded element
@@ -1961,6 +1963,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                    dtype=history_dtype)
         self.history.mask = True
         self.steps_exported = 0
+
+        # Create Xarray Dataset to hold result
+        #coords = {  # Initialize for the part fitting in memory
+        #    'trajectory': ('trajectory', np.arange(len(self.elements_scheduled))),
+        #    'time': ('time', pd.date_range(self.start_time, periods=self.export_buffer_length, freq=self.time_step_output))}
+        #shape = (len(coords['trajectory'][1]), len(coords['time'][1]))
+        #dims = ('trajectory', 'time')  # Presently, but shall also allow single dimension
+
+        #element_vars = {varname: (dims, np.nan*np.ones(shape=shape, dtype=var['dtype']),
+        #                          {attr:var[attr] for attr in var if attr not in ['seed', 'dtype']})
+        #                for varname,var in self.ElementType.variables.items()
+        #                if self.export_variables is None or varname in self.export_variables}
+        #environment_vars = {varname: (dims, np.nan*np.ones(shape=shape, dtype=np.float32))
+        #                    for varname,var in self.required_variables.items()
+        #                    if self.export_variables is None or varname in self.export_variables}
+        #self.result = xr.Dataset(coords=coords, data_vars=element_vars | environment_vars)
 
         if outfile is not None:
             self.io_init(outfile)
@@ -2206,6 +2224,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 del self.environment_profiles
             self.io_import_file(outfile)
 
+        #return self.result
+
     def increase_age_and_retire(self):
         """Increase age of elements, and retire if older than config setting."""
         # Increase age of elements
@@ -2234,8 +2254,35 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 self.deactivate_elements(self.elements.lat > N,
                                          reason='outside')
 
+    def state_to_xarray(self):
+        if pd.to_datetime(self.time) in self.result.time:  # Output time step
+            ID_ind = self.elements.ID - 1
+            element_ind = range(len(ID_ind))
+            insert_time = pd.to_datetime(self.time)
+        else:  # Deactivated elements must be written even if no output timestep
+            deactivated = np.where(self.elements.status != 0)[0]
+            if len(deactivated) == 0:
+                return  # No deactivated elements this sub-timestep
+            ID_ind = self.elements.ID[deactivated] - 1
+            element_ind = deactivated
+            insert_time = self.result['time'].sel(time=self.time, method='backfill').values
+
+        for var in self.result.var():
+            if var == 'ID':
+                continue
+            for source in (self.elements, self.environment):
+                d = getattr(source, var, None)
+                if d is not None:
+                    self.result[var].loc[{'time': insert_time,
+                                          'trajectory': ID_ind}] = d[element_ind]
+
+        if pd.to_datetime(self.time) == self.result.time[-1]:
+            pass  # write to file
+
     def state_to_buffer(self):
         """Append present state (elements and environment) to recarray."""
+
+        #self.state_to_xarray()  # Not ready yet
 
         steps_calculation_float = \
             (self.steps_calculation * self.time_step.total_seconds() /
