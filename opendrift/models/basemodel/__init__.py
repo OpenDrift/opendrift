@@ -1870,6 +1870,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             raise ValueError(
                 "Time step must be negative if duration is negative.")
 
+        ratio_duration_output = duration/self.time_step_output
+        if not ratio_duration_output.is_integer():
+            initial_duration = duration
+            duration = np.ceil(ratio_duration_output)*self.time_step_output
+            logger.warning('Simulation end is not at an output time step. '
+                           f'Extending duration from {initial_duration} to {duration}')
+
         self.expected_steps_output = duration.total_seconds() / \
             self.time_step_output.total_seconds() + 1  # Includes start and end
         self.expected_steps_calculation = duration.total_seconds() / \
@@ -1916,8 +1923,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if export_buffer_length is None:
             self.export_buffer_length = self.expected_steps_output
         else:
-            # TODO: Not clear why +1 is needed below, as this is already taken into account above
-            self.export_buffer_length = np.minimum(export_buffer_length, self.expected_steps_output+1)
+            self.export_buffer_length = np.minimum(export_buffer_length, self.expected_steps_output)
 
         if self.time_step.days < 0:
             # For backwards simulation, we start at last seeded element
@@ -1964,7 +1970,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.history.mask = True
         self.steps_exported = 0
 
-        # Create Xarray Dataset to hold result
+        # Create Xarray Dataset to hold result jolabokk
         #coords = {  # Initialize for the part fitting in memory
         #    'trajectory': ('trajectory', np.arange(len(self.elements_scheduled))),
         #    'time': ('time', pd.date_range(self.start_time, periods=self.export_buffer_length, freq=self.time_step_output))}
@@ -2255,6 +2261,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          reason='outside')
 
     def state_to_xarray(self):
+
+        if pd.to_datetime(self.time) < self.result.time[0] or pd.to_datetime(self.time) > self.result.time[-1]:
+            logger.warning(f'Simulation time {self.time} outside coverage of self.result')
+            return
         if pd.to_datetime(self.time) in self.result.time:  # Output time step
             ID_ind = self.elements.ID - 1
             element_ind = range(len(ID_ind))
