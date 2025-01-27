@@ -282,7 +282,7 @@ class TestReaders(unittest.TestCase):
         o.set_config('environment:fallback:y_sea_water_velocity', 0.1)
         time = datetime(2016,2,2,12)
         o.seed_elements(lat=67.85, lon=14, time=time)
-        o.run(steps=2)
+        o.run(steps=2, time_step=600, time_step_output=600)
         self.assertAlmostEqual(o.elements.lat[0], 67.8548, 3)
 
     def test_automatic_landmask(self):

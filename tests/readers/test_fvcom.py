@@ -6,9 +6,9 @@ from opendrift.readers import reader_netCDF_CF_unstructured
 from opendrift.models.oceandrift import OceanDrift
 
 akvaplan = "https://thredds.met.no/thredds/dodsC/metusers/knutfd/thredds/netcdf_unstructured_samples/AkvaplanNiva_sample_lonlat_fixed.nc"
-akvaplan_local = "niva/AkvaplanNiva_sample.nc4"
 proj = "+proj=utm +zone=33 +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 
+@pytest.mark.slow
 def test_open():
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
     print(r)
@@ -16,6 +16,7 @@ def test_open():
     # plt.show()
 
 
+@pytest.mark.slow
 def test_contains(benchmark):
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
 
@@ -33,6 +34,7 @@ def test_contains(benchmark):
     assert np.all(covers)
 
 
+@pytest.mark.slow
 def tets_not_contains(benchmark):
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
 
@@ -49,6 +51,7 @@ def tets_not_contains(benchmark):
     assert not np.all(covers)
 
 
+@pytest.mark.slow
 def test_get_variables(benchmark):
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
 
@@ -85,6 +88,7 @@ def test_get_variables(benchmark):
     u = r.get_variables(['x_sea_water_velocity'], times[1], xc, yc, z)['x_sea_water_velocity']
     np.testing.assert_array_equal(uu, u)
 
+@pytest.mark.slow
 def test_get_variables_many(benchmark):
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
 
@@ -96,6 +100,7 @@ def test_get_variables_many(benchmark):
     assert len(u) == len(x)
 
 
+@pytest.mark.slow
 def test_nearest_node(benchmark):
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)
     x = np.linspace(5.6e5, 6.0e5, 100)
@@ -127,6 +132,7 @@ def test_vector_nearest(benchmark):
 
     np.testing.assert_array_equal(truth, nearest)
 
+@pytest.mark.slow
 def test_profile():
     o = OceanDrift()
     r = reader_netCDF_CF_unstructured.Reader(akvaplan, proj4=proj)

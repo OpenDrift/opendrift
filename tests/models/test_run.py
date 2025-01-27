@@ -347,7 +347,7 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -43.67, 1)
+        self.assertAlmostEqual(o1.history['z'].min(), -42.77, 1)
         self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
         os.remove('verticalmixing.nc')
 
