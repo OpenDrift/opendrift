@@ -518,7 +518,9 @@ def ftle(X, Y, delta, duration):
     # From Johannes Rohrs
     nx = X.shape[0]
     ny = X.shape[1]
-    J = np.empty([nx,ny,2,2], np.float32)
+
+    #Changes by Mateusz M
+    """J = np.empty([nx,ny,2,2], np.float32)
     FTLE = np.empty([nx,ny], np.float32)
 
     # gradient
@@ -530,7 +532,7 @@ def ftle(X, Y, delta, duration):
     J[:,:,1,0] = dy[0] / (2*delta)
     J[:,:,0,1] = dx[1] / (2*delta)
     J[:,:,1,1] = dy[1] / (2*delta)
-
+    
     for i in range(0,nx):
         for j in range(0,ny):
             # Green-Cauchy tensor
@@ -538,7 +540,28 @@ def ftle(X, Y, delta, duration):
             # its largest eigenvalue
             lamda = np.linalg.eigvals(D)
             FTLE[i,j] = np.log(np.sqrt(max(lamda)))/np.abs(duration)
+    """
+    #from np.empty to np.zeros because new method doesn't work on boundaries. Empry left strange values.
+    FTLE = np.zeros([nx,ny])
+    for i in range(1,nx-1):
+        for j in range(1,ny-1):
+            #Centering grid on particle and calculating Jacobian of flow map
+            J = np.zeros([2,2])
+            J[0,0] = (X[i+1, j]-X[i-1, j])/(2*delta)
+            J[0,1] = (X[i, j+1]-X[i, j-1])/(2*delta)
+            J[1,0] = (Y[i+1, j]-Y[i-1, j])/(2*delta)
+            J[1,1] = (Y[i, j+1]-Y[i, j-1])/(2*delta)
+            # Green-Cauchy tensor
+            D = np.dot(np.transpose(J), J)
+            # Needed this, but don't remember the details
+            try:
+                lamda, v = np.linalg.eig(D)
+            except:
+                lamda = 0
+            # its largest eigenvalue
+            FTLE[i,j] = np.log(np.sqrt(np.max(lamda)))/np.abs(duration)
 
+    
     return FTLE
 
 __stokes_coefficients__ = None

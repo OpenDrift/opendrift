@@ -4761,7 +4761,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 o.run(duration=duration, time_step=time_step)
                 f_x1, f_y1 = proj(o.history['lon'].T[-1].reshape(X.shape),
                                   o.history['lat'].T[-1].reshape(X.shape))
-                lcs['RLCS'][i, :, :] = ftle(f_x1 - X, f_y1 - Y, delta, T)
+                #changes by Mateusz M
+                #Only final particle position, not difference between new and initial. 
+                #lcs['RLCS'][i, :, :] = ftle(f_x1 - X, f_y1 - Y, delta, T)
+                lcs['RLCS'][i, :, :] = ftle(f_x1, f_y1, delta, T)
             # Backwards
             if ALCS is True:
                 o = self.clone()
@@ -4772,8 +4775,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 o.run(duration=duration, time_step=-time_step)
                 b_x1, b_y1 = proj(o.history['lon'].T[-1][::-1].reshape(X.shape),
                                   o.history['lat'].T[-1][::-1].reshape(X.shape))
-                lcs['ALCS'][i, :, :] = ftle(b_x1 - X, b_y1 - Y, delta, T)
-
+                #changes by Mateusz M
+                #Only final particle position, not difference between new and initial. 
+                #lcs['ALCS'][i, :, :] = ftle(b_x1 - X, b_y1 - Y, delta, T)
+                lcs['ALCS'][i, :, :] = ftle(b_x1, b_y1, delta, T)
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])
         lcs['ALCS'] = np.ma.masked_invalid(lcs['ALCS'])
         # Flipping ALCS left-right. Not sure why this is needed
