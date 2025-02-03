@@ -170,8 +170,8 @@ class TestModels(unittest.TestCase):
         for indx in range(len(arr)):
             self.assertAlmostEqual(o.uw_weighting[indx],arr[indx],7)
 
-        self.assertAlmostEqual(o.history['lon'].data[0][1],3.991, 3)
-        self.assertAlmostEqual(o.history['lat'].data[0][1],62.011, 3)
+        self.assertAlmostEqual(o.result.lon[0][1].values, 3.991, 3)
+        self.assertAlmostEqual(o.result.lat[0][1].values, 62.011, 3)
 
 
 

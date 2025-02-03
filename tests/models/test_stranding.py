@@ -140,7 +140,7 @@ class TestStranding(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', .7)
         o.seed_elements(lon=5, lat=60.49, time=datetime.now())
         o.run(time_step=3600, steps=30)
-        lons = o.history['lon'][0]
+        lons = o.result.lon[0].values
         self.assertAlmostEqual(lons[0], 5, 2)
         self.assertAlmostEqual(lons[-2], 5.092, 2)
         self.assertAlmostEqual(lons[-1], 5.092, 2)

@@ -712,9 +712,9 @@ class PhysicsMethods:
         times = np.array(self.get_time_array()[0])
         skillscore = np.zeros(self.num_elements_total())
         for i in range(self.num_elements_total()):
-            lon = self.history['lon'][i]
-            lat = self.history['lat'][i]
-            status = self.history['status'][i]
+            lon = self.result.lon.isel(trajectory=i)
+            lat = self.result.lat.isel(trajectory=i)
+            status = self.result.status.isel(trajectory=i)
             lon_model = lon[status==0]
             lat_model = lat[status==0]
             time_model = times[status==0]

@@ -212,8 +212,8 @@ class TestSeed(unittest.TestCase):
         o.run(steps=1)
         lat, s = o.get_property('lat')[0]
         # Check that the second point over land has been moved to ocean
-        self.assertAlmostEqual(lat[0], 60, 5)
-        self.assertNotAlmostEqual(lat[1], 60, 5)
+        self.assertAlmostEqual(lat[0].values, 60, 5)
+        self.assertNotAlmostEqual(lat[1].values, 60, 5)
 
     def test_seed_letters(self):
         o = OceanDrift(loglevel=50)
