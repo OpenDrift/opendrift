@@ -2715,7 +2715,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     if compare is not None:
                         for cd in compare_list:
                             cd['points_other'].set_array(colorarray[:, i])
-                    if isinstance(color, str) or hasattr(color, '__len__'):
+                    if (isinstance(color, str) or hasattr(color, '__len__')) and len(index_of_last_deactivated)>0:
                         points_deactivated.set_array(colorarray_deactivated[
                             index_of_last_deactivated < i])
 
