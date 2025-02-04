@@ -1264,8 +1264,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                         datetime.fromisoformat(t[0].replace("Z", "+00:00")),
                         datetime.fromisoformat(t[1].replace("Z", "+00:00"))
                     ]
+                    time = [t.replace(tzinfo=None) for t in time]
                 else:
                     time = datetime.fromisoformat(t.replace("Z", "+00:00"))
+                    time = time.replace(tzinfo=None)
             else:
                 kwargs[prop] = properties[prop]
 
@@ -2345,12 +2347,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         """Return the indices when elements were seeded and deactivated."""
 
         if self.index_of_first is None:
-            index_of_first = self.result.lon.notnull().argmax(dim='time')
-            index_of_last = len(self.result.time) - 1 - self.result.lon.isel(
-                                            time=slice(None, None, -1)).notnull().argmax(dim='time')
-        else:  # Retrieved from cache
+            if self.result is not None:
+                index_of_first = self.result.lon.notnull().argmax(dim='time')
+                index_of_last = len(self.result.time) - 1 - self.result.lon.isel(
+                                                time=slice(None, None, -1)).notnull().argmax(dim='time')
+            else:
+                index_of_first = 0
+                index_of_last = 0
+            # Store for later retrieval
             self.index_of_first = index_of_first
             self.index_of_last = index_of_last
+        else:  # Retrieved from cache
+            index_of_first = self.index_of_first
+            index_of_last = self.index_of_last
 
         return index_of_first, index_of_last
 
@@ -2536,14 +2545,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             lons = self.result.lon
             lats = self.result.lat
         else:
-            if len(self.result.time) > 0:
-                lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
-                lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
-            else:
-                lons = np.ma.array(
-                    np.reshape(self.elements_scheduled.lon, (1, -1))).T
-                lats = np.ma.array(
-                    np.reshape(self.elements_scheduled.lat, (1, -1))).T
+            #if len(self.result.time) > 0:
+            #    lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
+            #    lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+            #else:
+            lons = np.ma.array(
+                np.reshape(self.elements_scheduled.lon, (1, -1))).T
+            lats = np.ma.array(
+                np.reshape(self.elements_scheduled.lat, (1, -1))).T
         return lons, lats
 
     def animation(self,
@@ -2699,7 +2708,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                           y_deactive[index_of_last_deactivated < i]])
 
                 if isinstance(markersize, str):
-                    points.set_sizes(markersize_scaling * np.abs(self.result.markersize[:, i]))
+                    points.set_sizes(markersize_scaling * np.abs(self.result[markersize][:, i]))
 
                 if color is not False:  # Update colors
                     points.set_array(colorarray[:, i])
@@ -2828,7 +2837,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if isinstance(markersize, str):
             if markersize_scaling is None:
                 markersize_scaling = 20
-            markersize_scaling = markersize_scaling / np.abs(self.result.markersize).max()
+            markersize_scaling = markersize_scaling / np.abs(self.result[markersize]).max()
 
         if isinstance(markersize, str):
             points = ax.scatter([], [],
@@ -4681,9 +4690,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 o = self.clone()
                 o.seed_elements(lons.ravel(), lats.ravel(), time=t, z=z)
                 o.run(duration=duration, time_step=time_step)
-                f_x1, f_y1 = proj(o.history['lon'].T[-1].reshape(X.shape),
-                                  o.history['lat'].T[-1].reshape(X.shape))
-                lcs['RLCS'][i, :, :] = ftle(f_x1 - X, f_y1 - Y, delta, T)
+                lon = o.result.lon.ffill(dim='time')
+                lat = o.result.lat.ffill(dim='time')
+                b_x1, b_y1 = proj(lon.T[-1].values.reshape(X.shape),
+                                  lat.T[-1].values.reshape(X.shape))
+                lcs['RLCS'][i, :, :] = ftle(b_x1 - X, b_y1 - Y, delta, T)
             # Backwards
             if ALCS is True:
                 o = self.clone()
@@ -4692,8 +4703,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                 time=t + duration,
                                 z=z)
                 o.run(duration=duration, time_step=-time_step)
-                b_x1, b_y1 = proj(o.history['lon'].T[-1][::-1].reshape(X.shape),
-                                  o.history['lat'].T[-1][::-1].reshape(X.shape))
+                lon = o.result.lon.ffill(dim='time')
+                lat = o.result.lat.ffill(dim='time')
+                b_x1, b_y1 = proj(lon.T[-1][::-1].values.reshape(X.shape),
+                                  lat.T[-1][::-1].values.reshape(X.shape))
                 lcs['ALCS'][i, :, :] = ftle(b_x1 - X, b_y1 - Y, delta, T)
 
         lcs['RLCS'] = np.ma.masked_invalid(lcs['RLCS'])

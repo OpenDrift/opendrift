@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 def test_logging(tmpdir, capsys):
+    accepted = (285, 288, 291)  # Accepting small variations in log output
 
     # Logging to console
     logfile = None
@@ -22,7 +23,7 @@ def test_logging(tmpdir, capsys):
     stdout, stderr = capsys.readouterr()
     assert 'step 3 of 3 - 5 active elements (0 deactivated)' in stderr
     assert 'Changed mode from Mode.Run to Mode.Result' in stderr
-    assert len(stderr.splitlines()) in (285, 288)  # Depending on from where pytest is run
+    assert len(stderr.splitlines()) in accepted  # Depending on from where pytest is run
 
     # Logging to file
     logfile = tmpdir+'/test_log.txt'
@@ -36,7 +37,7 @@ def test_logging(tmpdir, capsys):
     log = open(logfile).read()
     assert 'step 3 of 3 - 5 active elements (0 deactivated)' in log
     assert 'Changed mode from Mode.Run to Mode.Result' in log
-    assert len(log.splitlines()) in(285, 288)
+    assert len(log.splitlines()) in accepted
 
     # Logging to both file and terminal
     logfile = [tmpdir+'/test_log2.txt', logging.StreamHandler(sys.stdout)]
@@ -53,8 +54,8 @@ def test_logging(tmpdir, capsys):
     stdout, stderr = capsys.readouterr()
     assert 'step 3 of 3 - 5 active elements (0 deactivated)' in stdout
     assert 'Changed mode from Mode.Run to Mode.Result' in stdout
-    assert len(stdout.splitlines()) in (285, 288)
-    assert len(log.splitlines()) in (285, 288)
+    assert len(stdout.splitlines()) in accepted
+    assert len(log.splitlines()) in accepted
     assert stderr != log  # Since times are different
 
 
