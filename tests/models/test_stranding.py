@@ -126,7 +126,7 @@ class TestStranding(unittest.TestCase):
                     el = o.elements
                 else:
                     el = o.elements_deactivated
-                self.assertEqual(o.status_categories[int(el.status)], status[i])
+                self.assertEqual(o.status_categories[int(el.status[0])], status[i])
                 self.assertIsNone(np.testing.assert_array_almost_equal(
                     el.lon, lons[i], 3))
 
