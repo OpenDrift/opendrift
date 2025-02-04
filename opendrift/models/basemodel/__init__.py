@@ -258,9 +258,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Use seed = None to get different random numbers each time
         np.random.seed(seed)
 
-        # TODO!!!
         self.steps_calculation = 0  # Increase for each simulation step
-        self.steps_output = 0
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
 
@@ -1972,7 +1970,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.result = xr.Dataset(coords=coords, data_vars=element_vars | environment_vars, attrs=global_attributes)
         logger.debug(f'Initial self.result, size {self.result.sizes}')
 
-        if self.origin_marker is not None:
+        if self.origin_marker is not None and 'origin_marker' in self.result.var():
             self.result['origin_marker'] = self.result.origin_marker.assign_attrs(
                 {'flag_values': np.array(np.arange(len(self.origin_marker))),
                  'flag_meanings': " ".join(self.origin_marker.values())
@@ -2379,20 +2377,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         logger.debug(f"Setting up map: {corners=}, {fast=}, {lscale=}")
 
         # Initialise map
-        if hasattr(self, 'ds'):  # If dataset is lazily imported
-            lons = self.ds.lon
-            lats = self.ds.lat
-            if not hasattr(self, 'lonmin'):
-                logger.debug('Finding min longitude...')
-                self.lonmin = np.nanmin(self.ds.lon)
-                logger.debug('Finding max longitude...')
-                self.lonmax = np.nanmax(self.ds.lon)
-                logger.debug('Finding min latitude...')
-                self.latmin = np.nanmin(self.ds.lat)
-                logger.debug('Finding max latitude...')
-                self.latmax = np.nanmax(self.ds.lat)
-        else:
-            lons, lats = self.get_lonlats()  # TODO: to be removed
+        lons, lats = self.get_lonlats()  # TODO: to be removed
 
         if corners is not None:  # User provided map corners
             lonmin = corners[0]
@@ -2553,7 +2538,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             lons = self.result.lon
             lats = self.result.lat
         else:
-            if self.steps_output > 0:
+            if len(self.result.time) > 0:
                 lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
                 lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
             else:
@@ -2780,7 +2765,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                          '__len__'):  # E.g. array/list of ensemble numbers
                 colorarray_deactivated = color[self.elements_deactivated.ID -
                                                1]
-                colorarray = np.tile(color, (self.steps_output, 1)).T
+                colorarray = np.tile(color, (len(self.result.time), 1)).T
             else:
                 colorarray = color
             if vmin is None:
@@ -3100,7 +3085,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 z_deactive[index_of_last_deactivated < i]])
 
             if isinstance(markersize, str):
-                points.set_sizes(np.abs(markersize_scaling * self.result.markersize[:, i]))
+                points.set_sizes(np.abs(markersize_scaling * self.result[markersize][:, i]))
                 #points.set_sizes(np.abs(markersize_scaling *
                 #            (self.history[markersize][:, i] / self.history[markersize].compressed()[0])))
 
@@ -3158,7 +3143,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if isinstance(markersize, str):
             if markersize_scaling is None:
                 markersize_scaling = 20
-            markersize_scaling = markersize_scaling / np.abs(self.result.markersize).max()
+            markersize_scaling = markersize_scaling / np.abs(self.result[markersize]).max()
 
         points = ax.scatter([], [],
                             c=c,
@@ -3478,7 +3463,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     if isinstance(linecolor, str):
                         param = self.result[linecolor]
                     elif hasattr(linecolor, '__len__'):
-                        param = np.tile(linecolor, (self.steps_output, 1)).T
+                        param = np.tile(linecolor, (len(self.result.time), 1)).T
                     else:
                         param = linecolor
                 except:
@@ -3858,10 +3843,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         return map_x, map_y, scalar, u_component, v_component
 
     def get_lonlat_bins(self, pixelsize_m):
-        latmin = self.latmin
-        latmax = self.latmax
-        lonmin = self.lonmin
-        lonmax = self.lonmax
+        latmin = self.result.lat.minval
+        latmax = self.result.lat.maxval
+        lonmin = self.result.lon.minval
+        lonmax = self.result.lon.maxval
         deltalat = pixelsize_m / 111000.0  # m to degrees
         deltalon = deltalat / np.cos(np.radians((latmin + latmax) / 2))
         latbin = np.arange(latmin - deltalat, latmax + deltalat, deltalat)
@@ -3871,28 +3856,28 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def get_histogram(self, pixelsize_m, **kwargs):
         from xhistogram.xarray import histogram
         lonbin, latbin = self.get_lonlat_bins(pixelsize_m)
-        max_om = int(self.ds.origin_marker.max().compute().values)
+        max_om = int(self.result.origin_marker.max().compute().values)
         origin_marker = range(max_om + 1)
         if 'weights' in kwargs and kwargs['weights'] is not None and kwargs[
                 'weights'].ndim < 2:
             kwargs['weights'] = xr.DataArray(
                 kwargs['weights'],
                 dims=['trajectory'],
-                coords={'trajectory': self.ds.coords['trajectory']})
+                coords={'trajectory': self.result.coords['trajectory']})
         # Xarray Dataset to store histogram per origin_marker
         h_om = xr.DataArray(np.zeros(
-            (len(self.ds.coords['time']), len(lonbin) - 1, len(latbin) - 1,
+            (len(self.result.coords['time']), len(lonbin) - 1, len(latbin) - 1,
              max_om + 1)),
                             name='density_origin_marker',
                             dims=('time', 'lon_bin', 'lat_bin',
                                   'origin_marker'))
-        h_om.coords['time'] = self.ds.coords['time']
+        h_om.coords['time'] = self.result.coords['time']
         h_om.coords['origin_marker'] = origin_marker
 
         for om in origin_marker:
             logger.info('\tcalculating for origin_marker %s...' % om)
-            h = histogram(self.ds.lon.where(self.ds.origin_marker == om),
-                          self.ds.lat.where(self.ds.origin_marker == om),
+            h = histogram(self.result.lon.where(self.result.origin_marker == om),
+                          self.result.lat.where(self.result.origin_marker == om),
                           bins=[lonbin, latbin],
                           dim=['trajectory'],
                           **kwargs)
