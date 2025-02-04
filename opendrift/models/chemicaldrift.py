@@ -2951,7 +2951,7 @@ class ChemicalDrift(OceanDrift):
         mass=self.get_property('mass')
         sp=self.get_property('specie')
 
-        steps=self.steps_output
+        steps=len(self.result.time)
 
         bars=np.zeros((steps,5))
 

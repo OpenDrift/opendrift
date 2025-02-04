@@ -637,8 +637,9 @@ class OceanDrift(OpenDriftSimulation):
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
-                         valinit=self.steps_output-1, valfmt='%0.0f')
+        steps_output = len(self.result.time)
+        tslider = Slider(sliderax, 'Timestep', 0, steps_output-1,
+                         valinit=steps_output-1, valfmt='%0.0f')
         try:
             dz = self.get_config('vertical_mixing:verticalresolution')
         except:
@@ -660,9 +661,9 @@ class OceanDrift(OpenDriftSimulation):
 
         if maxnum is None:
             # Precalculatig histograms to find maxnum
-            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
-            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
-            for i in range(self.steps_output-1):
+            hist_series = np.zeros((int(-maxrange/dz), steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, steps_output-1))
+            for i in range(steps_output-1):
                 hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
             maxnum = hist_series.max()
 
@@ -700,9 +701,6 @@ class OceanDrift(OpenDriftSimulation):
 
         Use mask to plot any selection of particles.
 
-
-        TODO: this method stopped working after self.result replaced self.history
-              Some updates are neede below wrt indexing and transposisions etc
         """
         from pylab import axes, draw
         from matplotlib import dates, pyplot
