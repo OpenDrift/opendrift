@@ -56,8 +56,7 @@ class TestXarray(unittest.TestCase):
         density_pixelsize_m=5000
         H, Hsub, Hsurf, lon_array, lat_array = o.get_density_array(pixelsize_m=density_pixelsize_m)
 
-        ox = opendrift.open_xarray(outfile)
-        Hx = ox.get_histogram(pixelsize_m=density_pixelsize_m)
+        Hx = o.get_histogram(pixelsize_m=density_pixelsize_m)
         self.assertAlmostEqual(lon_array[0], 3.94, 1)
         self.assertAlmostEqual(lon_array[-1], 4.76, 1)
         self.assertAlmostEqual(Hx.lon_bin[0].values, 3.90, 1)

@@ -261,14 +261,14 @@ class TestReaders(unittest.TestCase):
 
         # Some differences in wind and current components
         # due to different coordinate system
-        for var in o1.history.dtype.names:
+        for var in o1.result.var():
             if var in ['x_wind', 'y_wind', 'x_sea_water_velocity',
                        'y_sea_water_velocity']:
                 tolerance = 1
             else:
                 tolerance = 5
             self.assertIsNone(np.testing.assert_array_almost_equal(
-                o1.history[var], o2.history[var], tolerance))
+                o1.result[var], o2.result[var], tolerance))
 
     def test_constant_and_lazy_reader_leeway(self):
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
@@ -323,7 +323,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=4.8, lat=60, number=1, time=reader.end_time)
         o.run(steps=2)
         # Check that fallback value is used when outside time coverage
-        self.assertEqual(o.history['x_sea_water_velocity'][0][-1], 1.0)
+        self.assertEqual(o.result.x_sea_water_velocity[0, -1], 1.0)
 
     def test_reader_netcdf(self):
         """Check reader functionality."""
@@ -583,7 +583,7 @@ class TestReaders(unittest.TestCase):
         # Compare
         lat1 = o1.get_property('lat')[0]
         lat2 = o2.get_property('lat')[0]
-        self.assertEqual(len(lat1), 13)
+        self.assertEqual(len(lat1), 12)
         self.assertEqual(len(lat2), 17)
         self.assertIsNone(np.testing.assert_allclose(
                             lat1[0:12], lat2[0:12]))
@@ -609,7 +609,7 @@ class TestReaders(unittest.TestCase):
         lat3 = o3.get_property('lat')[0]
         lat4 = o4.get_property('lat')[0]
         self.assertEqual(len(lat3), 25)
-        self.assertEqual(len(lat4), 13)
+        self.assertEqual(len(lat4), 12)
         self.assertIsNone(np.testing.assert_allclose(
                             lat3[0:12], lat4[0:12]))
 
@@ -662,7 +662,7 @@ class TestReaders(unittest.TestCase):
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
         u = o.get_property('x_sea_water_velocity')[0]
-        self.assertAlmostEqual(u.max(), -.0718, 3)  # Some numerical error allowed
+        self.assertAlmostEqual(u.max().values, -.0718, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':

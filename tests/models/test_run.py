@@ -327,10 +327,10 @@ class TestRun(unittest.TestCase):
         self.o = OceanDrift(loglevel=20)
         # Check that data imported is properly masked
         self.o.io_import_file('temporal_seed.nc')
-        self.assertTrue(self.o.history['lon'].max() < 1000)
-        self.assertTrue(self.o.history['lon'].min() > -1000)
-        self.assertTrue(self.o.history['lon'].mask[5,5])
-        self.assertFalse(self.o.history['lon'].mask[1,1])
+        self.assertTrue(self.o.result.lon.max() < 1000)
+        self.assertTrue(self.o.result.lon.min() > -1000)
+        self.assertTrue(self.o.result.lon[5,5].isnull())
+        self.assertFalse(self.o.result.lon[1,1].isnull())
         os.remove('temporal_seed.nc')
 
     def test_vertical_mixing(self):
@@ -347,8 +347,8 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.history['z'].min(), -42.77, 1)
-        self.assertAlmostEqual(o1.history['z'].max(), 0.0, 1)
+        self.assertAlmostEqual(o1.result.z.min().values, -42.77, 1)
+        self.assertAlmostEqual(o1.result.z.max().values, 0.0, 1)
         os.remove('verticalmixing.nc')
 
     def test_vertical_mixing_profiles(self):
@@ -421,8 +421,7 @@ class TestRun(unittest.TestCase):
         o2.run(steps=40, export_buffer_length=6,
                outfile='export_step_interval.nc')
         self.assertIsNone(np.testing.assert_array_equal(
-            o1.history['lon'].compressed(),
-            o2.history['lon'].compressed()))
+            o1.result.lon, o2.result.lon))
         # Finally check when steps is multiple of export_buffer_length
         o3 = OceanDrift(loglevel=20)
         o3.add_reader(norkyst)
@@ -439,8 +438,7 @@ class TestRun(unittest.TestCase):
         o4.run(steps=42, export_buffer_length=6,
                outfile='export_step_interval.nc')
         self.assertIsNone(np.testing.assert_array_equal(
-            o3.history['lon'].compressed(),
-            o4.history['lon'].compressed()))
+            o3.result.lon, o4.result.lon))
         os.remove('export_step_interval.nc')
 
     def test_export_final_timestep(self):
@@ -451,7 +449,7 @@ class TestRun(unittest.TestCase):
                         time=[datetime(2010,1,1), datetime(2010,1,3)])
         o.run(duration=timedelta(hours=20), time_step=3600, time_step_output=3600*3)
         index_of_first, index_of_last = \
-            o.index_of_activation_and_deactivation()
+            o.index_of_first_and_last()
         assert o.num_elements_active() == len(index_of_first)
 
     def test_buffer_length_stranding(self):
@@ -478,11 +476,9 @@ class TestRun(unittest.TestCase):
                time_step_output=3600,
                outfile='test_buffer_length_stranding.nc')
         self.assertIsNone(np.testing.assert_array_equal(
-            o1.history['lon'].compressed(),
-            o2.history['lon'].compressed()))
+            o1.result.lon, o2.result.lon))
         self.assertIsNone(np.testing.assert_array_almost_equal(
-            o1.history['status'].compressed(),
-            o2.history['status'].compressed()))
+            o1.result.status, o2.result.status))
         os.remove('test_buffer_length_stranding.nc')
 
     def test_output_time_step(self):
@@ -499,7 +495,7 @@ class TestRun(unittest.TestCase):
                    outfile='test_time_step30.nc')
         # Check length of time array and output array
         time = o1.get_time_array()[0]
-        self.assertEqual(o1.history.shape[1], len(time))
+        self.assertEqual(o1.result.sizes['time'], len(time))
         self.assertEqual(o1.start_time, time[0])
         self.assertEqual(o1.time, time[-1])
         # Second run, with larger output time step
@@ -511,15 +507,17 @@ class TestRun(unittest.TestCase):
                    time_step=timedelta(minutes=30),
                    time_step_output=timedelta(minutes=60),
                    outfile='test_time_step60.nc')
-        self.assertEqual(o1.history.shape, (100,25))
-        self.assertEqual(o2.history.shape, (100,13))
+        self.assertEqual(o1.result.sizes['time'], 25)
+        self.assertEqual(o1.result.sizes['trajectory'], 100)
+        self.assertEqual(o2.result.sizes['time'], 13)
+        self.assertEqual(o2.result.sizes['trajectory'], 100)
         # Check that start and end conditions (longitudes) are idential
         self.assertIsNone(np.testing.assert_array_equal(
-            o1.history['lon'][:,24].compressed(),
-            o2.history['lon'][:,12].compressed()))
+            o1.result.lon.isel(time=24),
+            o2.result.lon.isel(time=12)))
         self.assertIsNone(np.testing.assert_array_equal(
-            o1.history['lon'][:,0].compressed(),
-            o2.history['lon'][:,0].compressed()))
+            o1.result.lon.isel(time=0),
+            o2.result.lon.isel(time=0)))
         # Check that also run imported from file is identical
         o1i = OceanDrift(loglevel=20)
         o1i.io_import_file('test_time_step30.nc')
@@ -528,8 +526,8 @@ class TestRun(unittest.TestCase):
         os.remove('test_time_step30.nc')
         os.remove('test_time_step60.nc')
         self.assertIsNone(np.testing.assert_array_equal(
-            o2i.history['lon'][:,12].compressed(),
-            o2.history['lon'][:,12].compressed()))
+            o2i.result.lon.isel(time=12),
+            o2.result.lon.isel(time=12)))
         # Check number of activated elements
         self.assertEqual(o1.num_elements_total(), o2.num_elements_total())
         self.assertEqual(o1.num_elements_total(), o1i.num_elements_total())
@@ -629,8 +627,8 @@ class TestRun(unittest.TestCase):
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -137.0, 1)  # After some rising
+        self.assertAlmostEqual(z[0,0].values, -147.3, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,0].values, -137.0, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
@@ -652,8 +650,8 @@ class TestRun(unittest.TestCase):
         o.run(steps=3, time_step=300, time_step_output=300)
         #o.plot_property('z')
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0], -97.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -38.3, 1)  # After some rising
+        self.assertAlmostEqual(z[0,0].values, -97.3, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,0].values, -38.3, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
@@ -672,7 +670,7 @@ class TestRun(unittest.TestCase):
                         density=1000, oil_type='AASGARD A 2003')
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0], -235.5, 1)  # After some rising
+        self.assertAlmostEqual(z[-1,0].values, -235.5, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -692,8 +690,8 @@ class TestRun(unittest.TestCase):
                         density=1000, oil_type='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
         z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0], -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0], -141.1, 1)  # After some rising
+        self.assertAlmostEqual(z[0,0].values, -147.3, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,0].values, -141.1, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
@@ -717,8 +715,8 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_total(), 2)
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
-        self.assertAlmostEqual(z[0,1], -100, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,1], -56.7, 1)  # After some rising
+        self.assertAlmostEqual(z[0,1].values, -100, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(z[-1,1].values, -56.7, 1)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
@@ -758,9 +756,6 @@ class TestRun(unittest.TestCase):
         with self.assertRaises(ValueError):
             o.run(steps=4, time_step=1800, time_step_output=3600,
                   outfile=outfile)
-        os.remove(outfile)
-        #o.write_netcdf_density_map(outfile)
-        #os.remove(outfile)
 
     def test_retirement(self):
         o = OceanDrift(loglevel=0)
@@ -836,10 +831,10 @@ class TestRun(unittest.TestCase):
                         time=[time, time + timedelta(hours=6)],
                         origin_marker=8)
         o.run(duration=timedelta(hours=3))
-        self.assertEqual(o.history.shape[0], 10)
-        self.assertEqual(o.history.shape[1], 4)
-        self.assertEqual(o.history['origin_marker'].min(), 7)
-        self.assertEqual(o.history['origin_marker'].max(), 8)
+        self.assertEqual(o.result.sizes['trajectory'], 10)
+        self.assertEqual(o.result.sizes['time'], 4)
+        self.assertEqual(o.result.origin_marker.min(), 7)
+        self.assertEqual(o.result.origin_marker.max(), 8)
 
     def test_no_active_but_still_unseeded_elements(self):
         o = OceanDrift(loglevel=20)

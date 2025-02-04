@@ -43,7 +43,7 @@ o.run(duration=timedelta(hours=48),
 # Opening the output file lazily with Xarray.
 # This will work even if the file is too large to fit in memory, as it
 # will read and process data chuck-by-chunk directly from file using Dask.
-o = opendrift.open_xarray(outfile)
+o = opendrift.open(outfile)
 
 #%%
 # We want to extract timeseries of river water at the coordinates of a hypothetical measuring station
@@ -141,7 +141,7 @@ num = o.get_histogram(pixelsize_m=1500, weights=None, density=False)
 num.name = 'number'
 num.to_netcdf(histogram_file)
 
-mas = o.get_histogram(pixelsize_m=1500, weights=o.ds['age_seconds'], density=False)
+mas = o.get_histogram(pixelsize_m=1500, weights=o.result.age_seconds, density=False)
 mas = mas/3600  # in hours
 mas = mas/num  # per area
 mas.name='mean_age'
@@ -150,7 +150,7 @@ mas = mas.mean(dim='time').sum(dim='origin_marker')  # Mean time of both rivers
 #mas = mas.mean(dim='time').isel(origin_marker=1)  # Mean age of a single river
 mas.name='Mean age of water [hours]'
 
-o.plot(background=mas.where(mas>0), fast=True, show_elements=False)
+o.plot(background=mas.where(mas>0), fast=True, show_elements=False, show_trajectories=False)
 
 
 # Cleaning up

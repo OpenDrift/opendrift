@@ -1258,47 +1258,35 @@ class OpenOil(OceanDrift):
         if self.time_step.days < 0:  # Backwards simulation
             return None
 
-        z, dummy = self.get_property('z')
-        mass_oil, status = self.get_property('mass_oil')
-        density = self.get_property('density')[0][0, 0]
+        density = self.result.density[0,0].values
 
         if 'stranded' not in self.status_categories:
             self.status_categories.append('stranded')
-        mass_submerged = np.ma.masked_where(
-            ((status == self.status_categories.index('stranded')) |
-             (z == 0.0)), mass_oil)
-        mass_submerged = np.ma.sum(mass_submerged, axis=1).filled(0)
 
-        mass_surface = np.ma.masked_where(
-            ((status == self.status_categories.index('stranded')) | (z < 0.0)),
-            mass_oil)
-        mass_surface = np.ma.sum(mass_surface, axis=1).filled(0)
+        budget = {}  # Copy data to not change self.result
+        for fill in ['status', 'z', 'mass_oil', 'mass_evaporated', 'mass_dispersed', 'mass_biodegraded']:
+            budget[fill] = self.result[fill].ffill(dim='time')
 
-        mass_stranded = np.ma.sum(np.ma.masked_where(
-            status != self.status_categories.index('stranded'), mass_oil),
-                                  axis=1).filled(0)
-        mass_evaporated, status = self.get_property('mass_evaporated')
-        mass_evaporated = np.sum(mass_evaporated, axis=1).filled(0)
-        mass_dispersed, status = self.get_property('mass_dispersed')
-        mass_dispersed = np.sum(mass_dispersed, axis=1).filled(0)
-        mass_biodegraded, status = self.get_property('mass_biodegraded')
-        mass_biodegraded = np.sum(mass_biodegraded, axis=1).filled(0)
+        stranded = budget['status'] == self.status_categories.index('stranded')
+        surface = budget['z'] == 0
+
+        mass_submerged = budget['mass_oil'].where(
+            (surface == False) & (stranded == False)).sum(dim='trajectory', skipna=True)
+        mass_surface = budget['mass_oil'].where(
+            (surface == True) & (stranded == False)).sum(dim='trajectory', skipna=True)
+        mass_stranded = budget['mass_oil'].where(stranded == True).sum(dim='trajectory', skipna=True)
+        mass_evaporated = budget['mass_evaporated'].sum(dim='trajectory', skipna=True)
+        mass_dispersed = budget['mass_dispersed'].sum(dim='trajectory', skipna=True)
+        mass_biodegraded = budget['mass_biodegraded'].sum(dim='trajectory', skipna=True)
 
         oil_budget = {
-            'oil_density':
-            density,
-            'mass_dispersed':
-            mass_dispersed,
-            'mass_submerged':
-            mass_submerged,
-            'mass_surface':
-            mass_surface,
-            'mass_stranded':
-            mass_stranded,
-            'mass_evaporated':
-            mass_evaporated,
-            'mass_biodegraded':
-            mass_biodegraded,
+            'oil_density': density,
+            'mass_dispersed': mass_dispersed,
+            'mass_submerged': mass_submerged,
+            'mass_surface': mass_surface,
+            'mass_stranded': mass_stranded,#.cumsum(dim='time'),
+            'mass_evaporated': mass_evaporated,
+            'mass_biodegraded': mass_biodegraded,
             'mass_total': (mass_dispersed + mass_submerged + mass_surface +
                            mass_stranded + mass_evaporated + mass_biodegraded)
         }
@@ -1474,14 +1462,14 @@ class OpenOil(OceanDrift):
 
         time, time_relative = self.get_time_array()
         time = np.array([t.total_seconds() / 3600. for t in time_relative])
-        kin_viscosity = self.history['viscosity']
-        dyn_viscosity = kin_viscosity * self.history['density'] * 1000  # unit of mPas
-        dyn_viscosity_mean = dyn_viscosity.mean(axis=0)
-        dyn_viscosity_std = dyn_viscosity.std(axis=0)
-        density = self.history['density'].mean(axis=0)
-        density_std = self.history['density'].std(axis=0)
-        watercontent = self.history['water_fraction'].mean(axis=0)*100
-        watercontent_std = self.history['water_fraction'].std(axis=0)*100
+        kin_viscosity = self.result.viscosity
+        dyn_viscosity = kin_viscosity * self.result.density*1000  # unit of mPas
+        dyn_viscosity_mean = dyn_viscosity.mean(dim='trajectory')
+        dyn_viscosity_std = dyn_viscosity.std(dim='trajectory')
+        density = self.result.density.mean(dim='trajectory')
+        density_std = self.result.density.std(dim='trajectory')
+        watercontent = self.result.water_fraction.mean(dim='trajectory')*100
+        watercontent_std = self.result.water_fraction.std(dim='trajectory')*100
 
         ax.plot(time,
                 dyn_viscosity_mean,

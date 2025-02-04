@@ -38,7 +38,7 @@ def get_model(model_name):
                 return model
 
 
-def open(filename, times=None, elements=None, load_history=True):
+def open(filename):
     '''Import netCDF output file as OpenDrift object of correct class'''
 
     import os
@@ -74,47 +74,7 @@ def open(filename, times=None, elements=None, load_history=True):
         from opendrift.models import oceandrift
         cls = oceandrift.OceanDrift
     o = cls()
-    o.io_import_file(filename, times=times, elements=elements, load_history=load_history)
-    logger.info('Returning ' + str(type(o)) + ' object')
-    return o
-
-def open_xarray(filename, chunks={'trajectory': 50000, 'time': 1000}, elements=None):
-    '''Import netCDF output file as OpenDrift object of correct class'''
-
-    import os
-    import pydoc
-    import xarray as xr
-    if not os.path.exists(filename):
-        logger.info('File does not exist, trying to retrieve from URL')
-        import urllib
-        try:
-            urllib.urlretrieve(filename, 'opendrift_tmp.nc')
-            filename = 'opendrift_tmp.nc'
-        except:
-            raise ValueError('%s does not exist' % filename)
-    n = xr.open_dataset(filename)
-    try:
-        module_name = n.opendrift_module
-        class_name = n.opendrift_class
-    except:
-        raise ValueError(filename + ' does not contain '
-                         'necessary global attributes '
-                         'opendrift_module and opendrift_class')
-    n.close()
-
-    if class_name == 'OpenOil3D':
-        class_name = 'OpenOil'
-        module_name = 'opendrift.models.openoil'
-    if class_name == 'OceanDrift3D':
-        class_name = 'OceanDrift'
-        module_name = 'opendrift.models.oceandrift'
-    cls = pydoc.locate(module_name + '.' + class_name)
-    if cls is None:
-        from opendrift.models import oceandrift
-        cls = oceandrift.OceanDrift
-    o = cls()
-    o.io_import_file_xarray(filename, chunks=chunks, elements=elements)
-
+    o.io_import_file(filename)  #, times=times, elements=elements, load_history=load_history)
     logger.info('Returning ' + str(type(o)) + ' object')
     return o
 
@@ -217,4 +177,3 @@ def import_from_ladim(ladimfile, romsfile):
     o.steps_output = num_timesteps
 
     return o
-

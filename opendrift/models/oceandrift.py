@@ -637,8 +637,9 @@ class OceanDrift(OpenDriftSimulation):
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
-                         valinit=self.steps_output-1, valfmt='%0.0f')
+        steps_output = len(self.result.time)
+        tslider = Slider(sliderax, 'Timestep', 0, steps_output-1,
+                         valinit=steps_output-1, valfmt='%0.0f')
         try:
             dz = self.get_config('vertical_mixing:verticalresolution')
         except:
@@ -654,15 +655,15 @@ class OceanDrift(OpenDriftSimulation):
         if bins is not None:
             dz = -maxrange/bins
 
-        # using get_property instead of history to exclude elements thare are not yet seeded
+        # using get_property instead of result to exclude elements thare are not yet seeded
         z = self.get_property('z')[0]
         z = np.ma.filled(z, np.nan)
 
         if maxnum is None:
             # Precalculatig histograms to find maxnum
-            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
-            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
-            for i in range(self.steps_output-1):
+            hist_series = np.zeros((int(-maxrange/dz), steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, steps_output-1))
+            for i in range(steps_output-1):
                 hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
             maxnum = hist_series.max()
 
@@ -676,8 +677,10 @@ class OceanDrift(OpenDriftSimulation):
             mainplot.set_xlim([0, maxnum])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
-            x_wind = self.history['x_wind'].T[tindex, :]
-            y_wind = self.history['y_wind'].T[tindex, :]
+            #x_wind = self.history['x_wind'].T[tindex, :]
+            #y_wind = self.history['y_wind'].T[tindex, :]
+            x_wind = self.result.x_wind.isel(time=tindex)
+            y_wind = self.result.y_wind.isel(time=tindex)
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
             mainplot.set_title(str(self.get_time_array()[0][tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
@@ -697,6 +700,7 @@ class OceanDrift(OpenDriftSimulation):
         """Function to plot vertical distribution of particles.
 
         Use mask to plot any selection of particles.
+
         """
         from pylab import axes, draw
         from matplotlib import dates, pyplot
@@ -709,20 +713,20 @@ class OceanDrift(OpenDriftSimulation):
             show = False
 
         if mask is None: # create a mask that is True for all particles
-            mask = self.history['z'].T[0] == self.history['z'].T[0]
+            mask = self.result.z.T[0] == self.result.z.T[0]
 
         if bins is None:
             bins=int(-maxrange/dz)
 
-        ax.hist(self.history['z'].T[step,mask], bins=bins,
+        ax.hist(self.result.z.T[step,mask], bins=bins,
                 range=[maxrange, 0], orientation='horizontal')
         ax.set_ylim([maxrange, 0])
         ax.grid()
         #ax.set_xlim([0, mask.sum()*.15])
         ax.set_xlabel('Number of particles')
         ax.set_ylabel('Depth [m]')
-        x_wind = self.history['x_wind'].T[step, :]
-        y_wind = self.history['x_wind'].T[step, :]
+        x_wind = self.result.x_wind.T[step, :]
+        y_wind = self.result.x_wind.T[step, :]
         windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
         ax.set_title(str(self.get_time_array()[0][step]) +
                      '   Mean windspeed: %.1f m/s' % windspeed)

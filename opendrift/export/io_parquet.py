@@ -12,6 +12,11 @@ import numpy as np
 import pandas as pd
 from opendrift.models.basemodel import Mode
 
+# KFD 4 Feb 2025
+# recarray self.history is now replaced with Xarray Dataset self.result
+# Thus the below code must be updated accordingly.
+# E.g.    self.history['ID"] -> self.result.ID
+
 def init(self, filename):
 
     self.outfile = filename
