@@ -303,8 +303,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.io_write_buffer = types.MethodType(io_module.write_buffer, self)
         self.io_close = types.MethodType(io_module.close, self)
         self.io_import_file = types.MethodType(io_module.import_file, self)
-        self.io_import_file_xarray = types.MethodType(
-            io_module.import_file_xarray, self)
 
         # Set configuration options
         self._add_config({
@@ -3086,8 +3084,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
             if isinstance(markersize, str):
                 points.set_sizes(np.abs(markersize_scaling * self.result[markersize][:, i]))
-                #points.set_sizes(np.abs(markersize_scaling *
-                #            (self.history[markersize][:, i] / self.history[markersize].compressed()[0])))
 
             if compare is not None:
                 points_other.set_offsets(np.c_[x_other[range(x_other.shape[0]), i],

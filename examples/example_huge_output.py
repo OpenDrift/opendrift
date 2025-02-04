@@ -36,7 +36,8 @@ o.run(duration=timedelta(hours=24),
 # This will work even if the file is too large to fit in memory, as it
 # will read and process data chuck-by-chunk directly from file using Dask.
 # (See also `example_river_runoff.py <https://opendrift.github.io/gallery/example_river_runoff.html>`_)
-oa = opendrift.open_xarray(outfile)
+# See also TrajAn: https://opendrift.github.io/trajan/
+oa = opendrift.open(outfile)
 
 #%%
 # Calculating histogram

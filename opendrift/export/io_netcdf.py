@@ -79,59 +79,6 @@ def close(self):
     self.result.to_netcdf(self.outfile_name + '_tmp', unlimited_dims={})
     shutil.move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
 
-
-def import_file_xarray(self, filename, chunks, elements=None):
-
-    import xarray as xr
-    logger.debug('Importing with Xarray from ' + filename)
-    self.ds = xr.open_dataset(filename, chunks=chunks)
-    if elements is not None:
-        self.ds = self.ds.isel(trajectory=elements)
-
-    self.steps_output = len(self.ds.time)
-    ts0 = (self.ds.time[0] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    self.start_time = datetime.utcfromtimestamp(float(ts0))
-    tse = (self.ds.time[-1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    self.end_time = datetime.utcfromtimestamp(float(tse))
-    if len(self.ds.time) > 1:
-        ts1 = (self.ds.time[1] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-        self.time_step_output = timedelta(seconds=float(ts1 - ts0))
-    self.time = self.end_time  # Using end time as default
-    self.status_categories = self.ds.status.flag_meanings.split()
-    if 'origin_marker' in self.ds.variables :
-        if 'flag_meanings' in self.ds.origin_marker.attrs:
-            self.origin_marker = [s.replace('_', ' ') for s in self.ds.origin_marker.flag_meanings.split()]
-
-    num_elements = len(self.ds.trajectory)
-    elements=np.arange(num_elements)
-
-    # Data types for variables
-    dtype = np.dtype([(var[0], var[1]['dtype'])
-                      for var in self.ElementType.variables.items()])
-    history_dtype_fields = [
-        (name, self.ElementType.variables[name]['dtype'])
-        for name in self.ElementType.variables]
-    # Add environment variables
-    self.history_metadata = self.ElementType.variables.copy()
-    for env_var in self.required_variables:
-        if env_var in self.ds.variables:
-            history_dtype_fields.append((env_var, np.dtype('float32')))
-            self.history_metadata[env_var] = {}
-    history_dtype = np.dtype(history_dtype_fields)
-
-    # Masking where elements are not been seeded
-    # TODO: mask from deactivation towards end
-    for da in ['lon', 'lat']:
-        self.ds[da] = self.ds[da].where(self.ds.status>=0)
-
-    if 'minval' in self.ds.lon.attrs:
-        self.lonmin = np.float32(self.ds.lon.minval)
-        self.latmin = np.float32(self.ds.lat.minval)
-        self.lonmax = np.float32(self.ds.lon.maxval)
-        self.latmax = np.float32(self.ds.lat.maxval)
-
-    self.mode = Mode.Result
-
 def import_file(self, filename):
     """Create OpenDrift object from imported file.
     """
@@ -180,6 +127,12 @@ def import_file(self, filename):
                 logger.warning('Could not set config: %s -> %s' %
                                 (conf_key, value))
     self.mode = Mode.Result
+
+    self.status_categories = self.result.status.flag_meanings.split()
+    if 'origin_marker' in self.result.var() :
+        if 'flag_meanings' in self.result.origin_marker.attrs:
+            self.origin_marker = [s.replace('_', ' ') for s in self.result.origin_marker.flag_meanings.split()]
+
 
     # Import time steps from metadata
     def timedelta_from_string(timestring):
