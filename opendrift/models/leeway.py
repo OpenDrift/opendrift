@@ -595,9 +595,8 @@ class Leeway(OpenDriftSimulation):
                      step + 1, num_active - beforeseeded, num_active))
             beforeseeded = num_active
             f.write('# Mean position:\nmeanLon meanLat\n')
-            #f.write('%.5f\t%.5f\n' %
-            #        (np.mean(lon[status == 11]), np.mean(lat[status == 11])))
-            f.write(f'{np.mean(lon[status == 11]):.5f}\t{np.mean(lat[status == 11]):.5f}\n')
+            f.write('%.5f\t%.5f\n' %
+                    (np.mean(lon[status == 11]), np.mean(lat[status == 11])))
             f.write('# Particle data:\n')
             f.write('id  lon lat state   age orientation\n')
             age_minutes = self.time_step_output.total_seconds() * (
