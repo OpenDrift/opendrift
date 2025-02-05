@@ -73,7 +73,7 @@ def test_leewayrun(tmpdir, test_data):
     asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
     asciitarget2 = test_data + "/generated/test_leewayrun_export_ascii_v2.txt"
     from difflib import Differ
-    with open(asciif) as file_1, open(asciitarget) as file_2:
+    with open(asciif) as file_1, open(asciitarget2) as file_2:
         differ = Differ()
         for line in differ.compare(file_1.readlines(), file_2.readlines()):
             print(line)

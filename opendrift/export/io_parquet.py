@@ -64,9 +64,3 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
     """
     logger.info("Skipping reimport")
     return self
-
-def import_file_xarray(self, filename, times=None, elements=None, load_history=True):
-    """Create OpenDrift object from file
-    Odd if this I/O backend specific feature were required for all of opendrift to run
-    """
-    raise NotImplementedError("wontfix")
