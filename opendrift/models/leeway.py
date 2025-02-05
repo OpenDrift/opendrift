@@ -604,7 +604,7 @@ class Leeway(OpenDriftSimulation):
             age_minutes[age_minutes < 0] = 0
             age_minutes = age_minutes.values
             for i in range(num_active):
-                f.write('%i\t%.6f\t%.6f\t%i\t%i\t%i\n' %
+                f.write('%i\t%.5f\t%.5f\t%i\t%i\t%i\n' %
                         (i + 1, lon[i], lat[i], status[i], age_minutes[i],
                          orientation[i]))
 
