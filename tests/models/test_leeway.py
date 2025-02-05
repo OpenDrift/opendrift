@@ -71,7 +71,6 @@ def test_leewayrun(tmpdir, test_data):
     asciif = tmpdir + '/leeway_ascii.txt'
     lee.export_ascii(asciif)
     asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
-    asciitarget2 = test_data + "/generated/test_leewayrun_export_ascii_v2.txt"
     from difflib import Differ
     with open(asciif) as file_1, open(asciitarget) as file_2:
         differ = Differ()
@@ -80,7 +79,7 @@ def test_leewayrun(tmpdir, test_data):
     import filecmp
     if not filecmp.cmp(asciif, asciitarget):
         # Comparing with second versio of ASCII file, with slight numerical differences
-        assert filecmp.cmp(asciif, asciitarget2)
+        assert filecmp.cmp(asciif, asciitarget)
 
 def test_capsize():
     o = Leeway(loglevel=20)
