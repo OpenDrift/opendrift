@@ -1921,22 +1921,40 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Add the output variables which are always required
         if export_variables is not None:
             export_variables = list(
-                set(export_variables + ['lon', 'lat', 'ID', 'status']))
+                set(export_variables + ['lon', 'lat', 'status']))
         self.export_variables = export_variables
 
-        # Create Xarray Dataset to hold result jolabokk
+        # Create Xarray Dataset to hold result
         coords = {  # Initialize for the part fitting in memory
-            'trajectory': ('trajectory', np.arange(len(self.elements_scheduled)), {'cf_role': 'trajectory_id'}),
-            'time': ('time', pd.date_range(self.start_time, periods=self.export_buffer_length, freq=self.time_step_output),
-                        {'standard_name': 'time', 'long_name': 'time'})}
+            'trajectory': ('trajectory', np.arange(len(self.elements_scheduled)),
+                           {'cf_role': 'trajectory_id'}),
+            'time': ('time', pd.date_range(self.start_time, periods=self.export_buffer_length,
+                                           freq=self.time_step_output),
+                     {'standard_name': 'time', 'long_name': 'time'})}
         shape = (len(coords['trajectory'][1]), len(coords['time'][1]))
         dims = ('trajectory', 'time')  # Presently, but shall also allow single dimension
 
-        element_vars = {varname: (dims, np.nan*np.ones(shape=shape, dtype=var['dtype']),
-                                  {attr:str(var[attr]) for attr in var if attr not in ['dtype']})
-                        for varname,var in self.ElementType.variables.items()
-                        if self.export_variables is None or varname in self.export_variables}
-        environment_vars = {varname: (dims, np.nan*np.ones(shape=shape, dtype=np.float32))
+        element_vars = {}
+        default_dtype = np.float32  # Allows NaN (in contrast to np.int)
+        for varname, attrs in self.ElementType.variables.items():
+            if varname == 'ID' or (self.export_variables is not None and
+                                   varname not in self.export_variables):
+                continue
+            attrs = attrs.copy()
+            dtype = attrs.pop('dtype', default_dtype)
+            fill_value = np.nan
+            if issubclass(dtype, np.integer):
+                if '_FillValue' not in attrs:
+                    logger.warning(f'Changing dtype for element attribute {varname} from {dtype} '
+                                   f'to {default_dtype} since _FillValue attribute is not given.')
+                    dtype = default_dtype
+                else:
+                    fill_value = attrs['_FillValue']
+            element_vars[varname] = (dims,
+                                     np.full(shape=shape, fill_value=fill_value, dtype=dtype),
+                                     {key: str(value) for key, value in attrs.items()})
+
+        environment_vars = {varname: (dims, np.nan*np.ones(shape=shape, dtype=default_dtype))
                             for varname,var in self.required_variables.items()
                             if self.export_variables is None or varname in self.export_variables}
         global_attributes = {
@@ -2233,8 +2251,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             insert_time = self.result.time.sel(time=self.time, method='backfill').values
 
         for var in self.result.var():
-            if var == 'ID':
-                continue
             for source in (self.elements, self.environment):
                 d = getattr(source, var, None)
                 if d is not None:
@@ -2247,7 +2263,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.debug('Updating minval and maxval')
             # Update min and max values
             for varname, var in self.result.data_vars.items():
-                if varname in ['ID', 'status']:
+                if varname in ['status']:
                     continue
                 minval = var.min(skipna=True).item()
                 maxval = var.max(skipna=True).item()
@@ -2258,10 +2274,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if final is True:
             numtimes_before = self.result.sizes['time']
-            if self.simulation_direction() == 1:  # forward
-                self.result = self.result.where(self.result.time <= pd.to_datetime(self.time), drop=True)
-            elif self.simulation_direction() == -1:  # backward
-                self.result = self.result.where(self.result.time >= pd.to_datetime(self.time), drop=True)
+            self.result = self.result.sel({'time': slice(self.result.time[0], pd.to_datetime(self.time))})
             numtimes_after = self.result.sizes['time']
             if numtimes_after < numtimes_before:
                 logger.debug(f'Truncating buffer from {numtimes_before} to {numtimes_after} times')

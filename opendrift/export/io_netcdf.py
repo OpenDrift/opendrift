@@ -39,8 +39,6 @@ def write_buffer(self):
     numtimes = self.outfile['time'].shape[0]
 
     for varname in self.result.var():
-        if varname == 'ID':
-            continue
         var = self.outfile.variables[varname]
         var[:, numtimes:numtimes + self.result.sizes['time']] = self.result[varname]
     self.outfile.variables['time'][numtimes:numtimes + self.result.sizes['time']] = \
@@ -57,10 +55,9 @@ def close(self):
 
     self.outfile = Dataset(self.outfile_name, 'a')
     for var in self.result.var():  # Updating variable attributes, if changed during simulation
-        if var == 'ID':
-            continue
         for atn, atv in self.result[var].attrs.items():
-            self.outfile[var].setncattr(atn, atv)
+            if atn != '_FillValue':
+                self.outfile[var].setncattr(atn, atv)
 
     self.outfile.close()  # Finally close file
     logger.debug('Closed netCDF-file')
