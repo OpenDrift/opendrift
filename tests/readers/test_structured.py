@@ -12,6 +12,7 @@ try:
     svim_available = True
 except:
     svim_available = False
+svim_available = True
 message = 'SVIM dataset not available from thredds.met.no'
 
 
@@ -91,6 +92,7 @@ def test_lonlat2xy_sequential_big(test_data, benchmark):
     _, _ = benchmark(reader.lonlat2xy, lon, lat)
     assert reader.__lonlat2xy_parallel__ == False
 
+@pytest.mark.skipif(svim_available == False, reason=message)
 @pytest.mark.slow
 def test_lonlat2xy_parallel_big(test_data, benchmark):
     reader = reader_ROMS_native.Reader(svim)
