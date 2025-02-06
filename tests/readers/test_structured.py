@@ -12,7 +12,6 @@ try:
     svim_available = True
 except:
     svim_available = False
-svim_available = True
 message = 'SVIM dataset not available from thredds.met.no'
 
 
