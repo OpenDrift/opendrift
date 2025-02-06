@@ -1940,7 +1940,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if varname == 'ID' or (self.export_variables is not None and
                                    varname not in self.export_variables):
                 continue
-            attrs = attrs.copy()
+            attrs = {k:v for k,v in attrs.copy().items() if k not in ['seed', 'default']}
             dtype = attrs.pop('dtype', default_dtype)
             fill_value = np.nan
             if issubclass(dtype, np.integer):
@@ -1990,7 +1990,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if self.origin_marker is not None and 'origin_marker' in self.result.var():
             self.result['origin_marker'] = self.result.origin_marker.assign_attrs(
-                {'flag_values': np.array(np.arange(len(self.origin_marker))),
+                {'flag_values': np.arange(len(self.origin_marker)),
                  'flag_meanings': " ".join(self.origin_marker.values())
                 })
 
@@ -2180,9 +2180,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         logger.debug('Cleaning up')
 
         self.interact_with_coastline(final=True)
-        self.state_to_buffer(final=True)  # Append final status to buffer
         self.timer_end('cleaning up')
         self.timer_end('total time')
+        self.state_to_buffer(final=True)  # Append final status to buffer
 
         if outfile is not None:
             logger.debug('Finalising and closing output file: %s' % outfile)
