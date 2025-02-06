@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 def test_logging(tmpdir, capsys):
-    accepted = (285, 288, 291)  # Accepting small variations in log output
+    accepted = (291,294)  # Accepting small variations in log output
 
     # Logging to console
     logfile = None
