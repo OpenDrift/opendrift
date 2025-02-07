@@ -32,7 +32,16 @@ def write_buffer(self):
     if not os.path.exists(self.outfile_name):
         logger.debug('Initialising output netCDF file '
                     f'{self.outfile_name} with {self.result.sizes["time"]} timesteps')
-        self.result.to_netcdf(self.outfile_name, unlimited_dims={'time': True})
+        encoding = {}
+        for varname, var in self.result.variables.items():
+            attrs = var.attrs.copy()
+            if 'dtype' in attrs and issubclass(attrs['dtype'], np.integer):
+                FillValue = np.iinfo(attrs['dtype']).max
+                encoding[varname] = {'dtype': attrs['dtype'], '_FillValue': FillValue}
+            attrs.pop('dtype', None)
+            self.result[varname].attrs = attrs
+        self.result.to_netcdf(self.outfile_name, unlimited_dims={'time': True},
+                              encoding=encoding)
         return
 
     self.outfile = Dataset(self.outfile_name, 'a')  # Re-open file at each write

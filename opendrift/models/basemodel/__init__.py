@@ -1941,20 +1941,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                    varname not in self.export_variables):
                 continue
             attrs = {k:v for k,v in attrs.copy().items() if k not in ['seed', 'default']}
-            dtype = attrs.pop('dtype', default_dtype)
-            fill_value = np.nan
-            if issubclass(dtype, np.integer):
-                if '_FillValue' not in attrs:
-                    logger.warning(f'Changing dtype for element attribute {varname} from {dtype} '
-                                   f'to {default_dtype} since _FillValue attribute is not given.')
-                    dtype = default_dtype
-                else:
-                    fill_value = attrs['_FillValue']
             element_vars[varname] = (dims,
-                                     np.full(shape=shape, fill_value=fill_value, dtype=dtype),
-                                     {key: str(value) for key, value in attrs.items()})
+                                     np.full(shape=shape, fill_value=np.nan, dtype=default_dtype),
+                                     {key: value for key, value in attrs.items()})
 
-        environment_vars = {varname: (dims, np.nan*np.ones(shape=shape, dtype=default_dtype))
+        environment_vars = {varname: (dims, np.full(shape=shape, fill_value=np.nan, dtype=default_dtype))
                             for varname,var in self.required_variables.items()
                             if self.export_variables is None or varname in self.export_variables}
         global_attributes = {

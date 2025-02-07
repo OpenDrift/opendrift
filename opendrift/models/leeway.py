@@ -554,35 +554,25 @@ class Leeway(OpenDriftSimulation):
             self.index_of_first_and_last()
 
         beforeseeded = 0
-        lons, statuss = self.get_property('lon')
-        lats, statuss = self.get_property('lat')
-        orientations, statuss = self.get_property('orientation')
-        lons = lons.ffill(dim='time')
-        lats = lats.ffill(dim='time')
-        statuss = statuss.ffill(dim='time')
-        orientations = orientations.ffill(dim='time')
+
+        statuss = self.result.status.ffill(dim='time')
+        lons = self.result.lon.ffill(dim='time')
+        lats = self.result.lat.ffill(dim='time')
+        orientations = self.result.orientation.ffill(dim='time')
+
         for step in range(self.result.sizes['time']):
-            lon = lons[step, :]
-            lat = lats[step, :]
-            orientation = orientations[step, :]
-            status = statuss[step, :]
-            if sum(status ==
-                   0) == 0:  # All elements deactivated: using last position
-                lon = lons[step - 1, :]
-                lat = lats[step - 1, :]
-                orientation = orientations[step - 1, :]
-                status = statuss[step - 1, :]
+            status = statuss.isel(time=step)
+            index = step
+            if sum(status==0) == 0:  # All elements deactivated: using last position
+                index = step - 1
+                status = statuss.isel(time=index)
+            lon = lons.isel(time=index)
+            lat = lats.isel(time=index)
+            orientation = orientations.isel(time=index)
             num_active = np.sum(status.notnull()).values
             status[status.isnull()] = 41  # Seeded on land
-            lon[status.isnull()] = 0
-            lat[status.isnull()] = 0
-            orientation[status.isnull()] = 0
             status[status == 0] = 11  # active
             status[status == 1] = 41  # stranded
-            status = status.values
-            lon = lon.values
-            lat = lat.values
-            orientation = orientation.values
             f.write('\n# Date [UTC]:\nnowDate   nowTime\n')
             f.write((
                 self.start_time +
@@ -596,7 +586,7 @@ class Leeway(OpenDriftSimulation):
             beforeseeded = num_active
             f.write('# Mean position:\nmeanLon meanLat\n')
             f.write('%.5f\t%.5f\n' %
-                    (np.mean(lon[status == 11]), np.mean(lat[status == 11])))
+                    (lon.where(status==11).mean(), lat.where(status==11).mean()))
             f.write('# Particle data:\n')
             f.write('id  lon lat state   age orientation\n')
             age_minutes = self.time_step_output.total_seconds() * (
@@ -604,9 +594,8 @@ class Leeway(OpenDriftSimulation):
             age_minutes[age_minutes < 0] = 0
             age_minutes = age_minutes.values
             for i in range(num_active):
-                f.write('%i\t%.5f\t%.5f\t%i\t%i\t%i\n' %
-                        (i + 1, lon[i], lat[i], status[i], age_minutes[i],
-                         orientation[i]))
+                f.write('%i\t%.5f\t%.5f\t%.0f\t%.0f\t%.0f\n' %
+                        (i + 1, lon[i], lat[i], status[i], age_minutes[i], orientation[i]))
 
         f.close()
 
