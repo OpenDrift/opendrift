@@ -1943,7 +1943,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             attrs = {k:v for k,v in attrs.copy().items() if k not in ['seed', 'default']}
             element_vars[varname] = (dims,
                                      np.full(shape=shape, fill_value=np.nan, dtype=default_dtype),
-                                     {key: value for key, value in attrs.items()})
+                                     attrs)
 
         environment_vars = {varname: (dims, np.full(shape=shape, fill_value=np.nan, dtype=default_dtype))
                             for varname,var in self.required_variables.items()
