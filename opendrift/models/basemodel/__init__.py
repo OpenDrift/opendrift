@@ -329,6 +329,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'description': 'The precision of the particle position approximation to the coastline.',
                 'level': CONFIG_LEVEL_BASIC
             },
+            'general:land_to_ocean_move_buffer': {
+                'type':
+                'float',
+                'min':
+                0.0,
+                'max':
+                np.inf,
+                'default':
+                0,
+                'units':
+                'shape reader projection units',
+                'level':
+                CONFIG_LEVEL_ADVANCED,
+                'description':
+                'Move land particles this many projection units into ocean.'
+            },            
             'general:time_step_minutes': {
                 'type': 'float',
                 'min': .01,
@@ -891,14 +907,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def closest_ocean_points(self, lon, lat):
         """Return the closest ocean points for given lon, lat"""
+        from opendrift.readers.reader_shape import Reader as ShapeReader
 
-        deltalon = 0.01  # grid
-        deltalat = 0.01
-        numbuffer = 10
-        lonmin = lon.min() - deltalon * numbuffer
-        lonmax = lon.max() + deltalon * numbuffer
-        latmin = lat.min() - deltalat * numbuffer
-        latmax = lat.max() + deltalat * numbuffer
         if not 'land_binary_mask' in self.env.priority_list:
             logger.info('No land reader added, '
                         'making a temporary landmask reader')
@@ -919,47 +929,67 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             land_reader = self.env.readers[land_reader_name]
             o = self
 
-        land = o.env.get_environment(['land_binary_mask'],
-                                     lon=lon,
-                                     lat=lat,
-                                     z=0 * lon,
-                                     time=land_reader.start_time)[0]['land_binary_mask']
-        if land.max() == 0:
-            logger.info('All points are in ocean')
-            return lon, lat
-        logger.info('Moving %i out of %i points from land to water' %
-                    (np.sum(land != 0), len(lon)))
-        landlons = lon[land != 0]
-        landlats = lat[land != 0]
-        longrid = np.arange(lonmin, lonmax, deltalon)
-        latgrid = np.arange(latmin, latmax, deltalat)
-        longrid, latgrid = np.meshgrid(longrid, latgrid)
-        longrid = longrid.ravel()
-        latgrid = latgrid.ravel()
-        # Remove grid-points not covered by this reader
-        latgrid_covered = land_reader.covers_positions(longrid, latgrid)[0]
-        longrid = longrid[latgrid_covered]
-        latgrid = latgrid[latgrid_covered]
-        landgrid = o.env.get_environment(['land_binary_mask'],
-                                         lon=longrid,
-                                         lat=latgrid,
-                                         z=0 * longrid,
-                                         time=land_reader.start_time)[0]['land_binary_mask']
-        if landgrid.min() == 1 or np.isnan(landgrid.min()):
-            logger.warning('No ocean pixels nearby, cannot move elements.')
-            if land.min() == 1:
-                raise ValueError('All elements seeded on land')
-            return lon, lat
+        if isinstance(land_reader, ShapeReader):
+            # can do this better
+            is_inside = land_reader.is_inside(lon, lat)
+            lon[is_inside], lat[is_inside], _ = land_reader.get_nearest_outside(
+                lon[is_inside],
+                lat[is_inside],
+                buffer=self.get_config('general:land_to_ocean_move_buffer'),
+            )
 
-        oceangridlons = longrid[landgrid == 0]
-        oceangridlats = latgrid[landgrid == 0]
-        tree = scipy.spatial.cKDTree(
-            np.dstack([oceangridlons, oceangridlats])[0])
-        landpoints = np.dstack([landlons, landlats])
-        _dist, indices = tree.query(landpoints)
-        indices = indices.ravel()
-        lon[land != 0] = oceangridlons[indices]
-        lat[land != 0] = oceangridlats[indices]
+        else:
+            deltalon = 0.01  # grid
+            deltalat = 0.01
+            numbuffer = 10
+            lonmin = lon.min() - deltalon * numbuffer
+            lonmax = lon.max() + deltalon * numbuffer
+            latmin = lat.min() - deltalat * numbuffer
+            latmax = lat.max() + deltalat * numbuffer
+
+            land = o.env.get_environment(['land_binary_mask'],
+                                        lon=lon,
+                                        lat=lat,
+                                        z=0 * lon,
+                                        time=land_reader.start_time)[0]['land_binary_mask']
+            if land.max() == 0:
+                logger.info('All points are in ocean')
+                return lon, lat
+            logger.info('Moving %i out of %i points from land to water' %
+                        (np.sum(land != 0), len(lon)))
+            landlons = lon[land != 0]
+            landlats = lat[land != 0]
+            longrid = np.arange(lonmin, lonmax, deltalon)
+            latgrid = np.arange(latmin, latmax, deltalat)
+            longrid, latgrid = np.meshgrid(longrid, latgrid)
+            longrid = longrid.ravel()
+            latgrid = latgrid.ravel()
+            # Remove grid-points not covered by this reader
+            latgrid_covered = land_reader.covers_positions(longrid, latgrid)[0]
+            longrid = longrid[latgrid_covered]
+            latgrid = latgrid[latgrid_covered]
+            landgrid = o.env.get_environment(['land_binary_mask'],
+                                            lon=longrid,
+                                            lat=latgrid,
+                                            z=0 * longrid,
+                                            time=land_reader.start_time)[0]['land_binary_mask']
+            if landgrid.size == 0:
+                # Need to catch this before trying .min() on it...
+                logger.warning('Land grid has zero size, cannot move elements.')
+                return lon, lat                                        
+            if landgrid.min() == 1 or np.isnan(landgrid.min()):
+                logger.warning('No ocean pixels nearby, cannot move elements.')
+                return lon, lat
+
+            oceangridlons = longrid[landgrid == 0]
+            oceangridlats = latgrid[landgrid == 0]
+            tree = scipy.spatial.cKDTree(
+                np.dstack([oceangridlons, oceangridlats])[0])
+            landpoints = np.dstack([landlons, landlats])
+            _dist, indices = tree.query(landpoints)
+            indices = indices.ravel()
+            lon[land != 0] = oceangridlons[indices]
+            lat[land != 0] = oceangridlats[indices]
 
         return lon, lat
 
