@@ -1927,7 +1927,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Create Xarray Dataset to hold result
         coords = {  # Initialize for the part fitting in memory
             'trajectory': ('trajectory', np.arange(len(self.elements_scheduled)),
-                           {'cf_role': 'trajectory_id'}),
+                {'dtype': np.int32, 'cf_role': 'trajectory_id'}),
             'time': ('time', pd.date_range(self.start_time, periods=self.export_buffer_length,
                                            freq=self.time_step_output),
                      {'standard_name': 'time', 'long_name': 'time'})}
