@@ -32,7 +32,8 @@ def write_buffer(self):
     if not os.path.exists(self.outfile_name):
         logger.debug('Initialising output netCDF file '
                     f'{self.outfile_name} with {self.result.sizes["time"]} timesteps')
-        encoding = {}
+        encoding = {'time': {'units': 'Seconds since 1970-01-01 00:00:00',
+                             'dtype': np.float64}}  # Expected by some downstream clients
         for varname, var in self.result.variables.items():
             attrs = var.attrs.copy()
             if 'dtype' in attrs and issubclass(attrs['dtype'], np.integer):
