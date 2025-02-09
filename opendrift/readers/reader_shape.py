@@ -62,36 +62,61 @@ class Reader(BaseReader, ContinuousReader):
             shpfiles = shpfiles
         else:
             shpfiles = [ shpfiles ]
-
         # reading shapefiles
         shp_iters = []
         for shp in shpfiles:
             logger.debug("Reading shapefile: %s" % shp)
             from cartopy import io
             reader = io.shapereader.Reader(shp)
-            shp_iters.append(reader.geometries())
-
+            shp_iters.append(reader.records())
         return Reader(itertools.chain(*shp_iters), proj4_str, invert=invert)
 
-    def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
+    def _ingest_landmask_only(self):
+        assert len(self.polys) > 0, "no geometries loaded"
+        logger.info("Pre-processing %d geometries" % len(self.polys))
+        self.land = {
+            self.variables[0]: shapely.ops.unary_union(self.polys)
+        }
 
+    def _ingest_multivariable(self):
+        self.land = {}
+        for var in self.variables:
+            features = filter(lambda x: x.attributes['variable'] == var,
+                self.records)
+            self.land[var] = shapely.ops.unary_union([x.geometry
+                for x in features])
+
+    def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
         self.invert = invert  # True if polygons are lakes and not land areas
         self.proj4 = proj4_str
         self.crs = pyproj.CRS(self.proj4)
-
         super (Reader, self).__init__ ()
-
         # Depth
         self.z = None
-
-        # loading and pre-processing shapes
-        self.polys = list(shapes) # reads geometries if Shape Readers
-        assert len(self.polys) > 0, "no geometries loaded"
-
-        logger.info("Pre-processing %d geometries" % len(self.polys))
-        self.land = shapely.ops.unary_union(self.polys)
-
-        self.xmin, self.ymin, self.xmax, self.ymax = self.land.bounds
+        try:
+            # Test if shapes are records or geometries
+            self.records = list(shapes)
+            self.polys = [x.geometry for x in self.records]
+        except AttributeError:
+            # This is a classic land mask file
+            self.polys = list(shapes) # reads geometries if Shape Readers
+            self.records = None
+            self._ingest_landmask_only()
+        else:
+            try:
+                # When records are passed, check for the `variable` attribute
+                add_vars = set([x.attributes['variable'] for x in self.records])
+            except KeyError:
+                # It's a plain land mask file without attributes
+                self._ingest_landmask_only()
+            else:
+                # It's a multi-variable shapefile
+                self.variables = list(add_vars)
+                self._ingest_multivariable()
+        # Regardless of the number of variables, the extent is always the sum
+        # of the polygons
+        whole = shapely.ops.unary_union(self.polys)
+        self.xmin, self.ymin, self.xmax, self.ymax = whole.bounds
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
         self.xmin = self.xmin[0]
@@ -99,11 +124,11 @@ class Reader(BaseReader, ContinuousReader):
         self.ymin = self.ymin[0]
         self.ymax = self.ymax[0]
 
-    def __on_land__(self, x, y):
+    def __on_land__(self, x, y, var):
         if self.invert is False:
-            return shapely.vectorized.contains(self.land, x, y)
+            return shapely.vectorized.contains(self.land[var], x, y)
         else:  # Inverse if polygons are lakes and not land areas
-            return 1 - shapely.vectorized.contains(self.land, x, y)
+            return 1 - shapely.vectorized.contains(self.land[var], x, y)
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None):
@@ -121,8 +146,10 @@ class Reader(BaseReader, ContinuousReader):
             Binary mask of point x, y on land.
 
         """
-
-        self.check_arguments(requestedVariables, time, x, y, z)
-        return { 'x' : x, 'y' : y, 'land_binary_mask': self.__on_land__(x,y) }
-
+        requestedVariables = \
+            self.check_arguments(requestedVariables, time, x, y, z)[0]
+        variables = { 'x' : x, 'y' : y}
+        for var in requestedVariables:
+            variables[var] = self.__on_land__(x, y, var)
+        return variables
 
