@@ -69,9 +69,9 @@ class Reader(BaseReader, UnstructuredReader):
                 'SALINITY        ': 'sea_water_salinity',
                 'NUZ FOR VELOCITY': 'ocean_vertical_diffusivity',
                 'NUX FOR VELOCITY': 'horizontal_diffusivity',
-                'ELEVATION Z     ': 'sea_floor_depth_below_sea_level',
+                'ELEVATION Z     ': 'altitude',
             }
-
+            # ds['sea_floor_depth_below_sea_level']=ds['Altitude'][:,-1,:]-ds['Altitude'][:,0,:]
             No_OD_equiv = {
                 'x_wind', 'y_wind', 'wind_speed',
                 'sea_floor_depth_below_sea_level', 'wind_from_direction',
@@ -156,7 +156,7 @@ class Reader(BaseReader, UnstructuredReader):
         self.meshID=(np.arange(self.slf.nplan)[:,None] \
                      *self.slf.npoin2).astype(int)
         self.variables, self.var_idx = vardic(self.slf.varnames)
-
+        # Process altitude!!! ds['sea_floor_depth_below_sea_level']=ds['Altitude'][:,-1,:]-ds['Altitude'][:,0,:]
         self.timer_end("build index")
         self.timer_end("open dataset")
 
