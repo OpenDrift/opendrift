@@ -1062,7 +1062,8 @@ class RadionuclideDrift(OceanDrift):
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         if pixelsize_m == 'auto':
-            lon, lat = self.get_lonlats()
+            lon = self.result.lon
+            lat = self.result.lat
             latspan = lat.max()-lat.min()
             pixelsize_m=30
             if latspan > .05:

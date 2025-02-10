@@ -12,7 +12,7 @@ from opendrift.readers import reader_oscillating
 
 #%%
 # First make a simulation with two seedings, marked by *origin_marker*
-o = OceanDrift(loglevel=50)
+o = OceanDrift(loglevel=10)
 o.set_config('drift:horizontal_diffusivity', 10)
 t1 = datetime.now()
 t2 = t1 + timedelta(hours=6)

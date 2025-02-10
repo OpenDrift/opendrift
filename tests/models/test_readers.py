@@ -581,12 +581,12 @@ class TestReaders(unittest.TestCase):
         o2.seed_elements(lon=15, lat=70.1, time=r1.start_time)
         o2.run(time_step=3600*3, duration=timedelta(hours=48))
         # Compare
-        lat1 = o1.get_property('lat')[0]
-        lat2 = o2.get_property('lat')[0]
-        self.assertEqual(len(lat1), 12)
-        self.assertEqual(len(lat2), 17)
+        lat1 = o1.result.lat
+        lat2 = o2.result.lat
+        self.assertEqual(lat1.sizes['time'], 12)
+        self.assertEqual(lat2.sizes['time'], 17)
         self.assertIsNone(np.testing.assert_allclose(
-                            lat1[0:12], lat2[0:12]))
+                            lat1, lat2.isel(time=slice(0,12))))
         # Test reader netCDF_CF_generic
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')

@@ -129,7 +129,8 @@ class TestInterpolation(unittest.TestCase):
         o.seed_elements(lon=lons, lat=lats, time=start_time, wind_drift_factor=.1)
         o.run(steps=2, time_step=3600*12)
         # Check expected drift direction for each quadrant
-        lon,lat = o.get_lonlats()
+        lon = o.result.lon
+        lat = o.result.lat
         # North-westwards
         np.testing.assert_array_almost_equal(lon[25,:], [-60, -60.77, -61.55], decimal=2)
         np.testing.assert_array_almost_equal(lat[25,:], [-60, -59.96, -59.92], decimal=2)
