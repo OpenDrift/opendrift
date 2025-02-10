@@ -279,13 +279,14 @@ class TestRun(unittest.TestCase):
         self.assertEqual(len(o.elements_scheduled), 400)
         self.assertAlmostEqual(o.elements_scheduled.lat[-1], 52.5, 2)
 
-    #@unittest.skipIf(has_ogr is False,
-    #                 'GDAL library needed to read shapefiles')
-    #def test_write_geotiff(self):
-    #    o = OceanDrift(loglevel=20)
-    #    o.seed_elements(lon=4, lat=60, time=datetime(2016, 1, 1))
-    #    o.run(steps=3)
-    #    o.write_geotiff('geotiff.tif')
+    @unittest.skipIf(has_ogr is False,
+                     'GDAL library needed to read shapefiles')
+    def test_write_geotiff(self):
+        o = OceanDrift(loglevel=20)
+        o.set_config('environment:constant:x_sea_water_velocity', 1)
+        o.seed_elements(lon=4, lat=60, time=datetime(2016, 1, 1), number=1000, radius=1000)
+        o.run(steps=3)
+        o.write_geotiff('geotiff.tif')
 
     def test_seed_single_point_over_time(self):
         """Test a model run"""
