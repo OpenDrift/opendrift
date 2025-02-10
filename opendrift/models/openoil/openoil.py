@@ -1443,7 +1443,7 @@ class OpenOil(OceanDrift):
 
     def cumulative_oil_entrainment_fraction(self):
         '''Returns the fraction of oil elements which has been entrained vs time'''
-        z = self.get_property('z')[0].copy()
+        z = self.result.z.copy()
         z = np.ma.masked_where(z == 0, z)
         me = np.ma.notmasked_edges(z, axis=0)
         maskfirst = me[0][0]

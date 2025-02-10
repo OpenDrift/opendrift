@@ -170,14 +170,14 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=4, lat=60, time=reader_arome.end_time -
                         timedelta(hours=3), number=1)
         o.run(duration=timedelta(hours=6))
-        y_wind = np.array(o.get_property('y_wind')[0][:,0])
-        x_current = np.array(o.get_property('x_sea_water_velocity')[0][:,0])
+        y_wind = o.result.y_wind.isel(trajectory=0)
+        x_current = o.result.x_sea_water_velocity.isel(trajectory=0)
         # Check that constant wind is used for whole simulation
         self.assertAlmostEqual(y_wind[0], 5, 2)
         self.assertAlmostEqual(y_wind[-1], 5, 2)
         # Check that fallback current is used only after end of reader
-        self.assertAlmostEqual(x_current[0], 0.155, 2)
-        self.assertAlmostEqual(x_current[-1], 1, 2)
+        self.assertAlmostEqual(x_current[0].values, 0.155, 2)
+        self.assertAlmostEqual(x_current[-1].values, 1, 2)
 
     def test_runge_kutta(self):
         number = 50
@@ -625,10 +625,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
                         density=1000, oiltype='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
-        #o.plot_property('z')
-        z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0].values, -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0].values, -137.0, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.3, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -137.0, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
@@ -648,10 +646,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z='seafloor+50', time=reader_norkyst.start_time,
                         density=1000, oil_type='AASGARD A 2003')
         o.run(steps=3, time_step=300, time_step_output=300)
-        #o.plot_property('z')
-        z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0].values, -97.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0].values, -38.3, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -97.3, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -38.3, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
@@ -669,8 +665,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=-350, time=reader_norkyst.start_time,
                         density=1000, oil_type='AASGARD A 2003')
         o.run(steps=3, time_step=300, time_step_output=300)
-        z, status = o.get_property('z')
-        self.assertAlmostEqual(z[-1,0].values, -235.5, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -235.5, 1)  # After some rising
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
@@ -689,9 +684,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000, oil_type='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
-        z, status = o.get_property('z')
-        self.assertAlmostEqual(z[0,0].values, -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,0].values, -141.1, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.3, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -141.1, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
@@ -711,12 +705,11 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=[-5000, -100], time=reader_norkyst.start_time,
                         density=1000, number=2, oil_type='AASGARD A 2003')
         o.run(steps=3, time_step=300, time_step_output=300)
-        z, status = o.get_property('z')
         self.assertEqual(o.num_elements_total(), 2)
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
-        self.assertAlmostEqual(z[0,1].values, -100, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(z[-1,1].values, -56.7, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=1).values, -100.0, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=1).values, -56.7, 1)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast
@@ -733,8 +726,6 @@ class TestRun(unittest.TestCase):
         o.set_config('drift:vertical_mixing', False)
         o.seed_elements(3.9, 62.0, z=-200, time=reader_norkyst.start_time)
         o.run(steps=12, time_step=300)
-        seafloor_depth, status = o.get_property('sea_floor_depth_below_sea_level')
-        z, status = o.get_property('z')
 
         # Uncomment to plot
         #import matplotlib.pyplot as plt
