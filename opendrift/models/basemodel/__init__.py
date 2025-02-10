@@ -1927,10 +1927,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Create Xarray Dataset to hold result
         coords = {  # Initialize for the part fitting in memory
             'trajectory': ('trajectory', np.arange(len(self.elements_scheduled)),
-                {'dtype': np.int32, 'cf_role': 'trajectory_id'}),
+                {'cf_role': 'trajectory_id', 'dtype': np.int32}),
             'time': ('time', pd.date_range(self.start_time, periods=self.export_buffer_length,
                                            freq=self.time_step_output),
-                     {'standard_name': 'time', 'long_name': 'time'})}
+                     {'standard_name': 'time', 'long_name': 'time', 'dtype': np.float64})}
         shape = (len(coords['trajectory'][1]), len(coords['time'][1]))
         dims = ('trajectory', 'time')  # Presently, but shall also allow single dimension
 
@@ -1981,7 +1981,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if self.origin_marker is not None and 'origin_marker' in self.result.var():
             self.result['origin_marker'] = self.result.origin_marker.assign_attrs(
-                {'flag_values': np.arange(len(self.origin_marker)),
+                {'flag_values': np.arange(len(self.origin_marker)).astype(self.ElementType.variables['origin_marker']['dtype']),
                  'flag_meanings': " ".join(self.origin_marker.values())
                 })
 
@@ -2261,6 +2261,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 if 'minval' in var.attrs:
                     minval = np.minimum(minval, var.minval)
                     maxval = np.maximum(maxval, var.maxval)
+                # Attributes shall have same datatype as in output file
+                if 'dtype' in var.attrs:
+                    att_type = var.attrs['dtype']
+                else:
+                    att_type = np.float32
+                minval = att_type(minval)
+                maxval = att_type(maxval)
                 self.result[varname] = self.result[varname].assign_attrs({'minval': minval, 'maxval': maxval})
 
         if final is True:
@@ -2271,9 +2278,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug(f'Truncating buffer from {numtimes_before} to {numtimes_after} times')
 
             # Final update some variable attributes
+            status_dtype = self.ElementType.variables['status']['dtype']
             self.result['status'] = self.result.status.assign_attrs(
-                {'valid_range': np.array((0, len(self.status_categories) - 1)),
-                 'flag_values': np.array(np.arange(len(self.status_categories))),
+                {'valid_range': np.array((0, len(self.status_categories) - 1)).astype(status_dtype),
+                 'flag_values': np.array(np.arange(len(self.status_categories))).astype(status_dtype),
                  'flag_meanings': " ".join(self.status_categories)
                 })
 

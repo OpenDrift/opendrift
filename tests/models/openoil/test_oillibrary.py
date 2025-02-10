@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 
 import xarray as xr
 import numpy as np
+import netCDF4
 
 from opendrift.models.openoil import OpenOil
 
@@ -297,6 +298,28 @@ def test_seed_metadata_output():
     ]:
         assert var in f.attrs
     f.close()
+
+    # Check expected output variables and datatypes
+    output_variables = {
+        np.float64: ['time'],
+        np.int32: ['trajectory', 'status', 'moving', 'origin_marker'],
+        np.float32: ['lon' ,'lat' ,'z' ,'diameter' ,'ocean_vertical_diffusivity' ,'interfacial_area' ,'land_binary_mask' ,'viscosity' ,'density' ,'mass_oil' ,'mass_dispersed' ,'mass_evaporated' ,'fraction_evaporated' ,'water_fraction' ,'wind_drift_factor' ,'x_sea_water_velocity' ,'y_sea_water_velocity' ,'sea_surface_wave_stokes_drift_x_velocity' ,'sea_surface_wave_period_at_variance_spectral_density_maximum' ,'sea_surface_wave_significant_height', 'sea_surface_wave_stokes_drift_y_velocity' ,'sea_floor_depth_below_sea_level' ,'sea_ice_area_fraction' ,'sea_water_temperature' ,'sea_water_salinity' ,'upward_sea_water_velocity', 'bulltime' ,'age_seconds', 'x_wind' ,'y_wind']
+        }
+    d = netCDF4.Dataset(outfile, 'r')
+    for dtype, vars in output_variables.items():
+        for var in vars:
+            assert var in list(d.variables)
+            variable = d.variables[var]
+            assert variable.dtype == dtype
+            # Check that these attributes have same data type as variable
+            for att in ['minval', 'maxval', 'flag_values', 'valid_range', '_FillValue']:
+                if att in variable.ncattrs():
+                    assert variable.getncattr(att).dtype == variable.dtype
+            # Check that coordinate values do not have _FillValue (CF requirement)
+            if var in ['time', 'trajectory']:
+                assert '_FillValue' not in variable.ncattrs()
+    d.close()
+
     os.remove(outfile)
     # Same for cone-seeding
     a = {
