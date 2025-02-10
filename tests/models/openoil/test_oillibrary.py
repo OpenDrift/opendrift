@@ -61,7 +61,7 @@ def test_oils():
                         time=datetime.now(),
                         oil_type=oiltype)
         o.run(steps=3)
-        initial_mass = o.get_property('mass_oil')[0][0, 0]
+        initial_mass = o.result.mass_oil.isel(time=0, trajectory=0)
         assert o.elements.mass_evaporated.min(
         ) == o.elements.mass_evaporated.max()
         assert o.elements.mass_evaporated.min() > 0
@@ -93,7 +93,7 @@ def test_oilbudget():
                 ])
             o.run(duration=timedelta(hours=4))
             b = o.get_oil_budget()
-            density = o.get_property('density')[0][0, 0]
+            density = o.result.density.isel(time=0, trajectory=0)
             volume = b['mass_total'] / density
             np.testing.assert_almost_equal(volume[-1],
                                            seed_hours * m3_per_hour, 2)
@@ -227,7 +227,7 @@ def test_biodegradation():
                     time=datetime.now(),
                     oil_type='SIRTICA')
     o.run(duration=timedelta(days=1), time_step=1800)
-    initial_mass = o.get_property('mass_oil')[0][0, 0]
+    initial_mass = o.result.mass_oil.isel(time=0, trajectory=0)
     biodegraded30 = o.elements.mass_biodegraded
     factor = 0.120  #(1-e^(-1))
     np.testing.assert_almost_equal(biodegraded30[-1] / initial_mass, factor, 3)

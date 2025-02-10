@@ -27,8 +27,8 @@ else:
     #o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Sundby1983')
 
     # Seed oil elements at defined position and time
-    o.seed_elements(lon=4.9, lat=62.1, z=0, radius=1000, number=2000,
-                    time=reader_arome.start_time)
+    o.seed_elements(lon=4.9, lat=62.1, z=0, radius=1000, number=5000,
+                    time=reader_arome.start_time, oil_type='GENERIC DIESEL')
 
     # Running model
     o.run(end_time=reader_arome.start_time + timedelta(hours=12),

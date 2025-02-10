@@ -110,10 +110,8 @@ plt.show()
 #%%
 # We see that with the updated film thickness,
 # the droplets are getting gradually smaller
-r1 = o1.get_property('diameter')[0]
-r2 = o2.get_property('diameter')[0]
-plt.plot(np.median(r1*1e6, 1))
-plt.plot(np.median(r2*1e6, 1))
+plt.plot(1e6*o1.result.diameter.median(dim='trajectory'))
+plt.plot(1e6*o2.result.diameter.median(dim='trajectory'))
 plt.legend(['With updated film thickness', 'With constant film thickness'])
 plt.xlabel('Time step')
 plt.ylabel('Median droplet diameter  [micrometer]')
