@@ -2,6 +2,7 @@ import os
 import pytest
 
 from functools import lru_cache
+import xarray as xr
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -21,3 +22,9 @@ def test_write_mp4(simulation, tmpdir, benchmark):
 
 def test_write_gif(simulation, tmpdir, benchmark):
     benchmark(simulation.animation, filename = tmpdir / 'test.gif')
+
+def test_write_netcdf_density_map(simulation, tmpdir, benchmark):
+    benchmark(simulation.write_netcdf_density_map, filename = tmpdir / 'test.nc')
+    ds = xr.open_dataset(tmpdir / 'test.nc')
+    assert ds.density_surface.mean() == pytest.approx(251.998, rel=.001)
+

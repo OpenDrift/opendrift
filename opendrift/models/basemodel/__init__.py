@@ -2395,9 +2395,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         """
         logger.debug(f"Setting up map: {corners=}, {fast=}, {lscale=}")
 
-        # Initialise map
-        lons, lats = self.get_lonlats()  # TODO: to be removed
-
         if corners is not None:  # User provided map corners
             lonmin = corners[0]
             lonmax = corners[1]
@@ -2409,7 +2406,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             latmin = self.latmin - buffer
             latmax = self.latmax + buffer
         else:
-            lons, lats = self.get_lonlats()
+            if self.result is None:  # To allow plotting of scheduled elements, if simulation not done
+                lons = np.reshape(self.elements_scheduled.lon, (1, -1))
+                lats = np.reshape(self.elements_scheduled.lat, (1, -1))
+            else:
+                lons = self.result.lon
+                lats = self.result.lat
             if 'compare_lonmin' in kwargs:  # checking min/max lon/lat of other simulations
                 lonmin = np.minimum(kwargs['compare_lonmin'], np.nanmin(lons))
                 lonmax = np.maximum(kwargs['compare_lonmax'], np.nanmax(lons))
@@ -2552,20 +2554,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # TODO: avoid transposing lon, lat, and avoid returning lon, lat in the first place
         return fig, ax, self.crs_plot, lons.T, lats.T, index_of_first, index_of_last
 
-    def get_lonlats(self):
-        if self.result is not None:
-            lons = self.result.lon
-            lats = self.result.lat
-        else:
-            #if len(self.result.time) > 0:
-            #    lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
-            #    lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
-            #else:
-            lons = np.ma.array(
-                np.reshape(self.elements_scheduled.lon, (1, -1))).T
-            lats = np.ma.array(
-                np.reshape(self.elements_scheduled.lat, (1, -1))).T
-        return lons, lats
+    # Obsolete, to be removed
+    #def get_lonlats(self):
+    #    if self.result is not None:
+    #        lons = self.result.lon
+    #        lats = self.result.lat
+    #    else:
+    #        #if len(self.result.time) > 0:
+    #        #    lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
+    #        #    lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
+    #        #else:
+    #        lons = np.ma.array(
+    #            np.reshape(self.elements_scheduled.lon, (1, -1))).T
+    #        lats = np.ma.array(
+    #            np.reshape(self.elements_scheduled.lat, (1, -1))).T
+    #    return lons, lats
 
     def animation(self,
                   buffer=.2,
@@ -4071,7 +4074,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         '''Write netCDF file with map of particles densities'''
 
         if pixelsize_m == 'auto':
-            lon, lat = self.get_lonlats()
+            lon = self.result.lon
+            lat = self.result.lat
             latspan = lat.max() - lat.min()
             pixelsize_m = 30
             if latspan > .05:
@@ -4170,7 +4174,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         #
 
         if pixelsize_m == 'auto':
-            lon, lat = self.get_lonlats()
+            lon = self.result.lon
+            lat = self.result.lat
             latspan = lat.max() - lat.min()
             pixelsize_m = 30
             if latspan > .05:
