@@ -2773,16 +2773,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if color is not False and show_elements is True:
             if isinstance(color, str):
-                colorarray = self.get_property(color)[0].T
+                colorarray = self.result[color]
                 colorarray = colorarray * unitfactor
                 colorarray_deactivated = \
-                    self.get_property(color)[0][
+                    self.result[color].T[
                         index_of_last[self.elements_deactivated.ID-1],
-                                      self.elements_deactivated.ID-1].T
+                                      self.elements_deactivated.ID-1]
             elif hasattr(color,
                          '__len__'):  # E.g. array/list of ensemble numbers
-                colorarray_deactivated = color[self.elements_deactivated.ID -
-                                               1]
+                colorarray_deactivated = color[self.elements_deactivated.ID - 1]
                 colorarray = np.tile(color, (len(self.result.time), 1)).T
             else:
                 colorarray = color
