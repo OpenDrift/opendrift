@@ -1981,7 +1981,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if self.origin_marker is not None and 'origin_marker' in self.result.var():
             self.result['origin_marker'] = self.result.origin_marker.assign_attrs(
-                {'flag_values': np.arange(len(self.origin_marker)).astype(self.result.status.attrs['dtype']),
+                {'flag_values': np.arange(len(self.origin_marker)).astype(self.ElementType.variables['origin_marker']['dtype']),
                  'flag_meanings': " ".join(self.origin_marker.values())
                 })
 
@@ -2278,7 +2278,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug(f'Truncating buffer from {numtimes_before} to {numtimes_after} times')
 
             # Final update some variable attributes
-            status_dtype = self.result.status.attrs['dtype']
+            status_dtype = self.ElementType.variables['status']['dtype']
             self.result['status'] = self.result.status.assign_attrs(
                 {'valid_range': np.array((0, len(self.status_categories) - 1)).astype(status_dtype),
                  'flag_values': np.array(np.arange(len(self.status_categories))).astype(status_dtype),

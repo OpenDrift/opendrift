@@ -84,7 +84,13 @@ def close(self):
         self.result = self.result.isel(trajectory=seeded_indices)
 
     # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
-    logger.debug('Making netCDF file CDM compliant with fixed dimensions')
+    compression = {'zlib': True, 'complevel': 6}
+    logger.debug(f'Making netCDF file CDM compliant with fixed dimensions, and compressing with {compression}')
+    for varname in self.result.var():
+        if varname in self._netCDF_encoding:
+            self._netCDF_encoding[varname].update(compression)
+        else:
+            self._netCDF_encoding[varname] = compression
     self.result.to_netcdf(self.outfile_name + '_tmp', unlimited_dims={}, encoding=self._netCDF_encoding)
     shutil.move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
 
