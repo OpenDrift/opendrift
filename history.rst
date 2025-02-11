@@ -1,8 +1,8 @@
 History
 =======
 
-2025-02-11 / Release v1.2.0
----------------------------
+2025-02-11 / Release v1.13.0
+----------------------------
 * Major internal change: recarray ``self.history`` is replaced with Xarray dataset ``self.result``, with some minor API changes:
 
   * The method ``run()`` now returns a pointer to this dataset, i.e. one can type ``ds = o.run()``  and subsequently analyse the results with e.g. `TrajAn <https://opendrift.github.io/trajan/>`_. The plotting/analysis methods within OpenDrift works as before, but operates now on ``self.result`` instead of ``self.history``.
