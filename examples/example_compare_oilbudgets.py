@@ -42,8 +42,7 @@ for wind_speed in wind_speeds:
         densities[ot] = o.result.density.mean(dim='trajectory')
         water_fractions[ot] = o.result.water_fraction.mean(dim='trajectory')
 
-    time, time_relative = o.get_time_array()
-    time = np.array([t.total_seconds() / 3600. for t in time_relative])
+    time = (o.result.time-o.result.time[0]).dt.total_seconds()/3600  # Hours since start
 
     figw,(axevap, axsurf, axsub) = plt.subplots(3,1)
     figp,(axdens, axvisc, axw) = plt.subplots(3,1)
