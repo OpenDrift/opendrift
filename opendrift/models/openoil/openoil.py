@@ -569,8 +569,8 @@ class OpenOil(OceanDrift):
         self.elements.mass_oil = \
             self.elements.mass_oil - biodegraded_now
         if self.oil_weathering_model == 'noaa':
-            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
-            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
+            self.noaa_mass_balance['mass_components'][self.elements.ID, :] = \
+            self.noaa_mass_balance['mass_components'][self.elements.ID, :]*(1-fraction_biodegraded[:, np.newaxis])
 
     def biodegradation_adcroft(self):
         '''
@@ -594,8 +594,8 @@ class OpenOil(OceanDrift):
         self.elements.mass_oil = \
             self.elements.mass_oil - biodegraded_now
         if self.oil_weathering_model == 'noaa':
-            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
-            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_biodegraded[:, np.newaxis])
+            self.noaa_mass_balance['mass_components'][self.elements.ID, :] = \
+            self.noaa_mass_balance['mass_components'][self.elements.ID, :]*(1-fraction_biodegraded[:, np.newaxis])
 
     def disperse(self):
         if self.get_config('processes:dispersion') is True:
@@ -795,8 +795,8 @@ class OpenOil(OceanDrift):
             fraction_dispersed[fraction_dispersed >= 1] = .99
         oil_mass_loss = fraction_dispersed * self.elements.mass_oil
 
-        self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :] = \
-            self.noaa_mass_balance['mass_components'][self.elements.ID - 1, :]*(1-fraction_dispersed[:, np.newaxis])
+        self.noaa_mass_balance['mass_components'][self.elements.ID, :] = \
+            self.noaa_mass_balance['mass_components'][self.elements.ID, :]*(1-fraction_dispersed[:, np.newaxis])
 
         self.elements.mass_oil -= oil_mass_loss
         self.elements.mass_dispersed += oil_mass_loss
@@ -819,7 +819,7 @@ class OpenOil(OceanDrift):
             logger.debug('All surface oil elements older than 24 hours, ' +
                          'skipping further evaporation.')
             return
-        surfaceID = self.elements.ID[surface] - 1  # of any elements
+        surfaceID = self.elements.ID[surface]  # of any elements
         # Area for each element, repeated for each component
         volume = (self.elements.mass_oil[surface] /
                   self.elements.density[surface])

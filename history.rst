@@ -7,7 +7,7 @@ History
 
   * The method ``run()`` now returns a pointer to this dataset, i.e. one can type ``ds = o.run()``  and subsequently analyse the results with e.g. `TrajAn <https://opendrift.github.io/trajan/>`_. The plotting/analysis methods within OpenDrift works as before, but operates now on ``self.result`` instead of ``self.history``.
   * The method ``get_lonlats()`` has been removed, as one can now do simply ``self.result.lon`` to get longitude as an Xarray DataArray
-  * The method ``get_property()`` is obsolete for the same reason. It now issues a warning that this method will be removed in the next version. New syntax is to use ``self.result.<proprty>`` where property is any element properties (lon, lat, status, length etc) or environment variables (wind, currents, ...), or coordinate variables ``time`` and  ``trajectory``
+  * The method ``get_property()`` is obsolete for the same reason. It now issues a warning that this method will be removed in the next version. New syntax is to use ``self.result.<property>`` where property is any element properties (lon, lat, status, length etc) or environment variables (wind, currents, ...), or coordinate variables ``time`` and  ``trajectory``
   * ``self.result.time`` is a numpy64 array, which can be converted to python datetime with ``pandas.to_datetime(self.result.time).to_pydatetime()``
   * Attribute ``self.steps_output`` replaced by ``len(self.result.time)``
   * Removed methods ``opendrift.open_xarray`` and ``io_netcdf.import_file_xarrray``, as opendrift.open now also imports lazily with Xarray.

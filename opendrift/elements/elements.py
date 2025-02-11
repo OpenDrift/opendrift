@@ -49,9 +49,9 @@ class LagrangianArray:
     """
 
     variables = OrderedDict([
-        ('ID', {'dtype': np.int32,  # Unique numerical identifier
-                'seed': False,
-                'default': -1}),  # ID to be assigned by application
+        ('ID', {'dtype': np.int32,  # Unique internal numerical identifier, from 0 to number of elements
+                'seed': False,      # Corresponds to "trajectory" coordinate in self.result
+                'default': -1}),    # To be assigned by seeding methods
         ('status', {'dtype': np.int32,  # Status categories
                     'seed': False,
                     'default': 0}),
