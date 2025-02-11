@@ -80,7 +80,7 @@ def close(self):
     if self.num_elements_scheduled() > 0:
         logger.info(f'Removing {self.num_elements_scheduled()} unseeded elements already written to file')
         seeded_indices = [n for n in np.arange(self.num_elements_total())
-                     if n not in self.elements_scheduled.ID-1]
+                     if n not in self.elements_scheduled.ID]
         self.result = self.result.isel(trajectory=seeded_indices)
 
     # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
@@ -114,7 +114,7 @@ def import_file(self, filename):
     for var in self.result.var():
         if var in self.ElementType.variables:
             kwargs[var] = self.result[var][np.arange(num_elements), index_of_last]
-    kwargs['ID'] = np.arange(num_elements) + 1
+    kwargs['ID'] = np.arange(num_elements)
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
 

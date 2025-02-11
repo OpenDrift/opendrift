@@ -584,8 +584,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     self.newly_seeded_IDs = np.copy(IDs)
                 else:
                     self.newly_seeded_IDs = None
-            self.previous_lon[IDs - 1] = np.copy(lons)
-            self.previous_lat[IDs - 1] = np.copy(lats)
+            self.previous_lon[IDs] = np.copy(lons)
+            self.previous_lat[IDs] = np.copy(lats)
 
     def store_previous_variables(self):
         """Store some environment variables, for access at next time step"""
@@ -600,8 +600,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                                dtype=dtype)
 
         # Copying variables_previous to environment_previous
-        self.environment_previous = self.variables_previous[self.elements.ID -
-                                                            1]
+        self.environment_previous = self.variables_previous[self.elements.ID]
 
         # Use new values for new elements which have no previous value
         for var in self.store_previous:
@@ -612,7 +611,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.environment_previous = self.environment_previous.view(np.recarray)
 
         for var in self.store_previous:
-            self.variables_previous[var][self.elements.ID - 1] = getattr(
+            self.variables_previous[var][self.elements.ID] = getattr(
                 self.environment, var)
 
     def interact_with_coastline(self, final=False):
@@ -654,8 +653,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             for on_land_id, on_land_prev_id in zip(on_land, self.elements.ID[on_land]):
                 lon = self.elements.lon[on_land_id]
                 lat = self.elements.lat[on_land_id]
-                prev_lon = self.previous_lon[on_land_prev_id - 1]
-                prev_lat = self.previous_lat[on_land_prev_id - 1]
+                prev_lon = self.previous_lon[on_land_prev_id]
+                prev_lat = self.previous_lat[on_land_prev_id]
 
                 step_degrees = float(coastline_approximation_precision)
 
@@ -695,9 +694,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                              'moving back to water' % len(on_land))
                 on_land_ID = self.elements.ID[on_land]
                 self.elements.lon[on_land] = \
-                    np.copy(self.previous_lon[on_land_ID - 1])
+                    np.copy(self.previous_lon[on_land_ID])
                 self.elements.lat[on_land] = \
-                    np.copy(self.previous_lat[on_land_ID - 1])
+                    np.copy(self.previous_lat[on_land_ID])
                 self.environment.land_binary_mask[on_land] = 0
 
     def interact_with_seafloor(self):
@@ -743,9 +742,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            'moving back ' % len(below))
             below_ID = self.elements.ID[below]
             self.elements.lon[below] = \
-                np.copy(self.previous_lon[below_ID - 1])
+                np.copy(self.previous_lon[below_ID])
             self.elements.lat[below] = \
-                np.copy(self.previous_lat[below_ID - 1])
+                np.copy(self.previous_lat[below_ID])
 
     @abstractmethod
     def update(self):
@@ -847,10 +846,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.elements_scheduled_time = np.array(time)
             # We start simulation at time of release of first element:
             self.start_time = time[0]
-            self.elements_scheduled.ID = np.arange(1, len(elements) + 1)
+            self.elements_scheduled.ID = np.arange(0, len(elements))
         else:
-            elements.ID = np.arange(self.num_elements_scheduled() + 1,
-                                    self.num_elements_scheduled() + 1 +
+            elements.ID = np.arange(self.num_elements_scheduled(),
+                                    self.num_elements_scheduled() +
                                     len(elements))  # Increase ID successively
             self.elements_scheduled.extend(elements)
             self.elements_scheduled_time = np.append(
@@ -2182,7 +2181,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if self.num_elements_scheduled() > 0:
                 logger.info(f'Removing {self.num_elements_scheduled()} unseeded elements')
                 seeded_indices = [n for n in np.arange(self.num_elements_total())
-                             if n not in self.elements_scheduled.ID-1]
+                             if n not in self.elements_scheduled.ID]
                 self.result = self.result.isel(trajectory=seeded_indices)
 
         # Remove any elements scheduled for deactivation during last step
@@ -2230,14 +2229,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def state_to_buffer(self, final=False):
 
         if pd.to_datetime(self.time) in self.result.time:  # Output time step
-            ID_ind = self.elements.ID - 1
+            ID_ind = self.elements.ID
             element_ind = range(len(ID_ind))
             insert_time = pd.to_datetime(self.time)
         else:  # Deactivated elements must be written even if no output timestep
             deactivated = np.where(self.elements.status != 0)[0]
             if len(deactivated) == 0 and final is False:
                 return  # No deactivated elements this sub-timestep
-            ID_ind = self.elements.ID[deactivated] - 1
+            ID_ind = self.elements.ID[deactivated]
             element_ind = deactivated
             insert_time = self.result.time.sel(time=self.time, method='backfill').values
 
@@ -2777,11 +2776,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 colorarray = colorarray * unitfactor
                 colorarray_deactivated = \
                     self.result[color].T[
-                        index_of_last[self.elements_deactivated.ID-1],
-                                      self.elements_deactivated.ID-1]
+                        index_of_last[self.elements_deactivated.ID],
+                                      self.elements_deactivated.ID]
             elif hasattr(color,
                          '__len__'):  # E.g. array/list of ensemble numbers
-                colorarray_deactivated = color[self.elements_deactivated.ID - 1]
+                colorarray_deactivated = color[self.elements_deactivated.ID]
                 colorarray = np.tile(color, (len(self.result.time), 1)).T
             else:
                 colorarray = color
@@ -2835,7 +2834,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         times = self.get_time_array()[0]
         if show_elements is True:
             index_of_last_deactivated = \
-                index_of_last[self.elements_deactivated.ID-1]
+                index_of_last[self.elements_deactivated.ID]
         if legend is None:
             legend = ['']
 
@@ -3145,7 +3144,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         plt.ylabel('Depth [m]')
         times = self.get_time_array()[0]
         index_of_last_deactivated = \
-            index_of_last[self.elements_deactivated.ID-1]
+            index_of_last[self.elements_deactivated.ID]
         if legend is None:
             if compare is None:
                 legs = ['', '']
@@ -3220,7 +3219,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             z_other_deactive = other.elements_deactivated.z
             index_of_first_other, index_of_last_other = other.index_of_first_and_last()
             index_of_last_deactivated_other = \
-                index_of_last_other[other.elements_deactivated.ID-1]
+                index_of_last_other[other.elements_deactivated.ID]
             xmax = np.maximum(x.max(), x_other.max())
             xmin = np.minimum(x.min(), x_other.min())
             zmax = np.maximum(z.max(), z_other.max())
@@ -3289,7 +3288,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     other.elements_deactivated.lat.copy())
             cd['index_of_last_other'] = other.index_of_first_and_last()[1]
             cd['index_of_last_deactivated_other'] = \
-                cd['index_of_last_other'][other.elements_deactivated.ID-1]
+                cd['index_of_last_other'][other.elements_deactivated.ID]
 
         compare_args = {
             'compare_lonmin': lonmin,
