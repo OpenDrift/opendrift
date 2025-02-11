@@ -18,6 +18,9 @@
 import logging
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
+logging.getLogger('botocore').setLevel(logging.INFO)
+logging.getLogger('urllib3').setLevel(logging.INFO)
+
 import sys
 import os
 import types
