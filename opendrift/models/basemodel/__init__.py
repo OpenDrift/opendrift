@@ -2396,8 +2396,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         logger.debug(f"Setting up map: {corners=}, {fast=}, {lscale=}")
 
         if self.result is None:  # To allow plotting of scheduled elements, if simulation not done
-            lons = np.reshape(self.elements_scheduled.lon, (1, -1))
-            lats = np.reshape(self.elements_scheduled.lat, (1, -1))
+            lons = np.reshape(self.elements_scheduled.lon, (-1, 1))
+            lats = np.reshape(self.elements_scheduled.lat, (-1, 1))
         else:
             lons = self.result.lon
             lats = self.result.lat
