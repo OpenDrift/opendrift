@@ -1320,8 +1320,7 @@ class OpenOil(OceanDrift):
 
         budget = np.cumsum(oil_budget, axis=0)
 
-        time, time_relative = self.get_time_array()
-        time = np.array([t.total_seconds() / 3600. for t in time_relative])
+        time = (self.result.time-self.result.time[0]).dt.total_seconds()/3600  # Hours since start
 
         if ax is None:
             # Left axis showing oil mass
@@ -1460,8 +1459,7 @@ class OpenOil(OceanDrift):
             fig, ax = plt.subplots()
         import matplotlib.dates as mdates
 
-        time, time_relative = self.get_time_array()
-        time = np.array([t.total_seconds() / 3600. for t in time_relative])
+        time = (self.result.time-self.result.time[0]).dt.total_seconds()/3600  # Hours since start
         kin_viscosity = self.result.viscosity
         dyn_viscosity = kin_viscosity * self.result.density*1000  # unit of mPas
         dyn_viscosity_mean = dyn_viscosity.mean(dim='trajectory')

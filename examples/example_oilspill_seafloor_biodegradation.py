@@ -58,8 +58,7 @@ o.plot_oil_budget(show_watercontent_and_viscosity=False, show_wind_and_current=F
 # Custom oil budget plot
 b = o.get_oil_budget()
 import matplotlib.pyplot as plt
-time, time_relative = o.get_time_array()
-time = np.array([t.total_seconds() / 3600. for t in time_relative])
+time = (o.result.time-o.result.time[0]).dt.total_seconds()/3600  # Hours since start
 fig, ax = plt.subplots()
 ax.plot(time, b['mass_submerged'], label='Submerged oil mass')
 ax.plot(time, b['mass_surface'], label='Surface oil mass')

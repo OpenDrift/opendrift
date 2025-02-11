@@ -16,6 +16,7 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+import pandas as pd
 from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
@@ -206,7 +207,6 @@ class OceanDrift(OpenDriftSimulation):
                               time_step=None, time_step_output=None,
                               simulation_duration=None, simulation_interval=None):
 
-        import pandas as pd
         time_step_output = pd.Timedelta(time_step_output)
         simulation_interval = pd.Timedelta(simulation_interval)
         # Interpolate trajectories to output time step
@@ -570,7 +570,7 @@ class OceanDrift(OpenDriftSimulation):
             z = self.result.z.values
             K = self.result.ocean_vertical_diffusivity.values
             time_step = self.time_step.total_seconds()
-            times = self.get_time_array()[0]
+            times = pd.to_datetime(self.result.time).to_pydatetime()
         if maxdepth is None:
             maxdepth = np.nanmin(z)
         if maxdepth > 0:
