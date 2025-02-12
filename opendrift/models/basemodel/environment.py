@@ -64,35 +64,23 @@ class Environment(Timeable, Configurable):
                 'description': description_constant
             }
             c['environment:fallback:%s' % v] = {
-                'type':
-                'float',
-                'min':
-                minval,
-                'max':
-                maxval,
-                'units':
-                units,
-                'default':
-                self.required_variables[v]['fallback']
-                if 'fallback' in self.required_variables[v] else None,
-                'level':
-                CONFIG_LEVEL_BASIC,
-                'description':
-                description_fallback
+                'type': 'float',
+                'min': minval,
+                'max': maxval,
+                'units': units,
+                'default': self.required_variables[v]['fallback'] if 'fallback' in self.required_variables[v] else None,
+                'level': CONFIG_LEVEL_BASIC,
+                'description': description_fallback
             }
         self._add_config(c)
 
         self._add_config({
             'general:use_auto_landmask': {
-                'type':
-                'bool',
-                'default':
-                True,
-                'description':
-                'A built-in GSHHG global landmask is used if True, '
-                'otherwise landmask is taken from reader or fallback value.',
-                'level':
-                CONFIG_LEVEL_ADVANCED
+                'type': 'bool',
+                'default': True,
+                'description': 'A built-in GSHHG global landmask is used if True, '
+                    'otherwise landmask is taken from reader or fallback value.',
+                'level': CONFIG_LEVEL_ADVANCED
             },
             'drift:current_uncertainty': {
                 'type': 'float',

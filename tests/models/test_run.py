@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import os
 import inspect
 
+import pandas as pd
 import numpy as np
 
 from opendrift.readers import reader_ArtificialOceanEddy
@@ -495,7 +496,8 @@ class TestRun(unittest.TestCase):
                    time_step_output=timedelta(minutes=30),
                    outfile='test_time_step30.nc')
         # Check length of time array and output array
-        time = o1.get_time_array()[0]
+        time = o1.result.time
+        time = pd.to_datetime(time).to_pydatetime()  # TODO: all times hould be pandas datetime
         self.assertEqual(o1.result.sizes['time'], len(time))
         self.assertEqual(o1.start_time, time[0])
         self.assertEqual(o1.time, time[-1])

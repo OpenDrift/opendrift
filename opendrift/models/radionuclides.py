@@ -15,6 +15,7 @@
 # Copyright 2015, Magne Simonsen, MET Norway
 
 import numpy as np
+import pandas as pd
 import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
@@ -1127,7 +1128,7 @@ class RadionuclideDrift(OceanDrift):
         activity_per_element = self.get_config('seed:total_release') / self.num_elements_total()
 
 
-        z = self.get_property('z')[0]
+        z = self.result.z
         if not zlevels==None:
             zlevels = np.sort(zlevels)
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
@@ -1199,7 +1200,7 @@ class RadionuclideDrift(OceanDrift):
 
 
 
-        times = np.array( self.get_time_array()[0] )
+        times = np.array(pd.to_datetime(self.result.time).to_pydatetime())
         if time_avg_conc:
             conctmp = conc[:-1,:,:,:,:]
             cshape = conctmp.shape
@@ -1233,7 +1234,6 @@ class RadionuclideDrift(OceanDrift):
         nc.createDimension('specie', self.nspecies)
         nc.createDimension('time', H.shape[0])
 
-#        times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time',))
         nc.variables['time'][:] = date2num(times, timestr)
@@ -1382,9 +1382,10 @@ class RadionuclideDrift(OceanDrift):
         Use user defined projection (density_proj=<proj4_string>)
         or create a lon/lat grid (density_proj=None)
         '''
-        lon = self.get_property('lon')[0]
-        lat = self.get_property('lat')[0]
-        times = self.get_time_array()[0]
+        lon = self.result.lon.values.T
+        lat = self.result.lat.values.T
+        times = np.array(pd.to_datetime(self.result.time).to_pydatetime())
+
 
         # Redundant ??
         if density_proj is None: # add default projection with equal-area property
@@ -1404,12 +1405,12 @@ class RadionuclideDrift(OceanDrift):
         y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
         bins=(x_array, y_array)
         outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
-        z = self.get_property('z')[0]
+        z = self.result.z
         if weight is not None:
-            weight_array = self.get_property(weight)[0]
+            weight_array = self.result[weight]
 
-        status = self.get_property('status')[0]
-        specie = self.get_property('specie')[0]
+        status = self.result.status
+        specie = self.result.specie
         Nspecies = self.nspecies
         H = np.zeros((len(times),
                       Nspecies,
