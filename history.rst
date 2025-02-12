@@ -9,8 +9,11 @@ History
   * The method ``get_lonlats()`` has been removed, as one can now do simply ``self.result.lon`` to get longitude as an Xarray DataArray
   * The method ``get_property()`` is obsolete for the same reason. It now issues a warning that this method will be removed in the next version. New syntax is to use ``self.result.<property>`` where property is any element properties (lon, lat, status, length etc) or environment variables (wind, currents, ...), or coordinate variables ``time`` and  ``trajectory``
   * ``self.result.time`` is a numpy64 array, which can be converted to python datetime with ``pandas.to_datetime(self.result.time).to_pydatetime()``
-  * Attribute ``self.steps_output`` replaced by ``len(self.result.time)``
-  * Removed methods ``opendrift.open_xarray`` and ``io_netcdf.import_file_xarrray``, as opendrift.open now also imports lazily with Xarray.
+
+    * ``get_time_array()`` issues a warning that it will soon be removed, in favor of above syntax.
+
+  * Attribute ``self.steps_output`` is replaced by ``len(self.result.time)``
+  * Removed methods ``opendrift.open_xarray`` and ``io_netcdf.import_file_xarrray``, as ``opendrift.open`` now also imports lazily with Xarray.
 
 * Saved netCDF files are now compressed with Zlib level 6, and are typically 70% smaller than before.
 
