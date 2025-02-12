@@ -677,7 +677,8 @@ class OceanDrift(OpenDriftSimulation):
             x_wind = self.result.x_wind.isel(time=tindex)
             y_wind = self.result.y_wind.isel(time=tindex)
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-            mainplot.set_title(str(self.get_time_array()[0][tindex]) +
+            times = pd.to_datetime(self.result.time).to_pydatetime()
+            mainplot.set_title(str(times[tindex]) +
                                #'   Percent at surface: %.1f %' % percent_at_surface)
                                '   Mean windspeed: %.1f m/s' % windspeed)
             fig.canvas.draw_idle()
@@ -723,7 +724,8 @@ class OceanDrift(OpenDriftSimulation):
         x_wind = self.result.x_wind.T[step, :]
         y_wind = self.result.x_wind.T[step, :]
         windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-        ax.set_title(str(self.get_time_array()[0][step]) +
+        times = pd.to_datetime(self.result.time).to_pydatetime()
+        ax.set_title(str(times[step]) +
                      '   Mean windspeed: %.1f m/s' % windspeed)
         if show is True:
             pyplot.show()

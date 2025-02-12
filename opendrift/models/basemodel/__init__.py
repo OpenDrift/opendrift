@@ -2831,7 +2831,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                  cmap=cmap,
                                  transform=self.crs_lonlat)
 
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
         if show_elements is True:
             index_of_last_deactivated = \
                 index_of_last[self.elements_deactivated.ID]
@@ -3142,7 +3142,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         ax = fig.gca()
         plt.xlabel('Longitude [degrees]')
         plt.ylabel('Depth [m]')
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
         index_of_last_deactivated = \
             index_of_last[self.elements_deactivated.ID]
         if legend is None:
@@ -3904,7 +3904,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def get_density_array(self, pixelsize_m, weight=None):
         lon = self.result.lon.values.T
         lat = self.result.lat.values.T
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
+
         deltalat = pixelsize_m / 111000.0  # m to degrees
         deltalon = deltalat / np.cos(
             np.radians((np.nanmin(lat) + np.nanmax(lat)) / 2))
@@ -3972,7 +3973,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         #
         lon = self.result.lon.values.T
         lat = self.result.lat.values.T
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
         #deltalat = pixelsize_m/111000.0  # m to degrees
         #deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
         #                                       np.nanmax(lat))/2))
@@ -4095,7 +4096,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         nc.createDimension('lon', len(lon_array))
         nc.createDimension('lat', len(lat_array))
         nc.createDimension('time', H.shape[0])
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
         if times[1] < times[0]:  # Revert for backward runs so that time is increasing
             times = times[::-1]
             H = np.flip(H, axis=0)
@@ -4204,7 +4205,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         nc.createDimension('x', lon_array.shape[0])
         nc.createDimension('y', lon_array.shape[1])
         nc.createDimension('time', H.shape[0])
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time', ))
         nc.variables['time'][:] = date2num(times, timestr)
@@ -4280,7 +4281,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         lon = self.result.lon.values.T
         lat = self.result.lat.values.T
         status = self.result.status.values.T
-        times = self.get_time_array()[0]
+        times = pd.to_datetime(self.result.time).to_pydatetime()
         deltalat = pixelsize_km / 111.0  # km to degrees
         deltalon = deltalat / np.cos(np.radians((lat.min() + lat.max()) / 2))
         lat_array = np.arange(lat.min() - deltalat,
@@ -4321,6 +4322,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def get_time_array(self):
         """Return a list of output times of last run."""
 
+        logger.warning('Method get_time_array is obsolete and will soon be removed. Use o.result.time instead.')
         ## Making sure start_time is datetime, and not cftime object
         #self.start_time = datetime(self.start_time.year, self.start_time.month,
         #                           self.start_time.day, self.start_time.hour,
@@ -4353,8 +4355,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         current = np.sqrt(x_sea_water_velocity**2 + y_sea_water_velocity**2)
         wind = wind.mean(dim='trajectory', skipna=True)
         current = current.mean(dim='trajectory', skipna=True)
-        time, time_relative = self.get_time_array()
-        time = np.array([t.total_seconds() / 3600. for t in time_relative])
+        time = pd.to_datetime(self.result.time).to_pydatetime()
+        time_relative = time - time[0]
+        time_relative = np.array([t.total_seconds() / 3600. for t in time_relative])
 
         if ax is None:
             fig = plt.figure()

@@ -18,6 +18,7 @@ import logging; logger = logging.getLogger(__name__)
 from datetime import timedelta
 import numpy as np
 import scipy as sp
+import pandas as pd
 from math import sqrt
 import matplotlib.pyplot as plt
 import pyproj
@@ -709,7 +710,8 @@ class PhysicsMethods:
                     % (timesteps_obs.min(), self.time_step_output))
 
         from bisect import bisect_left
-        times = np.array(self.get_time_array()[0])
+        times = pd.to_datetime(self.result.time).to_pydatetime()
+
         skillscore = np.zeros(self.num_elements_total())
         for i in range(self.num_elements_total()):
             lon = self.result.lon.isel(trajectory=i)
