@@ -271,19 +271,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if loglevel < 10:  # 0 is NOTSET, giving no output
             loglevel = 10
-        loggerConf = logging.getLogger('opendrift')
-        loggerConf.handlers.clear()
-        loggerConf.setLevel(loglevel)
+        logger = logging.getLogger('opendrift')
+        logger.handlers.clear()
+        logger.setLevel(loglevel)
 
         if logfile is not None:
             if not isinstance(logfile, list):
                 logfile = [logfile]
             for lh in logfile:
-                if not isinstance(lh, logging.Logger) and not isinstance(lh, logging.StreamHandler):
+                if not isinstance(lh, logging.StreamHandler):
                     lh = logging.FileHandler(lh, mode='w')
                 lh.setLevel(loglevel)
                 lh.setFormatter(logging.Formatter(logformat, datefmt))
-                loggerConf.addHandler(lh)
+                logger.addHandler(lh)
         else:  # logging only to console, with colors
             import coloredlogs
             fields = coloredlogs.DEFAULT_FIELD_STYLES
