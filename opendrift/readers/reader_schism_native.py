@@ -886,7 +886,6 @@ class ReaderBlockUnstruct():
                     This is read from reader object, so that it is not recomputed every time
 
     """
-    logger = logging.getLogger('opendrift')  # using common logger
 
     def __init__(self, data_dict,
                  KDtree = None,

@@ -10,9 +10,6 @@ from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.models import eulerdrift
 
 
-logging.getLogger('opendrift').setLevel(logging.DEBUG)
-eulerdrift.install_logs() #remove
-
 reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 # reader_norkyst = reader_netCDF_CF_generic.Reader(OpenDriftSimulation.test_data_folder(None) +  '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 lon0, lat0 = reader_norkyst.xy2lonlat(reader_norkyst.xmin, reader_norkyst.ymin)

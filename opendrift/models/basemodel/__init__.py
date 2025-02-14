@@ -17,7 +17,10 @@
 
 import logging
 logging.captureWarnings(True)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('opendrift')
+logging.getLogger('botocore').setLevel(logging.INFO)
+logging.getLogger('urllib3').setLevel(logging.INFO)
+
 import sys
 import os
 import types
@@ -268,18 +271,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if loglevel < 10:  # 0 is NOTSET, giving no output
             loglevel = 10
-        loggerConf = logging.getLogger('opendrift')
-        loggerConf.setLevel(loglevel)
+        logger.setLevel(loglevel)
+        logger.handlers.clear()
 
         if logfile is not None:
             if not isinstance(logfile, list):
                 logfile = [logfile]
             for lh in logfile:
-                if not isinstance(lh, logging.Logger) and not isinstance(lh, logging.StreamHandler):
-                    lh = logging.FileHandler(lh)
+                if not isinstance(lh, logging.StreamHandler):
+                    lh = logging.FileHandler(lh, mode='w')
                 lh.setLevel(loglevel)
                 lh.setFormatter(logging.Formatter(logformat, datefmt))
-                loggerConf.addHandler(lh)
+                logger.addHandler(lh)
         else:  # logging only to console, with colors
             import coloredlogs
             fields = coloredlogs.DEFAULT_FIELD_STYLES

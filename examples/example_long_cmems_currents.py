@@ -19,7 +19,7 @@ from opendrift.readers.reader_netCDF_CF_generic import Reader
 
 #%%
 # Get an Xarray dataset from copernicusmarine client
-ds = copernicusmarine.open_dataset(dataset_id='cmems_mod_glo_phy_anfc_merged-uv_PT1H-i')
+ds = copernicusmarine.open_dataset(dataset_id='cmems_mod_glo_phy_anfc_merged-uv_PT1H-i', chunk_size_limit=0)
 print(ds)     # Default Xarray output
 print(ds.cf)  # Output from cf-xarray
 

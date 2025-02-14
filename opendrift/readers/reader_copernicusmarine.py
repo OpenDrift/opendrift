@@ -16,8 +16,8 @@
 
 import os
 import logging
-logger = logging.getLogger(__name__)
 from opendrift.readers.reader_netCDF_CF_generic import Reader as Reader_CF_generic
+logger = logging.getLogger(__name__)
 
 class Reader(Reader_CF_generic):
     '''A wrapper around reader_netCDF_CF_generic for CMEMS datasets'''
@@ -32,13 +32,6 @@ class Reader(Reader_CF_generic):
         if username is not None and password is not None:
             logger.info(f'Using CMEMS password for user {username} from provided variables')
 
-        # no_metadata_cache will be disabled from version 2.0
-        #if cache_dir is None:
-        #    cache_dir = os.getenv('COPERNICUSMARINE_CACHE_DIRECTORY')
-        #if cache_dir == '':  # Set env variable COPERNICUSMARINE_CACHE_DIRECTORY to "" to disable cahcing
-        #    no_metadata_cache=True
-        #else:
-        #    no_metadata_cache=False
         if username is None:
             username = os.getenv('COPERNICUSMARINE_SERVICE_USERNAME')
             password = os.getenv('COPERNICUSMARINE_SERVICE_PASSWORD')
@@ -69,7 +62,11 @@ class Reader(Reader_CF_generic):
         if username is None:
             raise ValueError('To use CMEMS datasets, provide username and password, or store these in .netrc file in home folder or main opendrift folder with machine name "copernicusmarine". Alternatively, creadentials can be stored as environment variables COPERNICUSMARINE_SERVICE_USERNAME and COPERNICUSMARINE_SERVICE_PASSWORD.')
 
-        ds = copernicusmarine.open_dataset(dataset_id=dataset_id, username=username, password=password)
+        ds = copernicusmarine.open_dataset(
+            dataset_id=dataset_id,
+            username=username, password=password,
+            chunk_size_limit=0  # Default chunking size is 50 for time, thus this is strictly necessary
+            )
 
         ds['name'] = str(dataset_id)
 

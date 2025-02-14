@@ -6,11 +6,13 @@ if __name__ == '__main__':
     matplotlib.use('TKAgg')
 
 import sys
+import logging
 import os
 from datetime import datetime, timedelta
 import numpy as np
 
 from PIL import ImageTk, Image
+logging.getLogger('PIL').setLevel(logging.INFO)
 import tkinter as tk
 from tkinter import ttk
 from importlib_resources import files
@@ -367,7 +369,6 @@ class OpenDriftGUI(tk.Tk):
         with open(files('opendrift.scripts').joinpath('data_sources.txt')) as fd:
             forcingfiles = fd.readlines()
 
-        print(forcingfiles)
         for i, ff in enumerate(forcingfiles):
             tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
                      row=i, column=0, sticky=tk.W)
@@ -476,22 +477,17 @@ class OpenDriftGUI(tk.Tk):
 
     def validate_config(self, value_if_allowed, prior_value, key):
         """From config menu selection."""
-        print('Input: %s -> %s', (key, value_if_allowed))
         if value_if_allowed == 'None':
-            print('Setting None value')
             return True
         if value_if_allowed in ' -':
-            print('Allowing temporally empty or minus sign')
             return True
         sc = self.o._config[key]
         if sc['type'] in ['int', 'float']:
             try:
                 value_if_allowed = float(value_if_allowed)
             except:
-                print('Nonumber')
                 return False
         try:
-            print('Setting: %s -> %s', (key, value_if_allowed))
             self.o.set_config(key, value_if_allowed)
             return True
         except:
@@ -505,7 +501,7 @@ class OpenDriftGUI(tk.Tk):
             extra_args = self.extra_args[model]
         else:
             extra_args = {}
-        self.o = self.opendrift_models[model](**extra_args)
+        self.o = self.opendrift_models[model](**extra_args, logfile=logging.StreamHandler(sys.stdout))
         self.modelname = model  # So that new instance may be initiated at repeated run
 
         # Setting GUI-specific default config values
@@ -753,14 +749,14 @@ class OpenDriftGUI(tk.Tk):
         self.set_model(self.modelname, rebuild_gui=False)
         self.o._config = adjusted_config
 
-        # Add secondary log-handler to file
+        # Add log-handler to file
+        logger = logging.getLogger('opendrift')
         if self.has_diana is True and True:
             logfile = self.outputdir + '/opendrift_' + self.modelname + start_time.strftime('_%Y%m%d_%H%M.log')
-            import logging
             if hasattr(self, 'handler'):
-                logging.getLogger('opendrift').removeHandler(self.handler)
+                logger.removeHandler(self.handler)
             self.handler = logging.FileHandler(logfile, mode='w')
-            self.handler.setFormatter(logging.getLogger('opendrift').handlers[0].formatter)
+            self.handler.setFormatter(logger.handlers[0].formatter)
             logging.getLogger('opendrift').addHandler(self.handler)
             if len(logging.getLogger('opendrift').handlers) > 2:
                 raise ValueError('Too many log handlers')

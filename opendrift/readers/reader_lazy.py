@@ -14,15 +14,14 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-import logging; logging.captureWarnings(True); logger = logging.getLogger(__name__)
+import logging; logging.captureWarnings(True);
+logger = logging.getLogger(__name__)
 from opendrift.readers.basereader import BaseReader
 from opendrift.readers import reader_from_url, reader_netCDF_CF_generic
 
 
 class Reader:
     '''For lazy initialisation'''
-
-    logger = logging.getLogger('opendrift')  # using common logger
 
     def __init__(self, *args, **kwargs):
         self._args = args
