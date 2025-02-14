@@ -17,7 +17,7 @@
 
 import logging
 logging.captureWarnings(True)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('opendrift')
 logging.getLogger('botocore').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 
@@ -271,9 +271,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if loglevel < 10:  # 0 is NOTSET, giving no output
             loglevel = 10
-        logger = logging.getLogger('opendrift')
-        logger.handlers.clear()
         logger.setLevel(loglevel)
+        logger.handlers.clear()
 
         if logfile is not None:
             if not isinstance(logfile, list):
