@@ -8,7 +8,9 @@ import numpy as np
 import pytest
 
 def test_logging(tmpdir, capsys):
-    accepted = (288, 291)  # Accepting small variations in log output
+    # Accepting small variations in log output,
+    # depending on machine, and from which folder test is run
+    accepted = (288, 291, 316) 
 
     # Logging to console
     logfile = None
@@ -26,6 +28,20 @@ def test_logging(tmpdir, capsys):
     assert len(stderr.splitlines()) in accepted  # Depending on from where pytest is run
 
     # Logging to file
+    logfile = tmpdir+'/test_log.txt'
+    o = OceanDrift(loglevel=0, logfile=logfile)
+    o.set_config('environment:fallback:x_wind', 1.5)
+    o.set_config('environment:fallback:y_wind', 10)
+    o.set_config('environment:fallback:x_sea_water_velocity', .5)
+    o.set_config('environment:fallback:y_sea_water_velocity', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime(2025, 1, 1))
+    o.run(steps=3, time_step=600, time_step_output=600)
+    log = open(logfile).read()
+    assert 'step 3 of 3 - 5 active elements (0 deactivated)' in log
+    assert 'Changed mode from Mode.Run to Mode.Result' in log
+    assert len(log.splitlines()) in accepted
+
+    # Logging to existing file, assure overwrite and not append
     logfile = tmpdir+'/test_log.txt'
     o = OceanDrift(loglevel=0, logfile=logfile)
     o.set_config('environment:fallback:x_wind', 1.5)

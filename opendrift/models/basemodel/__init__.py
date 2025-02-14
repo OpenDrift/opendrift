@@ -272,6 +272,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if loglevel < 10:  # 0 is NOTSET, giving no output
             loglevel = 10
         loggerConf = logging.getLogger('opendrift')
+        loggerConf.handlers.clear()
         loggerConf.setLevel(loglevel)
 
         if logfile is not None:
@@ -279,7 +280,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logfile = [logfile]
             for lh in logfile:
                 if not isinstance(lh, logging.Logger) and not isinstance(lh, logging.StreamHandler):
-                    lh = logging.FileHandler(lh)
+                    lh = logging.FileHandler(lh, mode='w')
                 lh.setLevel(loglevel)
                 lh.setFormatter(logging.Formatter(logformat, datefmt))
                 loggerConf.addHandler(lh)
