@@ -565,12 +565,12 @@ class OceanDrift(OpenDriftSimulation):
         if depths is not None:  # Debug mode, output from one cycle has been provided
             z = depths
             time_step = self.get_config('vertical_mixing:timestep')
-            times = [self.time + i*timedelta(seconds=time_step) for i in range(z.shape[0])]
+            times = pd.date_range(self.time, freq=timedelta(seconds=time_step), periods=z.shape[0]).to_numpy()
         else:
             z = self.result.z.values
             K = self.result.ocean_vertical_diffusivity.values
             time_step = self.time_step.total_seconds()
-            times = pd.to_datetime(self.result.time).to_pydatetime()
+            times = self.result.time
         if maxdepth is None:
             maxdepth = np.nanmin(z)
         if maxdepth > 0:
@@ -601,13 +601,13 @@ class OceanDrift(OpenDriftSimulation):
         bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
         axn.set_ylim([maxdepth, 0])
         axn.set_xlim([0, maxnum])
-        title=axn.set_title('%s UTC' % times[i])
+        title=axn.set_title('')
         axn.set_xlabel('Number of particles')
 
         def update_histogram(i):
             for rect, y in zip(bc, hist_series[:,i]):
                 rect.set_width(y)
-            title.set_text('%s UTC' % times[i])
+            title.set_text(f'{np.datetime_as_string(times[i], unit="s")} UTC')
 
         self.__save_or_plot_animation__(plt.gcf(),
                                         update_histogram,
@@ -677,10 +677,8 @@ class OceanDrift(OpenDriftSimulation):
             x_wind = self.result.x_wind.isel(time=tindex)
             y_wind = self.result.y_wind.isel(time=tindex)
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-            times = pd.to_datetime(self.result.time).to_pydatetime()
-            mainplot.set_title(str(times[tindex]) +
-                               #'   Percent at surface: %.1f %' % percent_at_surface)
-                               '   Mean windspeed: %.1f m/s' % windspeed)
+            mainplot.set_title(f'{np.datetime_as_string(self.result.time[tindex], unit="s")}   '
+                               f'Mean windspeed: {windspeed:.1f} m/s')
             fig.canvas.draw_idle()
 
         update(0)  # Plot initial distribution
@@ -690,42 +688,3 @@ class OceanDrift(OpenDriftSimulation):
         # returning objects prevents unresponsiveness when moving the Slider
         # https://github.com/matplotlib/matplotlib/issues/3105#issuecomment-44855888
         return fig,mainplot,sliderax,tslider
-
-    def plotter_vertical_distribution_time(self, ax=None, mask=None,
-            dz=1., maxrange=-100, bins=None, step=1):
-        """Function to plot vertical distribution of particles.
-
-        Use mask to plot any selection of particles.
-
-        """
-        from pylab import axes, draw
-        from matplotlib import dates, pyplot
-
-        if ax is None:
-            fig = pyplot.figure()
-            ax = fig.gca()
-            show = True
-        else:
-            show = False
-
-        if mask is None: # create a mask that is True for all particles
-            mask = self.result.z.T[0] == self.result.z.T[0]
-
-        if bins is None:
-            bins=int(-maxrange/dz)
-
-        ax.hist(self.result.z.T[step,mask], bins=bins,
-                range=[maxrange, 0], orientation='horizontal')
-        ax.set_ylim([maxrange, 0])
-        ax.grid()
-        #ax.set_xlim([0, mask.sum()*.15])
-        ax.set_xlabel('Number of particles')
-        ax.set_ylabel('Depth [m]')
-        x_wind = self.result.x_wind.T[step, :]
-        y_wind = self.result.x_wind.T[step, :]
-        windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-        times = pd.to_datetime(self.result.time).to_pydatetime()
-        ax.set_title(str(times[step]) +
-                     '   Mean windspeed: %.1f m/s' % windspeed)
-        if show is True:
-            pyplot.show()

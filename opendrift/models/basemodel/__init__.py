@@ -4358,22 +4358,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         current = np.sqrt(x_sea_water_velocity**2 + y_sea_water_velocity**2)
         wind = wind.mean(dim='trajectory', skipna=True)
         current = current.mean(dim='trajectory', skipna=True)
-        time = pd.to_datetime(self.result.time).to_pydatetime()
-        time_relative = time - time[0]
-        time_relative = np.array([t.total_seconds() / 3600. for t in time_relative])
+        time = self.result.time
+        time_relative = (time - time[0]) / np.timedelta64(1, 'h')
 
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111)
-        ax.plot(time, wind, 'b', label='Wind speed')
+        ax.plot(time_relative, wind, 'b', label='Wind speed')
         ax.set_ylabel('Wind speed  [m/s]', color='b')
-        ax.set_xlim([0, time[-1]])
+        ax.set_xlim([0, time_relative[-1]])
         ax.set_ylim([0, wind.max() * 1.1])
 
         ax2 = ax.twinx()
-        ax2.plot(time, current, 'r', label='Current speed')
+        ax2.plot(time_relative, current, 'r', label='Current speed')
         ax2.set_ylabel('Current speed  [m/s]', color='r')
-        ax2.set_xlim([0, time[-1]])
+        ax2.set_xlim([0, time_relative[-1]])
         ax2.set_ylim([0, current.max() * 1.1])
         for tl in ax.get_yticklabels():
             tl.set_color('b')
