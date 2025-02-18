@@ -493,7 +493,7 @@ class OpenDriftGUI(tk.Tk):
         except:
             return False
 
-    def set_model(self, model, rebuild_gui=True):
+    def set_model(self, model, rebuild_gui=True, logfile=None):
 
         # Creating simulation object (self.o) of chosen model class
         print('Setting model: ' + model)
@@ -501,7 +501,12 @@ class OpenDriftGUI(tk.Tk):
             extra_args = self.extra_args[model]
         else:
             extra_args = {}
-        self.o = self.opendrift_models[model](**extra_args, logfile=logging.StreamHandler(sys.stdout))
+        terminal_output = [logging.StreamHandler(sys.stdout)]
+        if logfile is None:
+            logfile = terminal_output
+        else:
+            logfile = [logfile] + terminal_output
+        self.o = self.opendrift_models[model](**extra_args, logfile=logfile)
         self.modelname = model  # So that new instance may be initiated at repeated run
 
         # Setting GUI-specific default config values
@@ -746,20 +751,12 @@ class OpenDriftGUI(tk.Tk):
 
         # Creating fresh instance of the current model, but keeping config
         adjusted_config = self.o._config
-        self.set_model(self.modelname, rebuild_gui=False)
-        self.o._config = adjusted_config
-
-        # Add log-handler to file
-        logger = logging.getLogger('opendrift')
-        if self.has_diana is True and True:
+        if self.has_diana is True:
             logfile = self.outputdir + '/opendrift_' + self.modelname + start_time.strftime('_%Y%m%d_%H%M.log')
-            if hasattr(self, 'handler'):
-                logger.removeHandler(self.handler)
-            self.handler = logging.FileHandler(logfile, mode='w')
-            self.handler.setFormatter(logger.handlers[0].formatter)
-            logging.getLogger('opendrift').addHandler(self.handler)
-            if len(logging.getLogger('opendrift').handlers) > 2:
-                raise ValueError('Too many log handlers')
+        else:
+            logfile = None
+        self.set_model(self.modelname, rebuild_gui=False, logfile=logfile)
+        self.o._config = adjusted_config
 
         sys.stdout.flush()
         lon = float(self.lon.get())
@@ -813,7 +810,7 @@ class OpenDriftGUI(tk.Tk):
 
         # Starting simulation run
         self.o.run(steps=duration, **extra_args)
-        print(self.o)
+        logging.getLogger('opendrift').info(self.o)
 
         try:
             os.chmod(extra_args['outfile'], 0o666)

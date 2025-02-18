@@ -79,16 +79,9 @@ def open(filename):
     return o
 
 def versions():
+    from importlib.metadata import version
     import multiprocessing
     import platform
-    import scipy
-    import matplotlib
-    import netCDF4
-    import xarray
-    import adios_db
-    adios_version = adios_db.__version__
-    import copernicusmarine
-    copernicus_version = copernicusmarine.__version__
     import sys
     s = '\n------------------------------------------------------\n'
     s += 'Software and hardware:\n'
@@ -102,13 +95,13 @@ def versions():
     s += '  %s GB memory\n' % ram
     s += '  %s processors (%s)\n' % (multiprocessing.cpu_count(),
                                    platform.processor())
-    s += '  NumPy version %s\n' % np.__version__
-    s += '  SciPy version %s\n' % scipy.__version__
-    s += '  Matplotlib version %s\n' % matplotlib.__version__
-    s += '  NetCDF4 version %s\n' % netCDF4.__version__
-    s += '  Xarray version %s\n' % xarray.__version__
-    s += '  ADIOS (adios_db) version %s\n' % adios_version
-    s += '  Copernicusmarine version %s\n' % copernicus_version
+    s += '  NumPy version %s\n' % version('numpy')
+    s += '  SciPy version %s\n' % version('scipy')
+    s += '  Matplotlib version %s\n' % version('matplotlib')
+    s += '  NetCDF4 version %s\n' % version('netCDF4')
+    s += '  Xarray version %s\n' % version('xarray')
+    s += '  ADIOS (adios_db) version %s\n' % version('adios_db')
+    s += '  Copernicusmarine version %s\n' % version('copernicusmarine')
     s += '  Python version %s\n' % sys.version.replace('\n', '')
     s += '------------------------------------------------------\n'
     return s
