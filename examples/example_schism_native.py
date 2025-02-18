@@ -28,7 +28,6 @@ except:
 
 if schism_native is not None:
     o.add_reader([schism_native])
-    o.set_config('general:use_auto_landmask', False) # prevent opendrift from making a new dynamical landmask with global_landmask
 
     # Seed elements at defined positions, depth and time
     o.seed_elements(lon=174.046669, lat=-40.928116, radius=20, number=100,
