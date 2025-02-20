@@ -47,7 +47,7 @@ x = [.9]
 y = [.5]
 lon, lat = double_gyre.xy2lonlat(x, y)
 
-o.seed_elements(lon, lat, radius=.15, number=2000,
+o.seed_elements(lon, lat, radius=.12, number=2000,
                 time=double_gyre.initial_time)
 o.run(duration=duration, time_step=time_step,
       time_step_output=time_step_output)

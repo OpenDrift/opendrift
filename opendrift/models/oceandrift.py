@@ -224,10 +224,9 @@ class OceanDrift(OpenDriftSimulation):
         for (lo,la,ti) in zip(start_lons, start_lats, start_times):
             if np.isnan(lo):
                 continue
-            ti = pd.Timestamp(ti.values).to_pydatetime()
-            self.seed_elements(lon=lo, lat=la, time=ti, number=number, **kwargs)
+            self.seed_elements(lon=lo, lat=la, time=time, number=number, **kwargs)
         print(self)
-        self.run(outfile=outfile, end_time=pd.Timestamp(start_times[-1].values).to_pydatetime()+simulation_duration)
+        self.run(outfile=outfile, end_time=start_times[-1]+simulation_duration)
         # Simulate and save to file
 
     def machine_learning_correction(self):
