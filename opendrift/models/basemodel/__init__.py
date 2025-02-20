@@ -3785,6 +3785,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def get_map_background(self, ax, background, crs, time=None):
         # Get background field for plotting on map or animation
         # TODO: this method should be made more robust
+        if time is not None:
+            if isinstance(time, xr.DataArray):
+                time = pd.to_datetime(time.data)
+            elif isinstance(time, datetime):
+                time = pd.to_datetime(time)
+
         if type(background) is list:
             variable = background[0]  # A vector is requested
         else:
@@ -3793,8 +3799,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             reader = self.env.readers[readerName]
             if variable in reader.variables:
                 if time is None or reader.start_time is None or (
-                        time >= reader.start_time
-                        and time <= reader.end_time) or (reader.always_valid
+                        time >= pd.Timestamp(reader.start_time)
+                        and time <= pd.Timestamp(reader.end_time)) or (reader.always_valid
                                                          is True):
                     break
         if time is None:
