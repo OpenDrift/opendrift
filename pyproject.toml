@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "opendrift"
 requires-python = ">=3.9"
@@ -5,9 +9,7 @@ version = "1.13.0"
 description = "OpenDrift - a framework for ocean trajectory modeling"
 authors = [
   { name = "Knut-Frode Dagestad", email = "knutfd@met.no" },
-  { name = "Gaute Hope", email = "gauteh@met.no>" }]
-license = "GPLv2"
-include = [ "tests" ]
+  { name = "Gaute Hope", email = "gauteh@met.no" }]
 dependencies = [
   "matplotlib>=3.5",
   "numpy<=1.26.4",
@@ -30,6 +32,9 @@ dependencies = [
   "adios_db>1.2",
   "copernicusmarine>=2.0"
   ]
+
+[tool.setuptools.packages.find]
+where = ["tests"]
 
 [project.scripts]
 hodograph = "opendrift.scripts.hodograph:main"
