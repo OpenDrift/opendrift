@@ -123,16 +123,16 @@ jobs:
       - install_conda_environment
 
       - run:
-          name: Install poetry
+          name: Install build
           command: |
             source activate opendrift
-            pip install poetry
+            pip install build
 
       - run:
           name: Build package
           command: |
             source activate opendrift
-            poetry build -vv
+            python -m build -vv
 
       - persist_to_workspace:
           root: dist
@@ -151,10 +151,10 @@ jobs:
       - install_conda_environment
 
       - run:
-          name: Install poetry
+          name: Install twine
           command: |
             source activate opendrift
-            pip install poetry
+            pip install twine
 
       - attach_workspace:
           at: dist
@@ -164,7 +164,7 @@ jobs:
           command: |
             if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
               source activate opendrift
-              poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+              twine upload --verbose --skip-existing -u __token__ -p ${PYPI_TOKEN}
             fi
 
   python_312:
