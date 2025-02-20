@@ -66,6 +66,10 @@ markers = [
   "veryslow: marks tests as very slow"
 ]
 
+[tool.yapf]
+based_on_style = 'google'
+allow_split_before_dict_value = false
+
 [tool.pylint.master]
 extension-pkg-whitelist="netCDF4,numpy,scipy,roaring_landmask"
 
