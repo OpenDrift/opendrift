@@ -23,6 +23,12 @@ import shapely.vectorized
 import cartopy
 import itertools
 import logging
+import numpy as np
+from scipy.spatial import cKDTree
+import geopandas as gpd
+import shapely as shp
+from typing import Iterable
+
 logger = logging.getLogger(__name__)
 
 class Reader(BaseReader, ContinuousReader):
@@ -75,6 +81,9 @@ class Reader(BaseReader, ContinuousReader):
 
     def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
 
+        self.kdtree = None
+        self.kdtree_buffer = None
+        self.kdtree_buffered_polys = None
         self.invert = invert  # True if polygons are lakes and not land areas
         self.proj4 = proj4_str
         self.crs = pyproj.CRS(self.proj4)
@@ -125,4 +134,71 @@ class Reader(BaseReader, ContinuousReader):
         self.check_arguments(requestedVariables, time, x, y, z)
         return { 'x' : x, 'y' : y, 'land_binary_mask': self.__on_land__(x,y) }
 
+    def get_nearest_outside(self, x, y, buffer: float):
+        """
+        Determine the nearest point outside the loaded polygons, including
+        an additional buffer
+            Args:
+                x (deg[]): longitude (decimal degrees) or projected x coordinate
+                y (deg[]): latitude (decimal degrees) or projected y coordinate
+                buffer: buffer zone around polygons
+                ...
 
+            x, y, buffer are given in reader local projection.
+
+            Returns:
+                lon, lat, and distance to nearest points
+
+        """
+        if self.kdtree is None or self.kdtree_buffer != buffer:
+            logger.info("Building KDTree from %d geometries with buffer distance %e" % (len(self.polys), buffer))
+
+            polys_buffered = gpd.GeoSeries(self.polys).buffer(buffer).tolist()
+            xy = unwrap(polys_buffered)
+
+            self.kdtree = cKDTree(xy.transpose())
+            self.kdtree_buffer = buffer
+            self.kdtree_buffered_polys = polys_buffered
+
+        dist, ind = self.kdtree.query(np.stack((x, y), axis=1))
+
+        return self.kdtree.data[ind, 0], self.kdtree.data[ind, 1], dist
+
+    def is_inside(self, x, y):
+        """
+        Determine whether a set of points are
+            Args:
+                x (deg[]): longitude (decimal degrees) or projected x coordinate
+                y (deg[]): latitude (decimal degrees) or projected y coordinate
+                ...
+
+            x, y, buffer are given in reader local projection.
+
+            Returns:
+                array of bools of the same shape as x, y
+
+        """
+        land = shp.unary_union(self.polys)
+        elements = gpd.GeoSeries.from_xy(x, y)
+        return elements.intersects(land).values
+    
+
+def unwrap(geom):
+    """
+    Unwrap a shapely geometry or a list thereof into boundary coordinates
+
+    Returns:
+        array of shape (2, N)
+    """
+    if isinstance(geom, shp.LineString):
+        return np.array(geom.xy)
+    elif isinstance(geom, shp.MultiPolygon):
+        return np.concatenate([unwrap(p.boundary) for p in geom.geoms], axis=1)
+    elif isinstance(geom, shp.Polygon):
+        return unwrap(geom.boundary)
+    elif isinstance(geom, shp.MultiLineString):
+        return np.concatenate([unwrap(p) for p in geom.geoms], axis=1)
+    elif isinstance(geom, Iterable):
+        return np.concatenate([unwrap(p) for p in geom], axis=1)
+    else:
+        raise ValueError("Unknown type %d" % type(geom))
