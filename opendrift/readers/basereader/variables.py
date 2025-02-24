@@ -714,6 +714,9 @@ class Variables(ReaderDomain):
             * :meth:`_get_variables_interpolated_`.
         """
         self.timer_start('total')
+
+        variables = variables.copy()  # Avoid list to be mutated
+
         # Raise error if time not not within coverage of reader
         if not self.covers_time(time):
             raise OutsideTemporalCoverageError('%s is outside time coverage (%s - %s) of %s' %
