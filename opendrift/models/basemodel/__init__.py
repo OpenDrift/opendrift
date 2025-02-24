@@ -3902,8 +3902,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         return h_om
 
     def get_density_array(self, pixelsize_m, weight=None):
-        lon = self.result.lon.values.T
-        lat = self.result.lat.values.T
+        lon = self.result.lon.values.T.copy()  # Copy to avoid mutating original lon/lat
+        lat = self.result.lat.values.T.copy()
 
         deltalat = pixelsize_m / 111000.0  # m to degrees
         deltalon = deltalat / np.cos(
@@ -3970,8 +3970,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # TODO: should be merged with get_density_array
         # KFD Jan 2021
         #
-        lon = self.result.lon.values.T
-        lat = self.result.lat.values.T
+        lon = self.result.lon.values.T.copy()
+        lat = self.result.lat.values.T.copy()
         #deltalat = pixelsize_m/111000.0  # m to degrees
         #deltalon = deltalat/np.cos(np.radians((np.nanmin(lat) +
         #                                       np.nanmax(lat))/2))
