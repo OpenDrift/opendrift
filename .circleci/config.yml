@@ -226,8 +226,7 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-            pip install sphinx-rtd-theme
+            pip install sphinx sphinx-autoapi sphinx-gallery sphinx-rtd-theme
 
       - run:
           name: Checksum gallery
@@ -342,8 +341,7 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-            pip install sphinx-rtd-theme
+            pip install sphinx sphinx-autoapi sphinx-gallery sphinx-rtd-theme
 
       - save_cache:
           key: v8-docs-deps1-{{ checksum "environment.yml" }}
