@@ -227,7 +227,7 @@ jobs:
           command: |
             export PYTHONUNBUFFERED=1
             source activate opendrift
-            mamba install --no-plugins -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            conda install --no-plugins -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
       - run:
@@ -344,7 +344,7 @@ jobs:
           command: |
             export PYTHONUNBUFFERED=1
             source activate opendrift
-            mamba install --no-plugins -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
+            conda install --no-plugins -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
 
       - save_cache:
