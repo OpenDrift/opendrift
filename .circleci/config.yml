@@ -224,7 +224,9 @@ jobs:
 
       - run:
           name: Install sphinx and friends
+          no_output_timeout: 15m
           command: |
+            export PYTHONUNBUFFERED=1
             source activate opendrift
             mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
@@ -340,7 +342,9 @@ jobs:
 
       - run:
           name: Install sphinx and friends
+          no_output_timeout: 15m
           command: |
+            export PYTHONUNBUFFERED=1
             source activate opendrift
             mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
             pip install sphinx-rtd-theme
