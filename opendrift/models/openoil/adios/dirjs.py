@@ -15,7 +15,7 @@
 # Copyright 2021, Gaute Hope, MET Norway
 
 #from importlib import resources
-from importlib_resources import files
+from importlib.resources import files
 from pathlib import Path
 import logging
 import json
