@@ -54,7 +54,7 @@ class ReaderDomain(Timeable):
         x = self.xmin + (self.xmax - self.xmin) / 2
         y = self.ymin + (self.ymax - self.ymin) / 2
         lo, la = self.xy2lonlat(x, y)
-        return(lo[0], la[0])
+        return(lo, la)
 
     def rotate_vectors(self, reader_x, reader_y, u_component, v_component,
                        proj_from, proj_to):
@@ -83,6 +83,10 @@ class ReaderDomain(Timeable):
             delta_y = 10  # 10 m along y-axis
 
         transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
+        if hasattr(reader_x, '__len__'):
+            if len(reader_x) == 1:
+                reader_x = reader_x[0]
+                reader_y = reader_y[0]
         x2, y2 = transformer.transform(reader_x, reader_y)
         x2_delta, y2_delta = transformer.transform(reader_x,
                                                    reader_y + delta_y)
@@ -107,8 +111,6 @@ class ReaderDomain(Timeable):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
-        x = np.atleast_1d(x)
-        y = np.atleast_1d(y)
         if self.proj.crs.is_geographic:
             if 'ob_tran' in str(self.proj4):
                 logger.debug('NB: Converting degrees to radians ' +
@@ -125,8 +127,10 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        lon = np.atleast_1d(lon)
-        lat = np.atleast_1d(lat)
+        if hasattr(lon, '__len__'):
+            if len(lon) == 1:
+                lon = lon[0]
+                lat = lat[0]
         if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)
