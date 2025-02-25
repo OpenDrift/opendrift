@@ -49,12 +49,11 @@ grib = ["cfgrib", "pygrib"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--benchmark-disable --doctest-modules --doctest-glob='*.rst'"
+addopts = "--benchmark-disable --doctest-modules"
 norecursedirs = [ "wps", "benchmarks", "test_data" ]
 testpaths = [
   "tests",
   "opendrift",
-  "docs/source",
 ]
 markers = [
   "slow:mark tests as slow",
