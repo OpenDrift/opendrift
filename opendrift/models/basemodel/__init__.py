@@ -2842,9 +2842,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             legend = ['']
 
         if color is False:
-            c = markercolor
+            cargs = {'c': None, 'color': markercolor, 'cmap': None}
         else:
-            c = []
+            cargs = {'c': [], 'color': None, 'cmap': cmap}
 
         if isinstance(markersize, str):
             if markersize_scaling is None:
@@ -2853,10 +2853,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if isinstance(markersize, str):
             points = ax.scatter([], [],
-                                c=c,
+                                **cargs,
                                 zorder=10,
                                 edgecolor=[],
-                                cmap=cmap,
                                 alpha=alpha,
                                 vmin=vmin,
                                 vmax=vmax,
@@ -2864,10 +2863,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                 transform=self.crs_lonlat)
         else:
             points = ax.scatter([], [],
-                                c=c,
+                                **cargs,
                                 zorder=10,
                                 edgecolor=[],
-                                cmap=cmap,
                                 alpha=alpha,
                                 s=markersize,
                                 vmin=vmin,
@@ -2896,23 +2894,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Plot deactivated elements, with transparency
         if isinstance(markersize, str):
             points_deactivated = ax.scatter([], [],
-                                            c=c,
+                                            **cargs,
                                             zorder=9,
                                             vmin=vmin,
                                             vmax=vmax,
                                             s=markersize_scaling,
-                                            cmap=cmap,
                                             edgecolor=[],
                                             alpha=0,
                                             transform=self.crs_lonlat)
         else:
             points_deactivated = ax.scatter([], [],
-                                            c=c,
+                                            **cargs,
                                             zorder=9,
                                             vmin=vmin,
                                             vmax=vmax,
                                             s=markersize,
-                                            cmap=cmap,
                                             edgecolor=[],
                                             alpha=.3,
                                             transform=self.crs_lonlat)
@@ -2927,16 +2923,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 else:
                     legstr = None
                 if color is False:
-                    c = self.plot_comparison_colors[cn + 1]
-                else:
-                    c = []
+                    cargs['color'] = self.plot_comparison_colors[cn + 1]
+                #else:
+                #    c = []
                 cd['points_other'] = \
-                    ax.scatter([], [], c=c, marker=compare_marker, cmap=cmap,
+                    ax.scatter([], [], **cargs, marker=compare_marker,
                                s=markersize, label=legstr, zorder=10, transform = self.crs_lonlat)
                 # Plot deactivated elements, with transparency
                 cd['points_other_deactivated'] = \
-                    ax.scatter([], [], alpha=.3, zorder=9, marker=compare_marker, cmap=cmap,
-                               c=c, s=markersize, transform = self.crs_lonlat)
+                    ax.scatter([], [], **cargs, alpha=.3, zorder=9, marker=compare_marker,
+                               s=markersize, transform = self.crs_lonlat)
 
             if legend != ['', '']:
                 plt.legend(markerscale=2, loc=legend_loc)
@@ -3121,10 +3117,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     vmax = colorarray.max()
 
         markercolor = self.plot_comparison_colors[0]
+
         if color is None:
-            c = markercolor
+            cargs = {'c': None, 'color': markercolor, 'cmap': None}
         else:
-            c = []
+            cargs = {'c': [], 'color': None, 'cmap': cmap}
 
         # Set up plot
         index_of_first, index_of_last = \
@@ -3155,11 +3152,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             markersize_scaling = markersize_scaling / np.abs(self.result[markersize]).max()
 
         points = ax.scatter([], [],
-                            c=c,
+                            **cargs,
                             zorder=10,
                             edgecolor=[],
                             alpha=alpha,
-                            cmap=cmap,
                             s=ms,
                             label=legs[0],
                             vmin=vmin,
@@ -3182,8 +3178,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             leg.set_zorder(20)
 
         # Plot deactivated elements, with transparency
-        points_deactivated = ax.scatter([], [], c=[], zorder=10, edgecolor=[],
-                                        cmap=cmap, s=ms, vmin=vmin, vmax=vmax)
+        points_deactivated = ax.scatter([], [], **cargs, zorder=10, edgecolor=[],
+                                        s=ms, vmin=vmin, vmax=vmax)
         x_deactive = self.elements_deactivated.lon
         z_deactive = self.elements_deactivated.z
 
@@ -3198,18 +3194,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             z_other = other.result.z
             x_other = other.result.lon
             points_other = ax.scatter([], [],
-                            c='r',
+                            color='r',
                             zorder=10,
                             alpha=alpha,
                             edgecolor=[],
-                            cmap=cmap,
                             s=markersize,
                             label=legs[1],
                             vmin=vmin,
                             vmax=vmax)
 
             # Plot deactivated elements, with transparency
-            points_other_deactivated = ax.scatter([], [], c='r', cmap=cmap, s=markersize, alpha=.3)
+            points_other_deactivated = ax.scatter([], [], color='r', s=markersize, alpha=.3)
             x_other_deactive = other.elements_deactivated.lon
             z_other_deactive = other.elements_deactivated.z
             index_of_first_other, index_of_last_other = other.index_of_first_and_last()
@@ -3527,7 +3522,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            zorder=10,
                            edgecolor=markercolor,
                            linewidths=.2,
-                           c=color_initial,
+                           color=color_initial,
                            label=label_initial,
                            transform=self.crs_lonlat)
             if surface_color is not None:
@@ -3539,7 +3534,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                        zorder=3,
                        edgecolor=markercolor,
                        linewidths=.2,
-                       c=color_active,
+                       color=color_active,
                        label=label_active,
                        transform=self.crs_lonlat)
             #if submerged_color is not None:
@@ -3585,7 +3580,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                zorder=zorder,
                                edgecolor=markercolor,
                                linewidths=.1,
-                               c=color_status,
+                               color=color_status,
                                label=legstr,
                                transform=self.crs_lonlat)
 
@@ -3617,7 +3612,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            zorder=3,
                            edgecolor=markercolor,
                            linewidths=.2,
-                           c=self.plot_comparison_colors[i + 1],
+                           color=self.plot_comparison_colors[i + 1],
                            transform=self.crs_lonlat)
 
         if background is not None:
