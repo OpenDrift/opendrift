@@ -83,6 +83,10 @@ class ReaderDomain(Timeable):
             delta_y = 10  # 10 m along y-axis
 
         transformer = pyproj.Transformer.from_proj(proj_from, proj_to)
+        if hasattr(reader_x, '__len__'):
+            if len(reader_x) == 1:
+                reader_x = reader_x[0]
+                reader_y = reader_y[0]
         x2, y2 = transformer.transform(reader_x, reader_y)
         x2_delta, y2_delta = transformer.transform(reader_x,
                                                    reader_y + delta_y)
@@ -123,6 +127,10 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
+        if hasattr(lon, '__len__'):
+            if len(lon) == 1:
+                lon = lon[0]
+                lat = lat[0]
         if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)

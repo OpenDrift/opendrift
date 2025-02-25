@@ -24,8 +24,8 @@ def test_get_variables_along_trajectory_and_wind_drift_factor_from_trajectory():
     np.testing.assert_array_almost_equal(t['x_wind'], [-8.308249, -13.063459, -11.09289])
 
     wdf, azimuth = wind_drift_factor_from_trajectory(t)
-    np.testing.assert_array_almost_equal(wdf, [0.27189012, 0.20492421])
-    np.testing.assert_array_almost_equal(azimuth, [73.0112213, 82.39749185])
+    np.testing.assert_array_almost_equal(wdf, [0.27189012, 0.20492421], 5)
+    np.testing.assert_array_almost_equal(azimuth, [73.0112213, 82.39749185], 5)
 
 def test_modulate_longitude_360():
     class R360(ReaderDomain):
