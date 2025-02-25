@@ -20,7 +20,6 @@ def test_failing_reader():
     o.add_reader(r)
     o.seed_elements(lon=4, lat=60, time=datetime.now())
     o.run(steps=5)
-    print(o.env.discarded_readers)
     assert len(o.env.discarded_readers) == 1
     assert o.steps_calculation == 5
     assert r.number_of_fails == 2
@@ -42,9 +41,6 @@ def test_reader_center(test_data):
         test_data +
         '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
-    print(r)
-    print(r.center())
-
     assert r.center() == pytest.approx((4.717652840595962, 60.60320266262212))
 
 def test_timeseries_at_position():
@@ -59,7 +55,6 @@ def test_timeseries_at_position():
     assert len(ts['time']) == 49
     x_wind = ts['x_wind']
     assert len(x_wind) == 49
-    print(x_wind)
     np.testing.assert_almost_equal(x_wind[0], -.256, 2)
     np.testing.assert_almost_equal(x_wind[-1], -4.307, 2)
 

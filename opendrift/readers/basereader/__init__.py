@@ -261,8 +261,6 @@ class BaseReader(Variables, Combine, Filter):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
-            lon0 = lon0[0]
-            lat0 = lat0[0]
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
             latmax = np.maximum(latmax, lat0)
             latmin = np.minimum(latmin, lat0)
@@ -274,7 +272,7 @@ class BaseReader(Variables, Combine, Filter):
 
         if lscale == 'auto':  # Custom lscale - this should be generalized to Basemodel also
             s = cfeature.AdaptiveScaler('coarse',
-                (('low', 100), ('intermediate', 20), ('high', 5), ('full', 1)))
+                (('low', 100), ('intermediate', 20), ('high', 1), ('full', .2)))
             lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
