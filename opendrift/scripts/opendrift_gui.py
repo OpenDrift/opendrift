@@ -15,7 +15,7 @@ from PIL import ImageTk, Image
 logging.getLogger('PIL').setLevel(logging.INFO)
 import tkinter as tk
 from tkinter import ttk
-from importlib_resources import files
+from importlib.resources import files
 import opendrift
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil

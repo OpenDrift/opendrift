@@ -79,7 +79,7 @@ After each wave breaking event, a new droplet diameter will be chosen based on t
 """
 
 from io import open
-from importlib_resources import files
+from importlib.resources import files
 import numpy as np
 from datetime import datetime
 import pyproj

@@ -1,5 +1,5 @@
 import json
-from importlib_resources import files
+from importlib.resources import files
 
 from opendrift.models.openoil import OpenOil
 

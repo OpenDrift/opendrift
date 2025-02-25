@@ -3,7 +3,7 @@ import requests
 import json
 import tarfile
 import lzma
-from importlib_resources import files
+from importlib.resources import files
 from adios_db.models.oil.oil import Oil
 from adios_db.computation import gnome_oil
 
