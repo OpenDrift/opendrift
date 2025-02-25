@@ -360,7 +360,7 @@ class BaseReader(Variables, Combine, Filter):
                 p = sp.transform_points(ccrs.PlateCarree(), rlon, rlat)
                 mapx = p[:,:,0]
                 mapy = p[:,:,1]
-                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,  cmap = cmap)
+                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,  cmap=cmap)
 
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
             if cbar_label:

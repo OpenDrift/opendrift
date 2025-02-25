@@ -133,8 +133,8 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         if crs_plot is not None and crs_lonlat is not None:
             # Make transformer and convert lon,lat to Mercator x,y
             transformer = pyproj.Transformer.from_crs(crs_lonlat, crs_plot)
-            xmin, ymin = transformer.transform_point(lonmin, latmin)
-            xmax, ymax = transformer.transform_point(lonmax, latmax)
+            xmin, ymin = transformer.transform(lonmin, latmin)
+            xmax, ymax = transformer.transform(lonmax, latmax)
             dx = (xmax-xmin) / maxn
             dy = (ymax-ymin) / maxn
             dx = max(roaring.dx, dx)
