@@ -33,9 +33,6 @@ dependencies = [
   "copernicusmarine>=2.0"
   ]
 
-[tool.setuptools.packages.find]
-where = ["tests"]
-
 [project.scripts]
 hodograph = "opendrift.scripts.hodograph:main"
 readerinfo = "opendrift.scripts.readerinfo:main"
