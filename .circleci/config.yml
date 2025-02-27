@@ -164,7 +164,7 @@ jobs:
           command: |
             if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
               source activate opendrift
-              twine upload --verbose --skip-existing -u __token__ -p ${PYPI_TOKEN}
+              twine upload --verbose --skip-existing -u __token__ -p ${PYPI_TOKEN} dist/*
             fi
 
   python_312:
