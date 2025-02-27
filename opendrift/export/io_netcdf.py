@@ -50,7 +50,7 @@ def write_buffer(self):
     self.outfile = Dataset(self.outfile_name, 'a')  # Re-open file at each write
     numtimes = self.outfile['time'].shape[0]
 
-    for varname in self.result.var():
+    for varname in self.result.data_vars:
         var = self.outfile.variables[varname]
         var[:, numtimes:numtimes + self.result.sizes['time']] = self.result[varname]
     self.outfile.variables['time'][numtimes:numtimes + self.result.sizes['time']] = \
@@ -66,7 +66,7 @@ def close(self):
     logger.debug('Closing netCDF-file')
 
     self.outfile = Dataset(self.outfile_name, 'a')
-    for var in self.result.var():  # Updating variable attributes, if changed during simulation
+    for var in self.result.data_vars:  # Updating variable attributes, if changed during simulation
         for atn, atv in self.result[var].attrs.items():
             if atn != '_FillValue':
                 self.outfile[var].setncattr(atn, atv)
@@ -86,7 +86,7 @@ def close(self):
     # Finally changing UNLIMITED time dimension to fixed, for CDM compliance.
     compression = {'zlib': True, 'complevel': 6}
     logger.debug(f'Making netCDF file CDM compliant with fixed dimensions, and compressing with {compression}')
-    for varname in self.result.var():
+    for varname in self.result.data_vars:
         if varname in self._netCDF_encoding:
             self._netCDF_encoding[varname].update(compression)
         else:
@@ -111,7 +111,7 @@ def import_file(self, filename):
     index_of_first, index_of_last = self.index_of_first_and_last()
 
     kwargs = {}
-    for var in self.result.var():
+    for var in self.result.data_vars:
         if var in self.ElementType.variables:
             kwargs[var] = self.result[var][np.arange(num_elements), index_of_last]
     kwargs['ID'] = np.arange(num_elements)
@@ -144,7 +144,7 @@ def import_file(self, filename):
     self.mode = Mode.Result
 
     self.status_categories = self.result.status.flag_meanings.split()
-    if 'origin_marker' in self.result.var() :
+    if 'origin_marker' in self.result.data_vars:
         if 'flag_meanings' in self.result.origin_marker.attrs:
             self.origin_marker = [s.replace('_', ' ') for s in self.result.origin_marker.flag_meanings.split()]
 
