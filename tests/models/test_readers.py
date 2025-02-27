@@ -223,7 +223,7 @@ class TestReaders(unittest.TestCase):
 
         # Some differences in wind and current components
         # due to different coordinate system
-        for var in o1.result.var():
+        for var in o1.result.data_vars:
             if var in ['x_wind', 'y_wind', 'x_sea_water_velocity',
                        'y_sea_water_velocity']:
                 tolerance = 1

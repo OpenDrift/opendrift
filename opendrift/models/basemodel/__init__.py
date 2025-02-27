@@ -1981,7 +1981,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.result = xr.Dataset(coords=coords, data_vars=element_vars | environment_vars, attrs=global_attributes)
         logger.debug(f'Initial self.result, size {self.result.sizes}')
 
-        if self.origin_marker is not None and 'origin_marker' in self.result.var():
+        if self.origin_marker is not None and 'origin_marker' in self.result.data_vars:
             self.result['origin_marker'] = self.result.origin_marker.assign_attrs(
                 {'flag_values': np.arange(len(self.origin_marker)).astype(self.ElementType.variables['origin_marker']['dtype']),
                  'flag_meanings': " ".join(self.origin_marker.values())
@@ -2243,7 +2243,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             element_ind = deactivated
             insert_time = self.result.time.sel(time=self.time, method='backfill').values
 
-        for var in self.result.var():
+        for var in self.result.data_vars:
             for source in (self.elements, self.environment):
                 d = getattr(source, var, None)
                 if d is not None:
@@ -2325,7 +2325,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'geospatial_lon_resolution': 'point',
                 'runtime': str(self.timing['total time'])
                 }
-            if 'z' in self.result.var():
+            if 'z' in self.result.data_vars:
                 final_metadata['geospatial_vertical_min'] = self.result.z.minval
                 final_metadata['geospatial_vertical_max'] = self.result.z.maxval
                 final_metadata['geospatial_vertical_positive'] = 'up'
@@ -2339,7 +2339,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if final is False and buffer_is_full:
             logger.debug(f'Initialising new buffer')
-            for var in self.result.var():
+            for var in self.result.data_vars:
                 self.result[var][:] = np.nan
             newtime = self.result.coords['time'] + pd.Timedelta(self.time_step_output)*self.export_buffer_length
             self.result.coords['time'] = newtime
@@ -3473,7 +3473,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 except:
                     raise ValueError(
                         'Available parameters to be used for linecolors: ' +
-                        str(self.result.var()))
+                        str(self.result.data_vars))
                 from matplotlib.collections import LineCollection
                 for i in range(x.shape[1]):
                     vind = np.arange(index_of_first[i], index_of_last[i] + 1)
