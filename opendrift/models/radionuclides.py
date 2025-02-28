@@ -1405,12 +1405,12 @@ class RadionuclideDrift(OceanDrift):
         y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
         bins=(x_array, y_array)
         outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
-        z = self.result.z
+        z = self.result.z.T
         if weight is not None:
             weight_array = self.result[weight]
 
         status = self.result.status
-        specie = self.result.specie
+        specie = self.result.specie.T
         Nspecies = self.nspecies
         H = np.zeros((len(times),
                       Nspecies,
