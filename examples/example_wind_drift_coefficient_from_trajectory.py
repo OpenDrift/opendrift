@@ -4,6 +4,7 @@ Retieving wind drift factor from trajectory
 ===========================================
 """
 
+import trajan as _
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
@@ -55,7 +56,7 @@ t = o.env.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_s
 
 wind_drift_factor, azimuth = wind_drift_factor_from_trajectory(t)
 
-o.seed_elements(lon=4, lat=60, number=1, time=ot.env.readers[list(ot.env.readers)[0]].start_time,
+o.seed_elements(lon=4, lat=60, number=1, time=ot.start_time,
                 wind_drift_factor=0.033)
 
 #%% 
@@ -114,15 +115,18 @@ o.add_readers_from_list([o.test_data_folder() +
 #%%
 # Calulating trajectories for 100 different wind_drift_factors between 0 and 0.05
 wdf = np.linspace(0.0, 0.05, 100)
-o.seed_elements(lon=4, lat=60, time=ot.env.readers[list(ot.env.readers)[0]].start_time,
+o.seed_elements(lon=4, lat=60, time=ot.start_time,
                 wind_drift_factor=wdf, number=len(wdf))
 o.run(duration=timedelta(hours=12), time_step=600)
 o.plot(linecolor='wind_drift_factor', drifter=drifter)
 
 #%%
+# Using TrajAn to calculate skillscore
+skillscore = o.result.traj.skill(ot.result, tolerance_threshold=1)
+
+#%%
 # Plotting and finding the wind_drift_factor which maximises the skillscore
-skillscore = o.skillscore_trajectory(drifter_lons, drifter_lats, drifter_times, tolerance_threshold=1)
-ind = np.argmax(skillscore)
+ind = skillscore.argmax()
 plt.plot(wdf, skillscore)
 plt.xlabel('Wind drift factor  [fraction]')
 plt.ylabel('Liu-Weissberg skillscore')
