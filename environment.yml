@@ -32,6 +32,7 @@ dependencies:
   - roaring-landmask>=0.7
   - adios_db>=1.2
   - copernicusmarine>=2.0
+  - bottleneck
   - pip
   - pip:
     - git+http://github.com/OpenDrift/trajan.git
