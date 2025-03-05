@@ -34,3 +34,5 @@ dependencies:
   - adios_db>=1.2
   - copernicusmarine>=2.0
   - pip
+  - pip:
+    - git+git@github.com:OpenDrift/trajan.git
