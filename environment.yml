@@ -35,4 +35,4 @@ dependencies:
   - copernicusmarine>=2.0
   - pip
   - pip:
-    - git+https://github.com/OpenDrift/trajan.git
+    - git+http://github.com/OpenDrift/trajan.git
