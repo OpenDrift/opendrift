@@ -16,6 +16,7 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+import pandas as pd
 from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
@@ -206,7 +207,6 @@ class OceanDrift(OpenDriftSimulation):
                               time_step=None, time_step_output=None,
                               simulation_duration=None, simulation_interval=None):
 
-        import pandas as pd
         time_step_output = pd.Timedelta(time_step_output)
         simulation_interval = pd.Timedelta(simulation_interval)
         # Interpolate trajectories to output time step
@@ -224,103 +224,10 @@ class OceanDrift(OpenDriftSimulation):
         for (lo,la,ti) in zip(start_lons, start_lats, start_times):
             if np.isnan(lo):
                 continue
-            ti = pd.Timestamp(ti.values).to_pydatetime()
-            self.seed_elements(lon=lo, lat=la, time=ti, number=number, **kwargs)
+            self.seed_elements(lon=lo, lat=la, time=time, number=number, **kwargs)
         print(self)
-        self.run(outfile=outfile, end_time=pd.Timestamp(start_times[-1].values).to_pydatetime()+simulation_duration)
+        self.run(outfile=outfile, end_time=start_times[-1]+simulation_duration)
         # Simulate and save to file
-
-    def wind_drift_factor_from_trajectory_lw(self, drifters, wind_drift_factors,
-                                             simulation_length, simulation_interval):
-        """Perform simulations and use skillscore to optimize wind_drift_factor
-
-        drifters: list of dictionaries with numpy arrays of 'lon' and 'lat'
-                    and list of datetimes
-        wind_drift_factors: the wind_drift_factors to use for simulations/optimalizations
-        """
-
-        output = []  # List with one dictionary per trajectory
-        for d in drifters:
-            time = np.array(d['time'])
-            ti = time[1::] - time[0:-1]
-            if ti.min() == ti.max():
-                trajectory_interval = ti[0]
-            else:
-                raise ValueError('Trajectory interval is not constant')
-            if 'tiv' not in locals():
-                tiv = trajectory_interval
-                index_interval = simulation_interval.total_seconds()/trajectory_interval.total_seconds()
-                if not index_interval.is_integer():
-                    raise ValueError('Simulation interval must be a multiple of trajectory time step')
-            else:
-                if trajectory_interval != tiv:
-                    raise ValueError('Trajectories do not have the same time step')
-            last_index = (time[-1]-time[0]-simulation_length).total_seconds()/trajectory_interval.total_seconds()
-            seed_indices = np.arange(0, last_index, index_interval).astype(int)
-            do = {'lon': d['lon'][seed_indices],
-                  'lat': d['lat'][seed_indices],
-                  'time': np.array(time[seed_indices]),
-                  'trajectory_start_index': seed_indices}
-            output.append(do)
-
-            if not 'last_seed_time' in locals():
-                last_seed_time = do['time'][-1]
-            else:
-                last_seed_time = np.maximum(do['time'][-1], last_seed_time)
-            # Seed for all starting positions in this trajectory
-            for lo,la,ti in zip(do['lon'], do['lat'], do['time']):
-                ow = np.ones(len(wind_drift_factors))
-                self.seed_elements(lon=lo*ow, lat=la*ow, time=ti,
-                                   wind_drift_factor=wind_drift_factors)
-
-        self.set_config('drift:max_age_seconds', simulation_length.total_seconds()+1)
-        self.run(end_time=last_seed_time+simulation_length)
-
-        index_of_first, index_of_last = \
-            self.index_of_activation_and_deactivation()
-        times_model = np.array(self.get_time_array()[0])
-
-        #import matplotlib.pyplot as plt
-        i = 0  # element number in simulation
-        for d, o in zip(drifters, output):
-            o['segments'] = {}
-            o['wind_drift_factor'] = np.ones(len(o['trajectory_start_index']))
-            o['skillscore'] = np.ones(len(o['trajectory_start_index']))
-            for segnum, tsi in enumerate(o['trajectory_start_index']):
-                o['segments'][segnum] = {'skillscore': ow}
-                lon_obs = d['lon'][tsi:tsi+int(index_interval)]
-                lat_obs = d['lat'][tsi:tsi+int(index_interval)]
-                #plt.plot(lon_obs, lat_obs, 'r')
-                for wnum, wdf in enumerate(wind_drift_factors):
-                    lon_model = self.history['lon'][i, index_of_first[i]:index_of_last[i]]
-                    lat_model = self.history['lat'][i, index_of_first[i]:index_of_last[i]]
-                    i = i + 1
-                    ss = skillscore_liu_weissberg(lon_obs, lat_obs, lon_model, lat_model)
-                    o['segments'][segnum]['skillscore'][wnum] = ss
-                    #plt.plot(lon_model, lat_model, label='Skillscore: %s' % ss)
-
-                print(o['segments'][segnum]['skillscore'], 'SS')
-                o['wind_drift_factor'][segnum] = \
-                    wind_drift_factors[np.argmax(o['segments'][segnum]['skillscore'])]
-                o['skillscore'][segnum] = o['segments'][segnum]['skillscore'].max()
-                #plt.legend()
-                #plt.show()
-                #stop
-
-        #import xarray as xr
-        #da = xr.DataArray(
-        #    data=skillscore,
-        #    dims=["wind_drift_factor", "time"],
-        #    coords=dict(
-        #        wind_drift_factor=wind_drift_factors,
-        #        time=time
-        #    ),
-        #    attrs=dict(
-        #        description="Liu Weissberg skillscore",
-        #    ),
-        #)
-
-        return output
 
     def machine_learning_correction(self):
         if not hasattr(self, 'trained_model'):
@@ -367,15 +274,6 @@ class OceanDrift(OpenDriftSimulation):
                         (x_vel.min(), x_vel.max(), y_vel.min(), y_vel.max()))
         #logger.warning('%s particles, %s' % (self.num_elements_active(), datetime.now()-st))
         self.update_positions(x_vel, y_vel)
-
-    def disable_vertical_motion(self):
-        """Deactivate any vertical processes/advection"""
-        conf = {
-                'drift:vertical_advection': False,
-                'drift:vertical_mixing': False}
-        for co, va in conf.items():
-            logger.info('Setting config: %s -> %s' % (co, va))
-            self.set_config(co, va)
 
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None,
                                  z_index=None):
@@ -666,13 +564,12 @@ class OceanDrift(OpenDriftSimulation):
         if depths is not None:  # Debug mode, output from one cycle has been provided
             z = depths
             time_step = self.get_config('vertical_mixing:timestep')
-            times = [self.time + i*timedelta(seconds=time_step) for i in range(z.shape[0])]
+            times = pd.date_range(self.time, freq=timedelta(seconds=time_step), periods=z.shape[0]).to_numpy()
         else:
-            z = self.get_property('z')[0]
-            z = np.ma.filled(z, np.nan)
-            K = self.get_property('ocean_vertical_diffusivity')[0]
+            z = self.result.z.values
+            K = self.result.ocean_vertical_diffusivity.values
             time_step = self.time_step.total_seconds()
-            times = self.get_time_array()[0]
+            times = self.result.time
         if maxdepth is None:
             maxdepth = np.nanmin(z)
         if maxdepth > 0:
@@ -703,13 +600,13 @@ class OceanDrift(OpenDriftSimulation):
         bc=axn.barh(bin_series[0:-1,i], hist_series[:,i], height=-maxdepth/bins, align='edge')
         axn.set_ylim([maxdepth, 0])
         axn.set_xlim([0, maxnum])
-        title=axn.set_title('%s UTC' % times[i])
+        title=axn.set_title('')
         axn.set_xlabel('Number of particles')
 
         def update_histogram(i):
             for rect, y in zip(bc, hist_series[:,i]):
                 rect.set_width(y)
-            title.set_text('%s UTC' % times[i])
+            title.set_text(f'{np.datetime_as_string(times[i], unit="s")} UTC')
 
         self.__save_or_plot_animation__(plt.gcf(),
                                         update_histogram,
@@ -738,8 +635,9 @@ class OceanDrift(OpenDriftSimulation):
         fig = plt.figure()
         mainplot = fig.add_axes([.15, .3, .8, .5])
         sliderax = fig.add_axes([.15, .08, .75, .05])
-        tslider = Slider(sliderax, 'Timestep', 0, self.steps_output-1,
-                         valinit=self.steps_output-1, valfmt='%0.0f')
+        steps_output = len(self.result.time)
+        tslider = Slider(sliderax, 'Timestep', 0, steps_output-1,
+                         valinit=steps_output-1, valfmt='%0.0f')
         try:
             dz = self.get_config('vertical_mixing:verticalresolution')
         except:
@@ -755,34 +653,31 @@ class OceanDrift(OpenDriftSimulation):
         if bins is not None:
             dz = -maxrange/bins
 
-        # using get_property instead of history to exclude elements thare are not yet seeded
-        z = self.get_property('z')[0]
-        z = np.ma.filled(z, np.nan)
-
         if maxnum is None:
             # Precalculatig histograms to find maxnum
-            hist_series = np.zeros((int(-maxrange/dz), self.steps_output-1))
-            bin_series = np.zeros((int(-maxrange/dz)+1, self.steps_output-1))
-            for i in range(self.steps_output-1):
-                hist_series[:,i], bin_series[:,i] = np.histogram(z[i,:][np.isfinite(z[i,:])], bins=int(-maxrange/dz), range=[maxrange, 0])
+            hist_series = np.zeros((int(-maxrange/dz), steps_output-1))
+            bin_series = np.zeros((int(-maxrange/dz)+1, steps_output-1))
+            for i in range(steps_output-1):
+                z = self.result.z.isel(time=i)
+                z = z[np.isfinite(z)]
+                hist_series[:,i], bin_series[:,i] = np.histogram(z, bins=int(-maxrange/dz), range=[maxrange, 0])
             maxnum = hist_series.max()
 
         def update(val):
             tindex = int(tslider.val)
             mainplot.cla()
             mainplot.grid()
-            mainplot.hist(z[tindex, :], bins=int(-maxrange/dz),
+            mainplot.hist(self.result.z.isel(time=tindex), bins=int(-maxrange/dz),
                           range=[maxrange, 0], orientation='horizontal')
             mainplot.set_ylim([maxrange, 0])
             mainplot.set_xlim([0, maxnum])
             mainplot.set_xlabel('number of particles')
             mainplot.set_ylabel('depth [m]')
-            x_wind = self.history['x_wind'].T[tindex, :]
-            y_wind = self.history['y_wind'].T[tindex, :]
+            x_wind = self.result.x_wind.isel(time=tindex)
+            y_wind = self.result.y_wind.isel(time=tindex)
             windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-            mainplot.set_title(str(self.get_time_array()[0][tindex]) +
-                               #'   Percent at surface: %.1f %' % percent_at_surface)
-                               '   Mean windspeed: %.1f m/s' % windspeed)
+            mainplot.set_title(f'{np.datetime_as_string(self.result.time[tindex], unit="s")}   '
+                               f'Mean windspeed: {windspeed:.1f} m/s')
             fig.canvas.draw_idle()
 
         update(0)  # Plot initial distribution
@@ -792,40 +687,3 @@ class OceanDrift(OpenDriftSimulation):
         # returning objects prevents unresponsiveness when moving the Slider
         # https://github.com/matplotlib/matplotlib/issues/3105#issuecomment-44855888
         return fig,mainplot,sliderax,tslider
-
-    def plotter_vertical_distribution_time(self, ax=None, mask=None,
-            dz=1., maxrange=-100, bins=None, step=1):
-        """Function to plot vertical distribution of particles.
-
-        Use mask to plot any selection of particles.
-        """
-        from pylab import axes, draw
-        from matplotlib import dates, pyplot
-
-        if ax is None:
-            fig = pyplot.figure()
-            ax = fig.gca()
-            show = True
-        else:
-            show = False
-
-        if mask is None: # create a mask that is True for all particles
-            mask = self.history['z'].T[0] == self.history['z'].T[0]
-
-        if bins is None:
-            bins=int(-maxrange/dz)
-
-        ax.hist(self.history['z'].T[step,mask], bins=bins,
-                range=[maxrange, 0], orientation='horizontal')
-        ax.set_ylim([maxrange, 0])
-        ax.grid()
-        #ax.set_xlim([0, mask.sum()*.15])
-        ax.set_xlabel('Number of particles')
-        ax.set_ylabel('Depth [m]')
-        x_wind = self.history['x_wind'].T[step, :]
-        y_wind = self.history['x_wind'].T[step, :]
-        windspeed = np.mean(np.sqrt(x_wind**2 + y_wind**2))
-        ax.set_title(str(self.get_time_array()[0][step]) +
-                     '   Mean windspeed: %.1f m/s' % windspeed)
-        if show is True:
-            pyplot.show()

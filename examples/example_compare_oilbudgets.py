@@ -36,14 +36,13 @@ for wind_speed in wind_speeds:
         o.run(duration=timedelta(hours=hours), time_step=600)
         b[ot] = o.get_oil_budget()
         # Get viscosity and density
-        kin_viscosity = o.history['viscosity']
-        dyn_viscosity = kin_viscosity * o.history['density'] * 1000 # mPas
-        viscosities[ot] = dyn_viscosity.mean(axis=0)
-        densities[ot] = o.history['density'].mean(axis=0)
-        water_fractions[ot] = o.history['water_fraction'].mean(axis=0)
+        kin_viscosity = o.result.viscosity
+        dyn_viscosity = kin_viscosity * o.result.density * 1000 # mPas
+        viscosities[ot] = dyn_viscosity.mean(dim='trajectory')
+        densities[ot] = o.result.density.mean(dim='trajectory')
+        water_fractions[ot] = o.result.water_fraction.mean(dim='trajectory')
 
-    time, time_relative = o.get_time_array()
-    time = np.array([t.total_seconds() / 3600. for t in time_relative])
+    time = (o.result.time-o.result.time[0]).dt.total_seconds()/3600  # Hours since start
 
     figw,(axevap, axsurf, axsub) = plt.subplots(3,1)
     figp,(axdens, axvisc, axw) = plt.subplots(3,1)

@@ -210,10 +210,9 @@ class TestSeed(unittest.TestCase):
         o.set_config('seed:ocean_only', True)
         o.seed_elements(lon=[4.8, 5.15], lat=[60, 60], time=datetime.now())
         o.run(steps=1)
-        lat, s = o.get_property('lat')[0]
         # Check that the second point over land has been moved to ocean
-        self.assertAlmostEqual(lat[0], 60, 5)
-        self.assertNotAlmostEqual(lat[1], 60, 5)
+        assert o.result.lat.isel(time=0, trajectory=0) == pytest.approx(60)
+        assert o.result.lat.isel(time=1, trajectory=0) == pytest.approx(60)
 
     def test_seed_letters(self):
         o = OceanDrift(loglevel=50)

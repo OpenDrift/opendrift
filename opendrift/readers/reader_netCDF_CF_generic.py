@@ -21,8 +21,10 @@ from netCDF4 import num2date
 import logging
 logger = logging.getLogger(__name__)
 
-from opendrift.readers.basereader import BaseReader, StructuredReader
+import pandas as pd
 import xarray as xr
+from opendrift.readers.basereader import BaseReader, StructuredReader
+from opendrift.readers import open_dataset_opendrift, datetime_from_variable
 
 
 class Reader(StructuredReader, BaseReader):
@@ -72,44 +74,51 @@ class Reader(StructuredReader, BaseReader):
     def __init__(self, filename=None, zarr_storage_options=None, name=None, proj4=None,
                  standard_name_mapping={}, ensemble_member=None):
 
-        if isinstance(filename, xr.Dataset):
-            self.Dataset = filename
-            if name is not None:
-                self.name = name
-            elif hasattr(self.Dataset, 'name'):
-                self.name = self.Dataset.name
-            else:
-                self.name = str(filename)
+        #if isinstance(filename, xr.Dataset):
+        #    self.Dataset = filename
+        #    if name is not None:
+        #        self.name = name
+        #    elif hasattr(self.Dataset, 'name'):
+        #        self.name = self.Dataset.name
+        #    else:
+        #        self.name = str(filename)
+        #else:
+        #    if zarr_storage_options is not None:
+        #        self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
+        #        if name is None:
+        #            self.name = filename
+        #        else:
+        #            self.name = name
+        #    else:
+        #        if filename is None:
+        #            raise ValueError('Need filename as argument to constructor')
+
+        #        filestr = str(filename)
+        #        if name is None:
+        #            self.name = filestr
+        #        else:
+        #            self.name = name
+
+        #        try:
+        #            # Open file, check that everything is ok
+        #            logger.info('Opening dataset: ' + filestr)
+        #            if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+        #                logger.info('Opening files with MFDataset')
+        #                self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
+        #                                                chunks={'time': 1}, decode_times=False)
+        #            elif ensemble_member is not None:
+        #                self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
+        #            else:
+        #                self.Dataset = xr.open_dataset(filename, decode_times=False)
+        #        except Exception as e:
+        #            raise ValueError(e)
+
+        self.Dataset = open_dataset_opendrift(source=filename, zarr_storage_options=zarr_storage_options)
+
+        if name is None:
+            self.name = str(filename)
         else:
-            if zarr_storage_options is not None:
-                self.Dataset = xr.open_zarr(filename, storage_options=zarr_storage_options)
-                if name is None:
-                    self.name = filename
-                else:
-                    self.name = name
-            else:
-                if filename is None:
-                    raise ValueError('Need filename as argument to constructor')
-
-                filestr = str(filename)
-                if name is None:
-                    self.name = filestr
-                else:
-                    self.name = name
-
-                try:
-                    # Open file, check that everything is ok
-                    logger.info('Opening dataset: ' + filestr)
-                    if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                        logger.info('Opening files with MFDataset')
-                        self.Dataset = xr.open_mfdataset(filename, data_vars='minimal', coords='minimal',
-                                                        chunks={'time': 1}, decode_times=False)
-                    elif ensemble_member is not None:
-                        self.Dataset = xr.open_dataset(filename, decode_times=False).isel(ensemble_member=ensemble_member)
-                    else:
-                        self.Dataset = xr.open_dataset(filename, decode_times=False)
-                except Exception as e:
-                    raise ValueError(e)
+            self.name = name
 
         # NB: check below might not be waterproof
         if 'ocean_time' in self.Dataset.dims and 'eta_u' in self.Dataset.dims and \
@@ -197,28 +206,30 @@ class Reader(StructuredReader, BaseReader):
                         self.z = -var_data
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
-                var_data = var.values
-                time = var_data
-                time_units = units
+                #var_data = var.values
+                #time = var_data
+                #time_units = units
                 if len(var.dims)==1:
                     self.dimensions['time'] = var.dims[0]
 
-                if isinstance(time[0], np.bytes_):
-                    # This hack is probably only necessary for CERSAT/GELOBCURRENT
-                    time = [t.decode('ascii') for t in time]
-                    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
-                elif time.ndim == 2:
-                    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
-                else:
-                    if 'calendar' in var.attrs:
-                        calendar = var.attrs['calendar']
-                    else:
-                        calendar = 'standard'
-                    if np.issubdtype(var.dtype, np.datetime64):
-                        import pandas as pd
-                        self.times = [pd.to_datetime(str(d)) for d in time]
-                    else:
-                        self.times = num2date(time, time_units, calendar=calendar)
+                #if isinstance(time[0], np.bytes_):
+                #    # This hack is probably only necessary for CERSAT/GELOBCURRENT
+                #    time = [t.decode('ascii') for t in time]
+                #    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
+                #elif time.ndim == 2:
+                #    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
+                #else:
+                #    if 'calendar' in var.attrs:
+                #        calendar = var.attrs['calendar']
+                #    else:
+                #        calendar = 'standard'
+                #    if np.issubdtype(var.dtype, np.datetime64):
+                #        import pandas as pd
+                #        self.times = [pd.to_datetime(str(d)) for d in time]
+                #    else:
+                #        self.times = num2date(time, time_units, calendar=calendar)
+                #self.times = pd.to_datetime(var).to_pydatetime()
+                self.times = datetime_from_variable(var)
                 self.start_time = self.times[0]
                 self.end_time = self.times[-1]
                 if len(self.times) > 1:
@@ -364,11 +375,11 @@ class Reader(StructuredReader, BaseReader):
 
         self.variables = list(self.variable_mapping.keys())
 
-        # Workaround for datasets with unnecessary ensemble dimension for static variables
         for vn, va in self.variable_mapping.items():
             if vn == 'sea_floor_depth_below_sea_level':
                 var = self.Dataset.variables[va]
                 if 'ensemble_member' in var.dims:
+                    # Workaround for datasets with unnecessary ensemble dimension for static variables
                     logger.info(f'Removing ensemble dimension from {vn}')
                     var = var.isel(ensemble_member=0).squeeze()
                     self.Dataset[va] = var
@@ -410,30 +421,33 @@ class Reader(StructuredReader, BaseReader):
             clipped = self.clipped
         else: clipped = 0
 
-        if self.global_coverage():
+        buffer = self.buffer  # Adding buffer, to cover also future positions of elements
+        indy = np.floor(np.abs(y-self.y[0])/self.delta_y-clipped).astype(int) + clipped
+        indy = np.arange(np.max([0, indy.min()-buffer]),
+                         np.min([indy.max()+buffer, self.numy]))
+
+        if self.global_coverage():  # Treatment of cyclic longitudes (x-coordinate)
             if self.lon_range() == '0to360':
                 x = np.mod(x, 360)  # Shift x/lons to 0-360
             elif self.lon_range() == '-180to180':
                 x = np.mod(x + 180, 360) - 180 # Shift x/lons to -180-180
         indx = np.floor(np.abs(x-self.x[0])/self.delta_x-clipped).astype(int) + clipped
-        indy = np.floor(np.abs(y-self.y[0])/self.delta_y-clipped).astype(int) + clipped
-        buffer = self.buffer  # Adding buffer, to cover also future positions of elements
-        indy = np.arange(np.max([0, indy.min()-buffer]),
-                         np.min([indy.max()+buffer, self.numy]))
-        indx = np.arange(indx.min()-buffer, indx.max()+buffer+1)
 
-        if self.global_coverage() and indx.min() < 0 and indx.max() > 0 and indx.max() < self.numx:
-            logger.debug('Requested data block is not continuous in file'+
-                          ', must read two blocks and concatenate.')
-            indx_left = indx[indx<0] + self.numx  # Shift to positive indices
-            indx_right = indx[indx>=0]
-            if indx_right.max() >= indx_left.min():  # Avoid overlap
-                indx_right = np.arange(indx_right.min(), indx_left.min())
-            continuous = False
-        else:
-            continuous = True
-            indx = np.arange(np.max([0, indx.min()]),
-                             np.min([indx.max(), self.numx]))
+        split = False
+        if self.global_coverage():  # Check if need to split in two blocks
+            uniqx = np.unique(indx)
+            diff_xind = np.diff(uniqx)
+            # We split if >800 pixels between left/west and right/east blocks
+            if len(diff_xind)>=1 and diff_xind.max() > np.minimum(800, 0.6*self.numx):
+                logger.debug('Requested data block crosses lon-border, reading and concatinating two parts')
+                split = True
+                splitind = np.argmax(diff_xind)
+                indx_left = np.arange(0, uniqx[splitind] + buffer)
+                indx_right = np.arange(uniqx[splitind+1] - buffer, self.numx)
+                indx = np.concatenate((indx_right, indx_left))
+        if split is False:
+            indx = np.arange(np.maximum(0, indx.min()-buffer),
+                             np.minimum(indx.max()+buffer+1, self.numx))
 
         variables = {}
 
@@ -448,51 +462,75 @@ class Reader(StructuredReader, BaseReader):
             var = self.Dataset.variables[self.variable_mapping[par]]
 
             ensemble_dim = None
-            if continuous is True:
+            dimindices = {'x': indx, 'y': indy, 'time': indxTime, 'z': indz}
+            dimorder = list(var.dims)
+            xnum = dimorder.index(self.dimensions['x'])
+            ynum = dimorder.index(self.dimensions['y'])
+            if xnum < ynum:
+                # We must have y before x, since returning numpy arrays and not Xarrays
+                logger.debug(f'Swapping order of x-y dimensions for {par}')
+                dimorder[xnum] = self.dimensions['y']
+                dimorder[ynum] = self.dimensions['x']
+                var = var.permute_dims(*dimorder)
+
+            # Remove any unknown dimensions
+            for dim in var.dims:
+                if dim not in self.dimensions.values() and dim != self.ensemble_dimension:
+                    logger.debug(f'Removing unknown dimension: {dim}')
+                    var = var.squeeze(dim=dim)
+            if self.ensemble_dimension is not None and self.ensemble_dimension in var.dims:
+                ensemble_dim = 0  # hardcoded, may not work for MEPS
+            if split is False:
                 if True:  # new dynamic way
-                    dimindices = {'x': indx, 'y': indy, 'time': indxTime, 'z': indz}
                     subset = {vdim:dimindices[dim] for dim,vdim in self.dimensions.items() if vdim in var.dims}
                     variables[par] = var.isel(subset)
-                    # Remove any unknown dimensions
-                    for dim in variables[par].dims:
-                        if dim not in self.dimensions.values() and dim != self.ensemble_dimension:
-                            logger.debug(f'Removing unknown dimension: {dim}')
-                            variables[par] = variables[par].squeeze(dim=dim)
-                    if self.ensemble_dimension is not None and self.ensemble_dimension in variables[par].dims:
-                        ensemble_dim = 0  # hardcoded, may not work for MEPS
-                else:  # old hardcoded way
-                    if var.ndim == 2:
-                        variables[par] = var[indy, indx]
-                    elif var.ndim == 3:
-                        variables[par] = var[indxTime, indy, indx]
-                    elif var.ndim == 4:
-                        variables[par] = var[indxTime, indz, indy, indx]
-                    elif var.ndim == 5:  # Ensemble data
-                        variables[par] = var[indxTime, indz, indrealization, indy, indx]
-                        ensemble_dim = 0  # Hardcoded ensemble dimension for now
-                    else:
-                        raise Exception('Wrong dimension of variable: ' +
-                                        self.variable_mapping[par])
+                #else:  # old hardcoded way, to be removed
+                #    if var.ndim == 2:
+                #        variables[par] = var[indy, indx]
+                #    elif var.ndim == 3:
+                #        variables[par] = var[indxTime, indy, indx]
+                #    elif var.ndim == 4:
+                #        variables[par] = var[indxTime, indz, indy, indx]
+                #    elif var.ndim == 5:  # Ensemble data
+                #        variables[par] = var[indxTime, indz, indrealization, indy, indx]
+                #        ensemble_dim = 0  # Hardcoded ensemble dimension for now
+                #    else:
+                #        raise Exception('Wrong dimension of variable: ' +
+                #                        self.variable_mapping[par])
             # The below should also be updated to dynamic subsetting
             else:  # We need to read left and right parts separately
-                if var.ndim == 2:
-                    left = var[indy, indx_left]
-                    right = var[indy, indx_right]
-                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
-                elif var.ndim == 3:
-                    left = var[indxTime, indy, indx_left]
-                    right = var[indxTime, indy, indx_right]
-                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
-                elif var.ndim == 4:
-                    left = var[indxTime, indz, indy, indx_left]
-                    right = var[indxTime, indz, indy, indx_right]
-                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
-                elif var.ndim == 5:  # Ensemble data
-                    left = var[indxTime, indz, indrealization,
-                               indy, indx_left]
-                    right = var[indxTime, indz, indrealization,
-                                indy, indx_right]
-                    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+                d_left = dimindices.copy()
+                d_right = dimindices.copy()
+                d_left.update({'x': indx_left})
+                d_right.update({'x': indx_right})
+                subset_left = {vdim:d_left[dim] for dim,vdim in self.dimensions.items()
+                               if vdim in var.dims}
+                subset_right = {vdim:d_right[dim] for dim,vdim in self.dimensions.items()
+                               if vdim in var.dims}
+                left = var.isel(subset_left)
+                right = var.isel(subset_right)
+
+                #if var.ndim == 2:
+                #    left = var[indy, indx_left]
+                #    right = var[indy, indx_right]
+                #    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+                #elif var.ndim == 3:
+                #    left = var[indxTime, indy, indx_left]
+                #    right = var[indxTime, indy, indx_right]
+                #    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+                #elif var.ndim == 4:
+                #    left = var[indxTime, indz, indy, indx_left]
+                #    right = var[indxTime, indz, indy, indx_right]
+                #    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+                #elif var.ndim == 5:  # Ensemble data
+                #    left = var[indxTime, indz, indrealization,
+                #               indy, indx_left]
+                #    right = var[indxTime, indz, indrealization,
+                #                indy, indx_right]
+                #    variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+
+                #variables[par] = xr.Variable.concat([left, right], dim=self.dimensions['x'])
+                variables[par] = xr.Variable.concat([right, left], dim=self.dimensions['x'])
                 variables[par] = np.ma.masked_invalid(variables[par])
 
             # Mask values outside domain
@@ -522,12 +560,10 @@ class Reader(StructuredReader, BaseReader):
         if self.projected is True:
             variables['x'] = self.x[indx]
             variables['y'] = self.y[indy]
-            if continuous is False and variables['x'][0] > variables['x'][-1]:
-                # We need to shift so that x-coordinate (longitude) is continous
-                if self.lon_range() == '-180to180':
-                    variables['x'][variables['x']>0] -= 360
-                elif self.lon_range() == '0to360':
-                    variables['x'][variables['x']<0] += 360
+            if split is True and not np.all(np.diff(variables['x'])>0):  # not monotonously increasing
+                variables['x'] = np.mod(variables['x'], 360)  # Shift to 0-360
+                if not np.all(np.diff(variables['x'])>0):  # not increasing, shift again to -180-180
+                    variables['x'] = np.mod(variables['x'] + 180, 360) - 180
         else:
             variables['x'] = indx
             variables['y'] = indy

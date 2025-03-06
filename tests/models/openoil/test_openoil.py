@@ -73,8 +73,8 @@ def test_oil_in_ice():
 
         o.run(duration=timedelta(hours=10))
 
-        latf = o.history['lat'][0][-1]
-        lonf = o.history['lon'][0][-1]
+        latf = o.result.lat.isel({'trajectory': 0, 'time': -1})
+        lonf = o.result.lon.isel({'trajectory': 0, 'time': -1})
 
         _azimuth1, _azimuth2, dist = geod.inv(lon, lat, lonf, latf)
 

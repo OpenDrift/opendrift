@@ -138,14 +138,10 @@ It is necessary to add readers for all required variables, unless they have been
 In the above example, it is only strictly necessary to provide readers for wind and current.
 The fallback values will be used for elements which move out of the coverage of a reader in space or time, if there is no other readers which provides the given variable.
 Variables where `important` is set to False will only be obtained from readers which are already available, new lazy readers will not be initialized if these are missing.
-Most applications will need a landmask, for stranding towards a coastline. A high resolution landmask may e.g. be taken from the `GSHHG database <https://www.soest.hawaii.edu/pwessel/gshhg/>`_ , which is available through a dedicated Reader class::
+Most applications will need a landmask, for stranding towards a coastline. The default is to use the global `GSHHG database <https://www.soest.hawaii.edu/pwessel/gshhg/>`_ landmask, unless explicitly disabled with::
 
-    from opendrift.readers import reader_global_landmask
-    reader_landmask = reader_global_landmask.Reader(
-                           extent=[2, 59, 8, 63])  # lonmin, latmin, lonmax, latmax
-
-The longitude-latitude boundaries of the landmask reader should cover the area where the elements could possibly be advected during the run. The full resolution coastline will always be used, and a global rasterized version is used internally to speed up the checking for each element for each timestep of the model run.
-
+    o.set_config('general:use_auto_landmask', False)
+    
 After Readers are created, they must be added to the model instance::
 
     o.add_reader([reader_landmask, reader_norkyst, reader_nordic])

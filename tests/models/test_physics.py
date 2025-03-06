@@ -63,8 +63,8 @@ class TestPhysics(unittest.TestCase):
         # Setting droplet size range for wave breaking
         o.seed_elements(4, 60, number=100, time=datetime.now(), z=-100)
         o.run(duration=timedelta(hours=3), time_step=900)
-        d_start = o.history['diameter'][:,0]
-        d_end = o.history['diameter'][:,-1]
+        d_start = o.result.diameter[:,0].values
+        d_end = o.result.diameter[:,-1].values
         # Check initial droplet sizes (expect range 0.0005 to 0.005)
         self.assertTrue(d_start.min() >
                 o.get_config('seed:droplet_diameter_min_subsea'))
@@ -89,8 +89,8 @@ class TestPhysics(unittest.TestCase):
                         diameter=diameter, z=-200)
         o.run(duration=timedelta(hours=2), time_step_output=900, time_step=900)
 
-        d_start = o.history['diameter'][:,0]
-        d_end = o.history['diameter'][:,-1]
+        d_start = o.result.diameter[:,0].values
+        d_end = o.result.diameter[:,-1].values
         # Check droplet sizes before wavebreaking
         self.assertAlmostEqual(d_start.min(), diameter)
         self.assertAlmostEqual(d_start.max(), diameter)

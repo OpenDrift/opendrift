@@ -1974,7 +1974,8 @@ class ChemicalDrift(OceanDrift):
                 )[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
 
         if pixelsize_m == 'auto':
-            lon, lat = self.get_lonlats()
+            lon = self.result.lon
+            lat = self.result.lat
             latspan = lat.max()-lat.min()
             pixelsize_m=30
             if latspan > .05:
@@ -2951,7 +2952,7 @@ class ChemicalDrift(OceanDrift):
         mass=self.get_property('mass')
         sp=self.get_property('specie')
 
-        steps=self.steps_output
+        steps=len(self.result.time)
 
         bars=np.zeros((steps,5))
 

@@ -261,8 +261,6 @@ class BaseReader(Variables, Combine, Filter):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
-            lon0 = lon0[0]
-            lat0 = lat0[0]
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
             latmax = np.maximum(latmax, lat0)
             latmin = np.minimum(latmin, lat0)
@@ -274,7 +272,7 @@ class BaseReader(Variables, Combine, Filter):
 
         if lscale == 'auto':  # Custom lscale - this should be generalized to Basemodel also
             s = cfeature.AdaptiveScaler('coarse',
-                (('low', 100), ('intermediate', 20), ('high', 5), ('full', 1)))
+                (('low', 100), ('intermediate', 20), ('high', 1), ('full', .2)))
             lscale = s.scale_from_extent([lonmin, lonmax, latmin, latmax])
 
         # GSHHS coastlines
@@ -333,8 +331,14 @@ class BaseReader(Variables, Combine, Filter):
         if time is None:
             time = self.start_time
         if variable is not None:
-            rx = np.array([self.xmin, self.xmax])
-            ry = np.array([self.ymin, self.ymax])
+            if self.global_coverage():
+                ax.set_global()
+                # Spaced by 500 to avoid splitting in west/east blocks
+                rx = np.linspace(self.xmin, self.xmax, num=int(np.ceil(self.numx/500))+1)
+                ry = np.linspace(self.ymin, self.ymax, num=len(rx))
+            else:
+                rx = np.array([self.xmin, self.xmax])
+                ry = np.array([self.ymin, self.ymax])
             if variable in self.derived_variables:
                 data = self.get_variables(self.derived_variables[variable], time, rx, ry)
                 self.__calculate_derived_environment_variables__(data)
@@ -356,7 +360,7 @@ class BaseReader(Variables, Combine, Filter):
                 p = sp.transform_points(ccrs.PlateCarree(), rlon, rlat)
                 mapx = p[:,:,0]
                 mapy = p[:,:,1]
-                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,  cmap = cmap)
+                mappable = ax.pcolormesh(mapx, mapy, data[variable], vmin=vmin, vmax=vmax,  cmap=cmap)
 
             cbar = fig.colorbar(mappable, orientation='horizontal', pad=.05, aspect=30, shrink=.4)
             if cbar_label:

@@ -12,6 +12,11 @@ import numpy as np
 import pandas as pd
 from opendrift.models.basemodel import Mode
 
+# KFD 4 Feb 2025
+# recarray self.history is now replaced with Xarray Dataset self.result
+# Thus the below code must be updated accordingly.
+# E.g.    self.history['ID"] -> self.result.ID
+
 def init(self, filename):
 
     self.outfile = filename
@@ -59,9 +64,3 @@ def import_file(self, filename, times=None, elements=None, load_history=True):
     """
     logger.info("Skipping reimport")
     return self
-
-def import_file_xarray(self, filename, times=None, elements=None, load_history=True):
-    """Create OpenDrift object from file
-    Odd if this I/O backend specific feature were required for all of opendrift to run
-    """
-    raise NotImplementedError("wontfix")

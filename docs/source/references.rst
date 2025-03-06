@@ -3,13 +3,47 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Mohrmann Martin, Biddle Louise, Rehder Gregor, Bittig Henry & Queste Bastien (2025). Nord Stream methane leaks spread across 14% of Baltic waters. Nature Communications. 16. 10.1038/s41467-024-53779-0. 
+
+Simonsen, Magne & Berge, Erik & Klein, Heiko & Brown, Justin & Ulimoen, Magnus & Saetra, Øyvind & Hosseini, Ali & Lind, Ole Christian. (2025). Marine and atmospheric transport modeling supporting nuclear preparedness in Norway: Recent achievements and remaining challenges. The Science of The Total Environment. 961. 178161. 10.1016/j.scitotenv.2024.178161. 
+
+Aghito, Manuel & Majamäki, Elisa & Hänninen, Risto & Lunde Hermansson, Anna & Hassellöv, Ida-Maja & Ytreberg, Erik & Kolovoyiannis, Vassilis & Zervakis, Vassilis & Granberg, Maria & Moldanova, Jana & Dagestad, Knut-Frode & Breivik, Oyvind & Hole, Lars & Jalkanen, Jukka-Pekka. (2024). Projected changes of the emission and transport of organic pollutants and metals from shipping in European seas 2018-2050. Marine pollution bulletin. 211. 117351. 10.1016/j.marpolbul.2024.117351. 
+
+Brabo, L., Martins, L. L., Andrades, R., Teixeira, C. E., do Nascimento, A. P., de Azevedo, R. N. A., & Giarrizzo, T. (2024). A transcontinental threat: Plastic waste from Africa invades Brazil's coast. Science of The Total Environment, 954, 176599.
+
+Bezerra, L. E. A., Teixeira, C. E. P., Sampaio, C. L., Cavalcante, R. M., & Soares, M. D. O. (2024). Historical shipwrecks in international waters contributes to coastal pollution. Ocean and Coastal Research, 72, e24048.
+
+Pearman, William & Duffy, Grant & Smith, Robert & Currie, Kim & Gemmell, Neil & Morales, Sergio & Fraser, Ceridwen. (2024). Host dispersal relaxes selective pressures in rafting microbiomes and triggers successional changes. Nature Communications. 15. 10.1038/s41467-024-54954-z. 
+
+Oh, Youngon & Oh, Jeonghyo & Lee, Impyeong. (2024). Optimal Route Generation and Performance Evaluation for Manned Aircraft-Based Ship Detection in Maritime Search and Rescue. Korean Journal of Remote Sensing. 40. 1079-1093. 10.7780/kjrs.2024.40.6.1.17. 
+
 Mao, S., Shropshire, T., & He, R. (2024). Quantifying surface shelf water export inthe southern middle Atlantic Bight using aLagrangian particle tracking approach. Journal of Geophysical Research: Oceans,129, https://doi.org/10.1029/2023JC020752
+
+Díaz, Patricio & Basti, Leila & Santos, Iván Ernesto & Schwerter Lillo, Camila & Artal, Osvaldo & Rosales, Sergio & Ross, Lauren & Conca, Carlos & Alvarez, Gonzalo & Fleming, Zoë & Villanueva, Fabiola & Diaz, Manuel & Mancilla-Gutiérrez, Guido & Altamirano, Robinson & Rodríguez-Villegas, Camilo & Urrutia, Pamela & Urrutia, Geysi & Muñoz-Linford, Pamela & Acuña-Ruz, Tomás & Figueroa, Rosa. (2024). The risk of high-biomass HABs: Triggers and dynamics of a non-toxic bloom of Prorocentrum micans in Chilean Patagonia. The Science of The Total Environment. 958. 178140. 10.1016/j.scitotenv.2024.178140. 
+
+Sánchez-Velasco, Laura & Montes-Arechiga, Jorge & Romero, Emmanuel & Ruvalcaba Aroche, Erick Daniel & Godínez, Victor & Tenorio-Fernández, Leonardo & Beier, Emilio & Ladah, Lydia. (2024). Modeling mesoscale circulation and potential fish larvae transport at the entrance of a semi-enclosed sea under different periods. Deep Sea Research Part I: Oceanographic Research Papers. 216. 104430. 10.1016/j.dsr.2024.104430. 
 
 Vasilijevic, A.; Brönner, U; Dunn, M.; García-Valle, G.; Fabrini, J.; Stevenson-Jones, R.; Bye, B.L.; Mayer, I.; Berre, A.; Ludvigsen, M.; et al. A Digital Twin of the Trondheim Fjord for Environmental Monitoring-A Pilot Case.
 
 Espenes H., Carrasco A., Dagestad K.-F., Christensen K.H., Drivdal M., Isachsen P.E., Stokes drift in crossing windsea and swell, and its effect on near-shore particle transport in Lofoten, Northern Norway, Ocean Modelling, Volume 191, October 2024, https://doi.org/10.1016/j.ocemod.2024.102407
 
+Herrmannsdörfer, Lia & Lubbad, Raed & Høyland, Knut. (2024). Comparison of variables from ocean, sea ice and atmosphere models as forcing data for iceberg drift and deterioration models in the Barents Sea in 2010–2014 and 2020–2021 (Part I). 10.5194/egusphere-2024-3053. 
+
+Ferretti, Francesco & Shea, Brendan & Gambardella, Chiara & Jenrette, Jeremy & Moro, Stefano & Echwikhi, Khaled & Schallert, Robert & Gallagher, Austin & Block, Barbara & Chapple, Taylor. (2024). On the tracks of white sharks in the Mediterranean Sea. Frontiers in Marine Science. 11. 10.3389/fmars.2024.1425511. 
+
 Nadal I, Picciulin M, Falcieri FM, García-Lafuente J, Sammartino S, and Ghezzo M (2024). Spatio-temporal connectivity and dispersal seasonal patterns in the Adriatic Sea using a retention clock approach. Front. Mar. Sci. 11, 1-18, https://doi.org/10.3389/fmars.2024.1360077.
+
+Cloux, Sara & Pérez, Patricia & de Pablo, Hilda & Pérez-Muñuzuri, Vicente. (2024). A regional Lagrangian model to evaluate the dispersion of floating macroplastics in the North Atlantic Ocean from land and river sources in the western coast of Spain. Marine pollution bulletin. 209. 117110. 10.1016/j.marpolbul.2024.117110. 
+
+Zlateva, Ivelina & Ricker, Marcel & Slabakova, Violeta & Slavova, Krasimira & Doncheva, Valentina & Staneva, Joanna & Stanev, Emil & Popov, Ivan & Gramcianinov, Carolina & Raykov, Violin. (2024). Analysis of terrestrial and riverine sources of plastic litter contributing to plastic pollution in the Western Black Sea using а lagrangian particle tracking model. Marine Pollution Bulletin. 209. 10.1016/j.marpolbul.2024.117108. 
+
+Mao, Shun & Shropshire, Taylor & He, Ruoying. (2024). Quantifying Surface Shelf Water Export in the Southern Middle Atlantic Bight Using a Lagrangian Particle Tracking Approach. Journal of Geophysical Research: Oceans. 129. 10.1029/2023JC020752. 
+
+Wu, Tianning & He, Ruoying. (2024). Gulf Stream mesoscale variabilities drive bottom marine heatwaves in Northwest Atlantic continental margin methane seeps. Communications Earth & Environment. 5. 10.1038/s43247-024-01742-8. 
+
+Moerman, Bente & Breivik, Oyvind & Hole, Lars & Hope, Gaute & Johannessen, Johnny & Rabault, J.. (2024). An analysis on OpenMetBuoy-v2021 drifter in-situ data and Lagrangian trajectory simulations in the Agulhas Current System. 10.13140/RG.2.2.20694.87361. 
+
+Brabo, Lucio & Lopes Martins, Laercio & Andrades, Ryan & Teixeira, Carlos & Nascimento, Adriana & Neto, Rufino & Bezerra, Luis & Cavalcante, Rivelino & Cottens, Kelly & Soares, Romulo & Sousa, Paulo & Mont'Alverne, Tarin & Soares, Marcelo & Giarrizzo, Tommaso. (2024). A transcontinental threat: Plastic waste from Africa invades Brazil's coast. Science of The Total Environment. 954. 176599. 10.1016/j.scitotenv.2024.176599. 
 
 Cristiani J., Emily M. Rubidge, Patrick L. Thompson, Carolyn K. Robb, Margot Hessing-Lewis, and Mary I. O'Connor. 2024. Quantifying marine larval dispersal to assess MPA network connectivity and inform future national and transboundary planning efforts. Canadian Journal of Fisheries and Aquatic Sciences. 81(6): 670-686. https://doi.org/10.1139/cjfas-2023-0188
 
@@ -19,7 +53,11 @@ Clavel-Henry M, Bahamon N, Aguzzi J,Navarro J, Lopez M, Company JB (2024). Limit
 
 Falcão et al. (2024). DSSE: An environment for simulation of reinforcement learning-empowered drone swarm maritime search and rescuemissions. Journal of Open Source Software, 9(99), 6746. https://doi.org/10.21105/joss.06746.1
 
+Lyu, Xinrong & Han, Hongbo & Ren, Peng & Grecos, Christos. (2024). DiffusionLSTM: A Framework for Image Sequence Generation and Its Application to Oil Spill Monitoring and Prediction. IEEE Transactions on Geoscience and Remote Sensing. PP. 1-1. 10.1109/TGRS.2024.3425539. 
+
 Pärt S, Björkqvist J-V., Alari V., Maljutenko I., Uiboupin R., An ocean–wave–trajectory forecasting system for the eastern Baltic Sea: Validation against drifting buoys and implementation for oil spill modeling, Marine Pollution Bulletin Volume 195, October 2023, https://doi.org/10.1016/j.marpolbul.2023.115497
+
+Soares, M. O., Garcia, T. M., Giarrizzo, T., Martinelli Filho, J. E., Tavares, T. C., Ziveri, P., ... & Teixeira, C. E. P. (2023). Marine debris provide long-distance pathways for spreading invasive corals. Science of The Total Environment, 900, 165637.
 
 Aghito, M., Calgaro, L., Dagestad, K.-F., Ferrarin, C., Marcomini, A., Breivik, Ø., and Hole, L. R.: ChemicalDrift 1.0: an open-source Lagrangian chemical-fate and transport model for organic aquatic pollutants, Geosci. Model Dev., 16, 2477–2494, https://doi.org/10.5194/gmd-16-2477-2023, 2023.
 
@@ -76,6 +114,8 @@ Peytavin, A., Sainte-Rose, B., Forget, G., and Campin, J.-M.: Ocean Plastic Assi
 Melsom A., Kvile K.Ø., Dagestad K.-F., Broström G., Langangen Ø., Exploring drift simulations from ocean circulation experiments: Application to cod eggs and larval drift, Accepted for publication, https://doi.org/10.3354/cr01652
 
 Strand K.O., Huserbråten M., Dagestad K.-F., Mauritzen C., Grøsvik B.E., Nogueira L.A., Melsom A., Röhrs J., Potential sources of marine plastic from survey beaches in the Arctic and Northeast Atlantic, Science of The Total Environment, Vol 790, 10, 2021, https://doi.org/10.1016/j.scitotenv.2021.148009
+
+Teixeira, C. E. P., Cavalcante, R. M., Soares, M. O., Ribeiro, F. B., & Bezerra, L. E. A. (2021). Marine debris from the past-Contamination of the Brazilian shore by a WWII wreck. Marine Environmental Research, 169, 105345.
 
 Kotzakoulakis, K., & George, S. (2021). Advanced oil spill modeling and simulation techniques. In M. R. Riazi (Ed.), Oil spill occurrence, simulation and behavior (pp. 225-264). CRC Press, Taylor & Francis Group. https://doi.org/10.1201/9780429432156
 

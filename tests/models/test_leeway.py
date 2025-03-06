@@ -72,15 +72,22 @@ def test_leewayrun(tmpdir, test_data):
     lee.export_ascii(asciif)
     asciitarget = test_data + "/generated/test_leewayrun_export_ascii.txt"
     asciitarget2 = test_data + "/generated/test_leewayrun_export_ascii_v2.txt"
-    from difflib import Differ
-    with open(asciif) as file_1, open(asciitarget) as file_2:
-        differ = Differ()
-        for line in differ.compare(file_1.readlines(), file_2.readlines()):
-            print(line)
+    print('Comparing with first version of ASCII file')
     import filecmp
     if not filecmp.cmp(asciif, asciitarget):
-        # Comparing with second versio of ASCII file, with slight numerical differences
-        assert filecmp.cmp(asciif, asciitarget2)
+        from difflib import Differ
+        with open(asciif) as file_1, open(asciitarget) as file_2:
+            differ = Differ()
+            for line in differ.compare(file_1.readlines(), file_2.readlines()):
+                print(line)
+            # Comparing with second version of ASCII file, with slight numerical differences
+            print('Comparing with second version of ASCII file')
+            if not filecmp.cmp(asciif, asciitarget2):
+                with open(asciif) as file_1, open(asciitarget2) as file_2:
+                    differ = Differ()
+                    for line in differ.compare(file_1.readlines(), file_2.readlines()):
+                        print(line)
+                raise ValueError('Leeway ascii output does not match any of the two template files')
 
 def test_capsize():
     o = Leeway(loglevel=20)

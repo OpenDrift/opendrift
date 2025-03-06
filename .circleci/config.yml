@@ -99,7 +99,7 @@ commands:
 
 test-template: &test-template
   docker:
-    - image: condaforge/mambaforge
+    - image: condaforge/miniforge3
   resource_class: medium+
   steps:
     - checkout
@@ -114,7 +114,7 @@ test-template: &test-template
 jobs:
   build_package:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge3
     environment:
       - PYTHON_VERSION=3.11
 
@@ -123,16 +123,16 @@ jobs:
       - install_conda_environment
 
       - run:
-          name: Install poetry
+          name: Install build
           command: |
             source activate opendrift
-            pip install poetry
+            pip install build
 
       - run:
           name: Build package
           command: |
             source activate opendrift
-            poetry build -vv
+            python -m build -vv
 
       - persist_to_workspace:
           root: dist
@@ -142,7 +142,7 @@ jobs:
 
   publish_package:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge3
     environment:
       - PYTHON_VERSION=3.11
 
@@ -151,10 +151,10 @@ jobs:
       - install_conda_environment
 
       - run:
-          name: Install poetry
+          name: Install twine
           command: |
             source activate opendrift
-            pip install poetry
+            pip install twine
 
       - attach_workspace:
           at: dist
@@ -164,7 +164,7 @@ jobs:
           command: |
             if [[ "${CIRCLE_BRANCH}" == "master" ]]; then
               source activate opendrift
-              poetry publish -vv --skip-existing -u __token__ -p ${PYPI_TOKEN}
+              twine upload --verbose --skip-existing -u __token__ -p ${PYPI_TOKEN} dist/*
             fi
 
   python_312:
@@ -194,8 +194,10 @@ jobs:
 
   docs-build-examples:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge3
     parallelism: 20
+    environment:
+      - PYTHON_VERSION=3.11  # 3.12 still not working due to locked netCDF
     steps:
       - checkout
       - run:
@@ -224,8 +226,7 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-            pip install sphinx-rtd-theme
+            pip install sphinx sphinx-autoapi sphinx-gallery sphinx-rtd-theme
 
       - run:
           name: Checksum gallery
@@ -291,7 +292,9 @@ jobs:
 
   docs-build:
     docker:
-      - image: condaforge/mambaforge
+      - image: condaforge/miniforge3
+    environment:
+      - PYTHON_VERSION=3.11  # 3.12 still not working due to locked netCDF
     steps:
       - checkout
 
@@ -338,8 +341,7 @@ jobs:
           name: Install sphinx and friends
           command: |
             source activate opendrift
-            mamba install -c conda-forge sphinx sphinx-autoapi sphinx-gallery>=0.7.0
-            pip install sphinx-rtd-theme
+            pip install sphinx sphinx-autoapi sphinx-gallery sphinx-rtd-theme
 
       - save_cache:
           key: v8-docs-deps1-{{ checksum "environment.yml" }}
@@ -416,7 +418,7 @@ workflows:
 
   test-and-package:
     jobs:
-      # - python_312 # disabled because of missing netcdf dependency
+      - python_312 # disabled because of missing netcdf dependency
       - python_311
       - python_310
       # - python_39

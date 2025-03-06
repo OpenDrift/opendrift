@@ -541,7 +541,7 @@ class Leeway(OpenDriftSimulation):
         f.write('# Length of model simulation [min] & [timesteps]:\n'
                 'simLength  simSteps\n')
         f.write('%i\t%i\n' % ((self.time - self.start_time).total_seconds() /
-                              60., self.steps_output))
+                              60., self.result.sizes['time']))
 
         f.write('# Total no of seeded particles:\n'
                 'seedTotal\n'
@@ -551,28 +551,26 @@ class Leeway(OpenDriftSimulation):
                 ' %i\n' % (self.num_elements_activated() / seedSteps))
 
         index_of_first, index_of_last = \
-            self.index_of_activation_and_deactivation()
+            self.index_of_first_and_last()
 
         beforeseeded = 0
-        lons, statuss = self.get_property('lon')
-        lats, statuss = self.get_property('lat')
-        orientations, statuss = self.get_property('orientation')
-        for step in range(self.steps_output):
-            lon = lons[step, :]
-            lat = lats[step, :]
-            orientation = orientations[step, :]
-            status = statuss[step, :]
-            if sum(status ==
-                   0) == 0:  # All elements deactivated: using last position
-                lon = lons[step - 1, :]
-                lat = lats[step - 1, :]
-                orientation = orientations[step - 1, :]
-                status = statuss[step - 1, :]
-            num_active = np.sum(~status.mask)
-            status[status.mask] = 41  # seeded on land
-            lon[status.mask] = 0
-            lat[status.mask] = 0
-            orientation[status.mask] = 0
+
+        statuss = self.result.status.ffill(dim='time')
+        lons = self.result.lon.ffill(dim='time')
+        lats = self.result.lat.ffill(dim='time')
+        orientations = self.result.orientation.ffill(dim='time')
+
+        for step in range(self.result.sizes['time']):
+            status = statuss.isel(time=step)
+            index = step
+            if sum(status==0) == 0:  # All elements deactivated: using last position
+                index = step - 1
+                status = statuss.isel(time=index)
+            lon = lons.isel(time=index)
+            lat = lats.isel(time=index)
+            orientation = orientations.isel(time=index)
+            num_active = np.sum(status.notnull()).values
+            status[status.isnull()] = 41  # Seeded on land
             status[status == 0] = 11  # active
             status[status == 1] = 41  # stranded
             f.write('\n# Date [UTC]:\nnowDate   nowTime\n')
@@ -587,26 +585,26 @@ class Leeway(OpenDriftSimulation):
                      step + 1, num_active - beforeseeded, num_active))
             beforeseeded = num_active
             f.write('# Mean position:\nmeanLon meanLat\n')
-            f.write('%f\t%f\n' %
-                    (np.mean(lon[status == 11]), np.mean(lat[status == 11])))
+            f.write('%.5f\t%.5f\n' %
+                    (lon.where(status==11).mean(), lat.where(status==11).mean()))
             f.write('# Particle data:\n')
             f.write('id  lon lat state   age orientation\n')
             age_minutes = self.time_step_output.total_seconds() * (
                 step - index_of_first) / 60
             age_minutes[age_minutes < 0] = 0
+            age_minutes = age_minutes.values
             for i in range(num_active):
-                f.write('%i\t%.6f\t%.6f\t%i\t%i\t%i\n' %
-                        (i + 1, lon[i], lat[i], status[i], age_minutes[i],
-                         orientation[i]))
+                f.write('%i\t%.5f\t%.5f\t%.0f\t%.0f\t%.0f\n' %
+                        (i + 1, lon[i], lat[i], status[i], age_minutes[i], orientation[i]))
 
         f.close()
 
     def _substance_name(self):
         # TODO: find a better algorithm to return name of object category
-        if self.history is not None:
-            object_type = self.history['object_type'][0, 0]
+        if self.result is not None:
+            object_type = self.result.object_type[0, 0].item()
             if not np.isfinite(object_type):  # For backward simulations
-                object_type = self.history['object_type'][-1, 0]
+                object_type = self.result.object_type[-1, 0].item()
         else:
             object_type = np.atleast_1d(self.elements_scheduled.object_type)[0]
         if np.isfinite(object_type):

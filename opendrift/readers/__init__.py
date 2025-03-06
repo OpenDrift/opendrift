@@ -27,10 +27,58 @@ import glob
 import json
 import opendrift
 import xarray as xr
-from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.readers import reader_netCDF_CF_unstructured
-from opendrift.readers import reader_ROMS_native
-from opendrift.readers import reader_copernicusmarine
+
+def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_options={}):
+    """ Wrapper around Xarray open_dataset and open_mfdataset.
+
+    Common wrapper/opener to be used for all Xarray based readers
+
+    xarray.open_dataset will be used if source is:
+        - a single netCDF file or OPeNDAP URL
+
+    xarray.open_mfdataset will be used if source is:
+        - a list of netCDF files
+        - a filename with wildcards (* ? or [)
+
+    cf-times are decoded after removing any offending variables
+        (e.g. if units equals "hours since analysis")
+
+    """
+
+    if isinstance(source, xr.Dataset):
+        ds = source
+    elif zarr_storage_options is not None:  # This could better be handled outside of this method
+        ds = xr.open_zarr(source, storage_options=zarr_storage_options)
+        ds.name = source
+    elif isinstance(source, list) or any(s in str(source) for s in [ '*', '?', '[' ]):
+        logger.info('Opening files with xarray.open_mfdataset')
+        ds = xr.open_mfdataset(source, data_vars='minimal', coords='minimal', compat='override',
+                               decode_times=False, **open_mfdataset_options)
+    else:
+        logger.info('Opening file with xr.open_dataset')
+        ds = xr.open_dataset(source, decode_times=False)
+
+    # Decode CF times
+    offending = ds.filter_by_attrs(units='hours since analysis')  # Found e.g. in HYCOM datasets
+    if len(offending) > 0:
+        logger.warning(f'Removing variables that cannot be CF decoded: {list(offending.variables)}')
+        ds = ds.drop_vars(offending)
+    ds = xr.decode_cf(ds, decode_times=True)
+
+    # TODO: chunk time dimension to 1
+
+    return ds
+
+def datetime_from_variable(var):
+    import pandas as pd
+    try:
+        return pd.to_datetime(var).to_pydatetime()
+    except:
+        logger.warning('Could not decode time with Pandas')
+        datetimeindex = var.to_index().to_datetimeindex()
+        times = pd.to_datetime(datetimeindex).to_pydatetime()
+        logger.info('Decoded time through datetimeindex')
+        return times
 
 def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time=None, freq=None, timedim='time'):
     if time_series is None:
@@ -49,6 +97,10 @@ def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time
 def applicable_readers(url):
     '''Return a list of readers that are possible candidates for a given URL, filename or product ID'''
 
+    from opendrift.readers import reader_netCDF_CF_generic
+    from opendrift.readers import reader_netCDF_CF_unstructured
+    from opendrift.readers import reader_ROMS_native
+    from opendrift.readers import reader_copernicusmarine
     if len(glob.glob(url)) > 0 or any(e in url for e in [':', '/']):
         return [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured]
     elif '_' in url:  # should have better indentificator

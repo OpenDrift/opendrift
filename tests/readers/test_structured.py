@@ -5,6 +5,16 @@ from . import *
 from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
 from opendrift.readers.basereader.structured import StructuredReader
 
+
+svim = 'https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/SVIM/2020/ocean_avg_20200601.nc4'
+try:
+    r = xr.open_dataset(svim)
+    svim_available = True
+except:
+    svim_available = False
+message = 'SVIM dataset not available from thredds.met.no'
+
+
 def test_set_convolve(test_data):
     reader_norkyst = reader_netCDF_CF_generic.Reader(test_data + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
     time = reader_norkyst.start_time
@@ -64,9 +74,10 @@ def test_lonlat2xy_parallel(test_data, benchmark):
     np.testing.assert_equal(x, xs)
     np.testing.assert_equal(y, ys)
 
+@pytest.mark.skipif(svim_available == False, reason=message)
 @pytest.mark.slow
 def test_lonlat2xy_sequential_big(test_data, benchmark):
-    reader = reader_ROMS_native.Reader('https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/SVIM/2020/ocean_avg_20200601.nc4')
+    reader = reader_ROMS_native.Reader(svim)
     assert not reader.projected
     reader.__disable_parallel__ = True
 
@@ -80,9 +91,10 @@ def test_lonlat2xy_sequential_big(test_data, benchmark):
     _, _ = benchmark(reader.lonlat2xy, lon, lat)
     assert reader.__lonlat2xy_parallel__ == False
 
+@pytest.mark.skipif(svim_available == False, reason=message)
 @pytest.mark.slow
 def test_lonlat2xy_parallel_big(test_data, benchmark):
-    reader = reader_ROMS_native.Reader('https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/SVIM/2020/ocean_avg_20200601.nc4')
+    reader = reader_ROMS_native.Reader(svim)
     assert not reader.projected
 
     lon = np.arange(-10., 15., .01)

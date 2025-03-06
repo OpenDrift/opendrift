@@ -19,10 +19,12 @@ from datetime import datetime
 import logging
 logger = logging.getLogger(__name__)
 
+import pandas as pd
 import numpy as np
 from netCDF4 import num2date
 import xarray as xr
 
+from opendrift.readers import open_dataset_opendrift
 from opendrift.readers.basereader import BaseReader, vector_pairs_xy, StructuredReader
 from opendrift.readers.roppy import depth
 
@@ -137,35 +139,50 @@ class Reader(BaseReader, StructuredReader):
         
         self.name = name or 'roms native'
 
-        if isinstance(filename, xr.Dataset):
-            self.Dataset = filename
-        else:
+        # TODO: the below section is to be removed after some period with
+        # testing of new common opener method: open_dataset_opendrift
+        #if isinstance(filename, xr.Dataset):
+        #    self.Dataset = filename
+        #else:
 
-            filestr = str(filename)
+        #    filestr = str(filename)
 
-            try:
-                # Open file, check that everything is ok
-                logger.info('Opening dataset: ' + filestr)
-                if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-                    logger.info('Opening files with MFDataset')
-                    def drop_non_essential_vars_pop(ds):
-                        dropvars = [v for v in ds.variables if v not in
-                                    list(self.ROMS_variable_mapping.keys()) + gls_param +
-                                    ['ocean_time', 'time', 'bulk_time', 's_rho',
-                                     'Cs_r', 'hc', 'angle', 'Vtransform']
-                                    and v[0:3] not in ['lon', 'lat', 'mas']]
-                        logger.debug('Dropping variables: %s' % dropvars)
-                        ds = ds.drop_vars(dropvars)
-                        return ds
-                    self.Dataset = xr.open_mfdataset(filename,
-                        chunks={'ocean_time': 1}, compat='override', decode_times=False,
-                        preprocess=drop_non_essential_vars_pop,
-                        data_vars='minimal', coords='minimal')
-                else:
-                    logger.info('Opening file with Dataset')
-                    self.Dataset = xr.open_dataset(filename, decode_times=False)
-            except Exception as e:
-                raise ValueError(e)
+        #    try:
+        #        # Open file, check that everything is ok
+        #        logger.info('Opening dataset: ' + filestr)
+        #        if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
+        #            logger.info('Opening files with MFDataset')
+        #            def drop_non_essential_vars_pop(ds):
+        #                dropvars = [v for v in ds.variables if v not in
+        #                            list(self.ROMS_variable_mapping.keys()) + gls_param +
+        #                            ['ocean_time', 'time', 'bulk_time', 's_rho',
+        #                             'Cs_r', 'hc', 'angle', 'Vtransform']
+        #                            and v[0:3] not in ['lon', 'lat', 'mas']]
+        #                logger.debug('Dropping variables: %s' % dropvars)
+        #                ds = ds.drop_vars(dropvars)
+        #                return ds
+        #            self.Dataset = xr.open_mfdataset(filename,
+        #                chunks={'ocean_time': 1}, compat='override', decode_times=False,
+        #                preprocess=drop_non_essential_vars_pop,
+        #                data_vars='minimal', coords='minimal')
+        #        else:
+        #            logger.info('Opening file with Dataset')
+        #            self.Dataset = xr.open_dataset(filename, decode_times=False)
+        #    except Exception as e:
+        #       raise ValueError(e)
+
+        def drop_non_essential_vars_pop(ds):
+            dropvars = [v for v in ds.variables if v not in
+                        list(self.ROMS_variable_mapping.keys()) + gls_param +
+                        ['ocean_time', 'time', 'bulk_time', 's_rho',
+                         'Cs_r', 'hc', 'angle', 'Vtransform']
+                        and v[0:3] not in ['lon', 'lat', 'mas']]
+            logger.debug('Dropping variables: %s' % dropvars)
+            ds = ds.drop_vars(dropvars)
+            return ds
+        self.Dataset = open_dataset_opendrift(source=filename,
+            open_mfdataset_options={'chunks': {'ocean_time': 1},
+                                    'preprocess': drop_non_essential_vars_pop})
 
         # this is an opporunity to save interpolators to pickle to save sim time
         self.save_interpolator = save_interpolator
@@ -255,16 +272,19 @@ class Reader(BaseReader, StructuredReader):
                 ocean_time = self.Dataset.variables[tv]
         if ocean_time is None:
             raise ValueError('Time variable not found in ROMS file')
-        time_units = ocean_time.attrs['units']
-        if time_units == 'second':
-            logger.info('Ocean time given as seconds relative to start '
-                         'Setting artifical start time of 1 Jan 2000.')
-            time_units = 'seconds since 2000-01-01 00:00:00'
-        if time_units == 'days':
-            logger.info('Ocean time given as days relative to start '
-                         'Setting artifical start time of 1 Jan 2000.')
-            time_units = 'days since 2000-01-01 00:00:00'
-        self.times = num2date(ocean_time[:], time_units)
+        if np.issubdtype(ocean_time.dtype, np.datetime64):
+            self.times = pd.to_datetime(ocean_time).to_pydatetime()
+        else:  # We must decode manually - necessary hack for ROMS-Croco since not CF compatible
+            time_units = ocean_time.attrs['units']
+            if time_units == 'second':
+                logger.info('Ocean time given as seconds relative to start '
+                            'Setting artifical start time of 1 Jan 2000.')
+                time_units = 'seconds since 2000-01-01 00:00:00'
+            if time_units == 'days':
+                logger.info('Ocean time given as days relative to start '
+                            'Setting artifical start time of 1 Jan 2000.')
+                time_units = 'days since 2000-01-01 00:00:00'
+            self.times = num2date(ocean_time[:], time_units)
         self.start_time = self.times[0]
         self.end_time = self.times[-1]
         if len(self.times) > 1:

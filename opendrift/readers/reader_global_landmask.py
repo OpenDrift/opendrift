@@ -20,7 +20,11 @@ import pyproj
 import numpy as np
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+import cartopy.io.shapereader as shapereader
+import shapely.geometry as sgeom
+from shapely import wkb, clip_by_rect
 import logging
+import roaring_landmask
 
 logger = logging.getLogger(__name__)
 
@@ -52,12 +56,53 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         self.intersecting_geometries(extent=None)
 
     def intersecting_geometries(self, extent):
-        global __polys__
 
         if self._scale == 'auto':
             scale = self._scale_from_extent(extent)
         else:
             scale = self._scale[0]
+
+        if extent is not None:
+            extent_geom = sgeom.box(extent[0], extent[2],
+                                    extent[1], extent[3])
+        for level in self._levels:
+            geoms = cfeature.GSHHSFeature._geometries_cache.get((scale, level, extent_geom))
+            if geoms is None:
+                if scale in ['f', 'full']: # Getting fullres polygons from roaring_landmask
+                    geoms = cfeature.GSHHSFeature._geometries_cache.get('ROARING')
+                    if geoms is None:
+                        logger.debug('Getting fullres shapes from roaring landmask')
+                        provider = roaring_landmask.LandmaskProvider.Gshhg
+                        shapes = roaring_landmask.Shapes.new(provider)
+                        polys = roaring_landmask.Shapes.wkb(provider)
+                        __polys__ = wkb.loads(polys)
+                        geoms = __polys__.geoms
+                        cfeature.GSHHSFeature._geometries_cache['ROARING'] = geoms
+                    else:
+                        logger.debug('Getting fullres shapes from roaring landmask cache')
+                else:
+                    logger.debug(f'Loading shapes (\'{scale}\' level {level}) with Cartopy shapereader...')
+                    # Load GSHHS geometries from appropriate shape file.
+                    # TODO selective load based on bbox of each geom in file.
+                    path = shapereader.gshhs(scale, level)
+                    geoms = tuple(shapereader.Reader(path).geometries())
+
+                # Unlike Caropy.GSHHSFeature, we clip the polygons to plot extent
+                #geoms = [g.intersection(extent_geom) for g in geoms if g.intersects(extent_geom)]
+                delta = .1  # Adding small delta to avoid segments along map borders
+                geoms = [clip_by_rect(g, extent[0]-delta, extent[2]-delta, extent[1]+delta, extent[3]+delta)
+                         for g in geoms if g.intersects(extent_geom)]
+
+                # Due to the above, the cache is also depending on extent
+                # Note: if plotting several extents within same session, it would be benefitial
+                #       with another cache independent of extent
+                cfeature.GSHHSFeature._geometries_cache[(scale, level, extent_geom)] = geoms
+
+            for geom in geoms:
+                yield geom
+
+            if scale in ['f', 'full']:
+                return  # Only a single (combined) level with full resolution troaring_landmask
 
         # # If scale is full use the geometries from roaring landmask, otherwise
         # # fall back to Cartopy provider.
@@ -78,34 +123,74 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         logger.debug(f"Adding GSHHG shapes from cartopy, scale: {scale}, extent: {extent}..")
         return super().intersecting_geometries(extent)
 
-def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', globe=None):
+def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', crs_plot=None, crs_lonlat=None):
     """
     Plot the landmask or the shapes from GSHHG.
     """
     def show_landmask_roaring(roaring):
         maxn = 512.
-        dx = (lonmax - lonmin) / maxn
-        dy = (latmax - latmin) / maxn
-        dx = max(roaring.dx, dx)
-        dy = max(roaring.dy, dy)
 
-        x = np.arange(lonmin, lonmax, dx)
-        y = np.arange(latmin, latmax, dy)
+        if crs_plot is not None and crs_lonlat is not None:
+            # Make transformer and convert lon,lat to Mercator x,y
+            transformer = pyproj.Transformer.from_crs(crs_lonlat, crs_plot)
+            xmin, ymin = transformer.transform(lonmin, latmin)
+            xmax, ymax = transformer.transform(lonmax, latmax)
+            dx = (xmax-xmin) / maxn
+            dy = (ymax-ymin) / maxn
+            dx = max(roaring.dx, dx)
+            dy = max(roaring.dy, dy)
 
-        yy, xx = np.meshgrid(y, x)
-        img = roaring.mask.contains_many(xx.ravel(), yy.ravel()).reshape(yy.shape).T
+            x = np.arange(xmin, xmax, dx)
+            y = np.arange(ymin, ymax, dy)
+            yy, xx = np.meshgrid(y, x)
+            lons, lats = transformer.transform(xx, yy, direction='inverse')
+
+            extent=[xmin, xmax, ymin, ymax]
+            transform = crs_plot
+        else:
+            dlon = (lonmax - lonmin) / maxn
+            dlat = (latmax - latmin) / maxn
+            dlon = max(roaring.dx, dlon)
+            dlat = max(roaring.dy, dlat)
+
+            lons = np.arange(lonmin, lonmax, dlon)
+            lats = np.arange(latmin, latmax, dlat)
+            lats, lons = np.meshgrid(lats, lons)
+
+            extent=[lonmin, lonmax, latmin, latmax]
+            transform = crs_lonlat
+
+        img = roaring.mask.contains_many(lons.ravel(), lats.ravel()).reshape(lons.shape).T
 
         from matplotlib import colors
         cmap = colors.ListedColormap([ocean_color, land_color])
-        ax.imshow(img, origin = 'lower', extent=[lonmin, lonmax, latmin, latmax],
-                  zorder=0,
-                    transform=ccrs.PlateCarree(globe=globe), cmap=cmap)
+
+        ax.imshow(img, origin = 'lower',
+                  extent=extent, zorder=0, cmap=cmap,
+                  transform=transform)
+
     if fast:
         show_landmask_roaring(get_mask())
     else:
-        land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=globe, levels=[1,5,6])
+        if latmax-latmin < 3 and lonmax-lonmin < 3:
+            # Check first if there is land at all within map bounds
+            roaring = get_mask()
+            maxn = 512.
+            dlon = (lonmax - lonmin) / maxn
+            dlat = (latmax - latmin) / maxn
+            dlon = max(roaring.dx, dlon)
+            dlat = max(roaring.dy, dlat)
+            lons = np.arange(lonmin, lonmax, dlon)
+            lats = np.arange(latmin, latmax, dlat)
+            lats, lons = np.meshgrid(lats, lons)
+            land = roaring.mask.contains_many(lons.ravel(), lats.ravel())
+            if not land.any():
+                logger.debug('No raster land within plot area, skipping plotting of GSHHG vectors')
+                return
 
-        ax.add_feature(land, zorder=2,
+        land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=crs_lonlat.globe, levels=[1,5,6])
+
+        ax.add_feature(land, zorder=0,
                        facecolor=land_color,
                        edgecolor='black')
 

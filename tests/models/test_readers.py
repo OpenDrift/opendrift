@@ -77,44 +77,6 @@ class TestReaders(unittest.TestCase):
                          [o.test_data_folder() +
             '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc'])
 
-    # Disabling this test after simulations now have Mode,
-    # repeated run with same object not anymore allowed
-    #def test_repeated_run(self):
-    #    # NOTE: this test fails if outfile is not None
-    #    #outfile = 'leeway_test.nc'
-    #    outfile = None
-    #    o = OceanDrift(loglevel=50)
-    #    o.set_config('drift:vertical_mixing', False)
-    #    o.add_readers_from_list(reader_list)
-    #    o.seed_elements(lon=14, lat=67.85,
-    #                    time=datetime(2016, 2, 2, 12))
-    #    o.run(steps=5, outfile=outfile)
-    #    lon1 = o.get_property('lon')[0]
-    #    # Repeated run with same object
-    #    o.seed_elements(lon=14, lat=67.85,
-    #                    time=datetime(2016, 2, 2, 12))
-    #    o.run(steps=5, outfile=outfile)
-    #    lon2 = o.get_property('lon')[0]
-    #    # Third run, with different config
-    #    o.seed_elements(lon=14, lat=67.85,
-    #                    time=datetime(2016, 2, 2, 12),
-    #                    wind_drift_factor=.1)
-    #    o.run(steps=5)
-    #    lon3 = o.get_property('lon')[0]
-    #    # Fourth run, with different time
-    #    o.reset()  # Reset is needed due to new start_time
-    #    o.seed_elements(lon=14, lat=67.85,
-    #                    time=datetime(2016, 2, 2, 13),
-    #                    wind_drift_factor=.1)
-    #    o.run(steps=5, outfile=outfile)
-    #    lon4 = o.get_property('lon')[0]
-
-    #    # Check results
-    #    self.assertEqual(lon1[-1][0], lon2[-1][0])
-    #    self.assertNotEqual(lon3[-1][0], lon2[-1][0])
-
-    #    #os.remove(outfile)
-
     def test_reader_from_url(self):
         readers = reader_from_url(reader_list)
         self.assertIsNone(readers[0])
@@ -244,8 +206,8 @@ class TestReaders(unittest.TestCase):
 
         o1 = Leeway(loglevel=0)
         #o1.set_config('environment:fallback:land_binary_mask', 0)
-        o1.required_variables = [r for r in o1.required_variables
-                                 if r != 'land_binary_mask']
+        o1.required_variables = {n:r for n,r in o1.required_variables.items()
+                                 if n != 'land_binary_mask'}
         o1.add_readers_from_list(reader_list, lazy=False)
         time = o1.env.readers['roms native'].start_time
         o1.seed_elements(lat=67.85, lon=14, time=time)
@@ -253,22 +215,22 @@ class TestReaders(unittest.TestCase):
 
         o2 = Leeway(loglevel=20)
         #o2.set_config('environment:fallback:land_binary_mask', 0)
-        o2.required_variables = [r for r in o1.required_variables
-                                 if r != 'land_binary_mask']
+        o2.required_variables = {n:r for n,r in o1.required_variables.items()
+                                 if n != 'land_binary_mask'}
         o2.add_readers_from_list(reader_list, lazy=True)
         o2.seed_elements(lat=67.85, lon=14, time=time)
         o2.run(steps=5)
 
         # Some differences in wind and current components
         # due to different coordinate system
-        for var in o1.history.dtype.names:
+        for var in o1.result.data_vars:
             if var in ['x_wind', 'y_wind', 'x_sea_water_velocity',
                        'y_sea_water_velocity']:
                 tolerance = 1
             else:
                 tolerance = 5
             self.assertIsNone(np.testing.assert_array_almost_equal(
-                o1.history[var], o2.history[var], tolerance))
+                o1.result[var], o2.result[var], tolerance))
 
     def test_constant_and_lazy_reader_leeway(self):
         cw = reader_constant.Reader({'x_wind':5, 'y_wind': 6})
@@ -282,7 +244,7 @@ class TestReaders(unittest.TestCase):
         o.set_config('environment:fallback:y_sea_water_velocity', 0.1)
         time = datetime(2016,2,2,12)
         o.seed_elements(lat=67.85, lon=14, time=time)
-        o.run(steps=2)
+        o.run(steps=2, time_step=600, time_step_output=600)
         self.assertAlmostEqual(o.elements.lat[0], 67.8548, 3)
 
     def test_automatic_landmask(self):
@@ -323,7 +285,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=4.8, lat=60, number=1, time=reader.end_time)
         o.run(steps=2)
         # Check that fallback value is used when outside time coverage
-        self.assertEqual(o.history['x_sea_water_velocity'][0][-1], 1.0)
+        self.assertEqual(o.result.x_sea_water_velocity[0, -1], 1.0)
 
     def test_reader_netcdf(self):
         """Check reader functionality."""
@@ -581,12 +543,12 @@ class TestReaders(unittest.TestCase):
         o2.seed_elements(lon=15, lat=70.1, time=r1.start_time)
         o2.run(time_step=3600*3, duration=timedelta(hours=48))
         # Compare
-        lat1 = o1.get_property('lat')[0]
-        lat2 = o2.get_property('lat')[0]
-        self.assertEqual(len(lat1), 13)
-        self.assertEqual(len(lat2), 17)
+        lat1 = o1.result.lat
+        lat2 = o2.result.lat
+        self.assertEqual(lat1.sizes['time'], 12)
+        self.assertEqual(lat2.sizes['time'], 17)
         self.assertIsNone(np.testing.assert_allclose(
-                            lat1[0:12], lat2[0:12]))
+                            lat1, lat2.isel(time=slice(0,12))))
         # Test reader netCDF_CF_generic
         r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
@@ -606,12 +568,12 @@ class TestReaders(unittest.TestCase):
         o4.seed_elements(lon=4.36, lat=61.7, time=r.start_time)
         o4.run(steps=24)
         # Compare
-        lat3 = o3.get_property('lat')[0]
-        lat4 = o4.get_property('lat')[0]
-        self.assertEqual(len(lat3), 25)
-        self.assertEqual(len(lat4), 13)
+        lat3 = o3.result.lat
+        lat4 = o4.result.lat
+        self.assertEqual(lat3.sizes['time'], 25)
+        self.assertEqual(lat4.sizes['time'], 12)
         self.assertIsNone(np.testing.assert_allclose(
-                            lat3[0:12], lat4[0:12]))
+                            lat3.isel(time=slice(0,12)), lat4))
 
     def test_reader_current_from_track(self):
         """Check if extrapolated currents are of expected value"""
@@ -626,7 +588,6 @@ class TestReaders(unittest.TestCase):
         reader_current = reader_current_from_track.Reader(obslon, obslat, obstime,
                     wind_east=0, wind_north=0, windreader=reader_wind, wind_factor=0.018)
         self.assertAlmostEqual(reader_current.x_sea_water_velocity.data[0],0.2236, 4)
-
 
     def test_valid_minmax(self):
         """Check that invalid values are replaced with fallback."""
@@ -645,8 +606,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=4, lat=60, time=reader_wind.start_time)
         o.run(steps=1)
         variables.standard_names['x_wind']['valid_min'] = minval  # reset
-        w = o.get_property('x_wind')[0][0]
-        self.assertAlmostEqual(w, 2.0, 1)
+        self.assertAlmostEqual(o.result.x_wind[0,0], 2.0, 1)
 
     def test_valid_minmax_nanvalues(self):
         from opendrift.readers.basereader import variables
@@ -661,8 +621,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=4.95, lat=62, number=10, time=norkyst.start_time)
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
-        u = o.get_property('x_sea_water_velocity')[0]
-        self.assertAlmostEqual(u.max(), -.0718, 3)  # Some numerical error allowed
+        self.assertAlmostEqual(o.result.x_sea_water_velocity.max().values, -.0718, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':

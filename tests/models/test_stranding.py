@@ -126,7 +126,7 @@ class TestStranding(unittest.TestCase):
                     el = o.elements
                 else:
                     el = o.elements_deactivated
-                self.assertEqual(o.status_categories[int(el.status)], status[i])
+                self.assertEqual(o.status_categories[int(el.status[0])], status[i])
                 self.assertIsNone(np.testing.assert_array_almost_equal(
                     el.lon, lons[i], 3))
 
@@ -140,7 +140,7 @@ class TestStranding(unittest.TestCase):
         o.set_config('environment:fallback:x_sea_water_velocity', .7)
         o.seed_elements(lon=5, lat=60.49, time=datetime.now())
         o.run(time_step=3600, steps=30)
-        lons = o.history['lon'][0]
+        lons = o.result.lon[0].values
         self.assertAlmostEqual(lons[0], 5, 2)
         self.assertAlmostEqual(lons[-2], 5.092, 2)
         self.assertAlmostEqual(lons[-1], 5.092, 2)
