@@ -11,6 +11,7 @@ from opendrift.readers import reader_timeseries
 from opendrift.readers.operators import ops
 import opendrift.models.physics_methods as phy
 import xarray as xr
+import trajan as _
 import numpy as np
 import pyproj
 import matplotlib.pyplot as plt
@@ -161,7 +162,9 @@ o2.run(end_time=time_end, time_step=time_step, time_step_output=time_step_output
 
 o.plot(fast = False, compare=o2, background=['x_sea_water_velocity', 'y_sea_water_velocity'], legend=['Norkyst only', 'Gaussian measurement'], buffer = .023, markersize = 70, linewidth = 1, title = "", xlocs = mpl.ticker.MaxNLocator(5), ylocs = mpl.ticker.MaxNLocator(5), clabel = r"Wind speed $\mathrm{(m.s^{-1})}$", cpad = 0.08, text=text)
 
-skillscores = phy.skillscore_liu_weissberg(o.result.lon, o.result.lat, o2.result.lon, o2.result.lat)
+#%%
+# Calculating skillscores with TrajAn
+skillscores = o.result.traj.skill(o2.result, method='liu-weissberg', tolerance_threshold=1)
 
 plt.figure()
 plt.hist(skillscores, bins = 100, range = (0, 1), facecolor = 'none', edgecolor = 'C0')
