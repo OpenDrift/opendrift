@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
-from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, gls_tke, skillscore_liu_weissberg
+from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, gls_tke
 from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 # Defining the oil element properties

@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cmocean
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.models.physics_methods import wind_drift_factor_from_trajectory, distance_between_trajectories, skillscore_liu_weissberg
+from opendrift.models.physics_methods import wind_drift_factor_from_trajectory
 
 #%%
 # A very simple drift model is: current + wind_drift_factor*wind
