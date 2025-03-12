@@ -78,6 +78,7 @@ Note that these config settings must be adjusted before the seeding call.
 After each wave breaking event, a new droplet diameter will be chosen based on the config setting for droplet size distribution.
 """
 
+import os
 from io import open
 from importlib.resources import files
 import numpy as np
@@ -1547,6 +1548,8 @@ class OpenOil(OceanDrift):
 
             self.oiltype = adios.oil.OpendriftOil(json)
             self.oil_name = self.oiltype.name
+            self._config['seed:oil_type']['enum'].append(self.oil_name)
+            self.__set_seed_config__('seed:oil_type', self.oil_name)
             if not self.oiltype.valid():
                 logger.error(
                     f"{self.oiltype} is not a valid oil for Opendrift simulations"
@@ -1678,20 +1681,25 @@ class OpenOil(OceanDrift):
                 raise Exception("no valid initial subsea droplet size distribution specified")
 
         if 'oiltype' in kwargs:
-            logger.warning(
-                'Seed argument *oiltype* is deprecated, use *oil_type* instead'
-            )
-            kwargs['oil_type'] = kwargs['oiltype']
-            del kwargs['oiltype']
-
+            raise ValueError('Seed argument *oiltype* is deprecated, use *oil_type* instead')
+        
         if 'oil_type' in kwargs:
-            if self.get_config('seed:oil_type') != kwargs['oil_type']:
-                self.__set_seed_config__('seed:oil_type', kwargs['oil_type'])
-            del kwargs['oil_type']
+            if kwargs['oil_type'] in self.oiltypes:  # oil type exists in ADIOS library
+                if self.get_config('seed:oil_type') != kwargs['oil_type']:
+                    self.__set_seed_config__('seed:oil_type', kwargs['oil_type'])
+                del kwargs['oil_type']
+                self.set_oiltype(self.get_config('seed:oil_type'))
+            else:
+                if isinstance(kwargs['oil_type'], dict):  # From json dictionary
+                    self.set_oiltype_by_json(kwargs['oil_type'])
+                    del kwargs['oil_type']
+                elif os.path.isfile(kwargs['oil_type']):  # From file
+                    self.set_oiltype_from_file(kwargs['oil_type'])
+                    del kwargs['oil_type']
         else:
             logger.info('Oil type not specified, using default: ' +
                         self.get_config('seed:oil_type'))
-        self.set_oiltype(self.get_config('seed:oil_type'))
+            self.set_oiltype(self.get_config('seed:oil_type'))
 
         if self.oil_weathering_model == 'noaa':
             self.Density = Density(self.oiltype.oil)
