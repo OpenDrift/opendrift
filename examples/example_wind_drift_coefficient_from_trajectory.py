@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Retieving wind drift factor from trajectory
-===========================================
+Retrieving wind drift factor from trajectory
+============================================
 """
 
 import trajan as _
@@ -139,4 +139,4 @@ plt.show()
 # one position to the next (i.e. polar histogram above).
 # This is even more clear if increasing the diffusivity (i.e. noise) above from 10 m2/s to 200 m2/s:
 # The histogram method then gives 0.071, which is much to high (true is 0.033), and the histogram is noisy.
-# The skillscore method is still robust, and gives a `wind_drift_factor` of 0.036, only slightly too high.
+# The skillscore method is still robust, and gives a `wind_drift_factor` of 0.034, only slightly too high.
