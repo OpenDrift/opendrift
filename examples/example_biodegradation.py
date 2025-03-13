@@ -36,7 +36,7 @@ o.seed_elements(lon=4, lat=60.0, z=-50, number=500, time=datetime.now(), **kwarg
 
 #%%
 # Running model
-o.run(duration=timedelta(hours=72), time_step=3600, outfile='oil.nc')
+o.run(duration=timedelta(hours=72), time_step=3600)
 
 #%%
 # Plot results

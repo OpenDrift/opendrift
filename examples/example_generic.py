@@ -44,8 +44,7 @@ o.seed_elements(lon=4.6, lat=60.0, radius=50, number=3000, time=time,
 #%%
 # Running model
 o.run(end_time=reader_norkyst.end_time, time_step=1800,
-      time_step_output=3600, outfile='openoil.nc',
-      export_variables=['mass_oil'])
+      time_step_output=3600, outfile='openoil.nc')
 
 #%%
 # Print and plot results
@@ -56,8 +55,8 @@ o.plot(fast=True)
 
 #%%
 # Or an animation can be generated with:
-
 o.animation(fast=True)
+
 
 #%%
 # .. image:: /gallery/animations/example_generic_0.gif

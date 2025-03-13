@@ -77,3 +77,7 @@ dmean.traj.plot(color='k', linewidth=5)
 dmean.sel(time=slice('2015-11-17', '2015-11-17 12')).traj.plot(color='yellow', linewidth=5)
 plt.tight_layout()
 plt.show()
+
+#%%
+# Cleaning up
+os.remove('openoil.nc')
