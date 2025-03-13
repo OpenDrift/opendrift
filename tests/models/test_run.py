@@ -288,6 +288,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=4, lat=60, time=datetime(2016, 1, 1), number=1000, radius=1000)
         o.run(steps=3)
         o.write_geotiff('geotiff.tif')
+        os.remove('geotiff.tif')
 
     def test_seed_single_point_over_time(self):
         """Test a model run"""

@@ -26,7 +26,6 @@ s.source_gaussian_blob(loc, lac, 1., 100, 50.)
 #%%
 # Plot the initial conditions
 s.grid.plot()
-plt.savefig('before.png')
 plt.show()
 
 #%%
@@ -36,5 +35,4 @@ s.integrate(dt = 20., max_steps=300)
 #%%
 # Plot the result
 s.grid.plot()
-plt.savefig('after.png')
 plt.show()
