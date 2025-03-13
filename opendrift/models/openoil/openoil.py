@@ -1689,13 +1689,14 @@ class OpenOil(OceanDrift):
                     self.__set_seed_config__('seed:oil_type', kwargs['oil_type'])
                 del kwargs['oil_type']
                 self.set_oiltype(self.get_config('seed:oil_type'))
-            else:
-                if isinstance(kwargs['oil_type'], dict):  # From json dictionary
-                    self.set_oiltype_by_json(kwargs['oil_type'])
-                    del kwargs['oil_type']
-                elif os.path.isfile(kwargs['oil_type']):  # From file
-                    self.set_oiltype_from_file(kwargs['oil_type'])
-                    del kwargs['oil_type']
+            elif isinstance(kwargs['oil_type'], dict):  # From json dictionary
+                self.set_oiltype_by_json(kwargs['oil_type'])
+                del kwargs['oil_type']
+            elif os.path.isfile(kwargs['oil_type']):  # From file
+                self.set_oiltype_from_file(kwargs['oil_type'])
+                del kwargs['oil_type']
+            else:  # Oil do not exist -> setting config to raise error and provide suggestions
+                self.set_config('seed:oil_type', kwargs['oil_type'])
         else:
             logger.info('Oil type not specified, using default: ' +
                         self.get_config('seed:oil_type'))
