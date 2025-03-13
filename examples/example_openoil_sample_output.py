@@ -54,4 +54,18 @@ print(ncdump)
 #
 # .. container:: sphx-glr-download
 #
-#    :download:`Download sample file <openoil_sample_output.nc>`
+#    :download:`Download sample file (gallery) <gallery/openoil_sample_output.nc>`
+
+#%%
+#.. only :: html
+#
+# .. container:: sphx-glr-download
+#
+#    :download:`Download sample file (_downloads) <_downloads/openoil_sample_output.nc>`
+
+#%%
+#.. only :: html
+#
+# .. container:: sphx-glr-download
+#
+#    :download:`Download sample file (_static) <_static/openoil_sample_output.nc>`
