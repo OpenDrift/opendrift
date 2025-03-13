@@ -102,3 +102,5 @@ density_forwards = density_forwards.where(density_forwards>0)
 ratio = density_forwards/density_forwards.sum()*100
 o_hit.plot(background=ratio, clabel='Probability of origin [%]', text=text, corners=corners,
            fast=True, markersize=.5, lalpha=.02, vmin=0, vmax=vmax)
+
+os.remove(outfile)

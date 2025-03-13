@@ -44,7 +44,7 @@ o.seed_elements(lon=lon, lat=lat, z=-150, radius=100, number=3000, time=time, **
 
 #%%
 # Running model
-o.run(duration=timedelta(days=5), time_step=3600, outfile='oil.nc')
+o.run(duration=timedelta(days=5), time_step=3600)
 
 #%%
 # Plot and animate results
