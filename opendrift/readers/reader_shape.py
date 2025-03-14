@@ -52,7 +52,7 @@ class Reader(BaseReader, ContinuousReader):
     always_valid = True
 
     @staticmethod
-    def from_shpfiles(shpfiles, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
+    def from_shpfiles(shpfiles, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False, land_buffer_distance=0):
         """
         Construct a shape-reader from shape-files (.shp)
 
@@ -63,6 +63,7 @@ class Reader(BaseReader, ContinuousReader):
             :param proj4_str: Proj.4 string of shape file projection coordinates
                             (default: '+proj=lonlat +ellps=WGS84').
             :type proj4_str: string.
+            :type land_buffer_distance: float. Buffer distance around polygons
         """
         if isinstance(shpfiles, list):
             shpfiles = shpfiles
@@ -77,13 +78,12 @@ class Reader(BaseReader, ContinuousReader):
             reader = io.shapereader.Reader(shp)
             shp_iters.append(reader.geometries())
 
-        return Reader(itertools.chain(*shp_iters), proj4_str, invert=invert)
+        return Reader(itertools.chain(*shp_iters), proj4_str, invert=invert, land_buffer_distance=land_buffer_distance)
 
-    def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False):
+    def __init__(self, shapes, proj4_str = '+proj=lonlat +ellps=WGS84', invert=False, land_buffer_distance=None):
 
-        self.kdtree = None
-        self.kdtree_buffer = None
-        self.kdtree_buffered_polys = None
+        self._land_kdtree = None
+        self._land_kdtree_buffer_distance = land_buffer_distance
         self.invert = invert  # True if polygons are lakes and not land areas
         self.proj4 = proj4_str
         self.crs = pyproj.CRS(self.proj4)
@@ -134,14 +134,14 @@ class Reader(BaseReader, ContinuousReader):
         self.check_arguments(requestedVariables, time, x, y, z)
         return { 'x' : x, 'y' : y, 'land_binary_mask': self.__on_land__(x,y) }
 
-    def get_nearest_outside(self, x, y, buffer: float):
+    def get_nearest_outside(self, x, y, buffer_distance: float):
         """
         Determine the nearest point outside the loaded polygons, including
-        an additional buffer
+        an additional buffer distance
             Args:
                 x (deg[]): longitude (decimal degrees) or projected x coordinate
                 y (deg[]): latitude (decimal degrees) or projected y coordinate
-                buffer: buffer zone around polygons
+                buffer_distance: buffer zone around polygons
                 ...
 
             x, y, buffer are given in reader local projection.
@@ -150,19 +150,18 @@ class Reader(BaseReader, ContinuousReader):
                 lon, lat, and distance to nearest points
 
         """
-        if self.kdtree is None or self.kdtree_buffer != buffer:
-            logger.info("Building KDTree from %d geometries with buffer distance %e" % (len(self.polys), buffer))
+        if self._land_kdtree is None or self._land_kdtree_buffer_distance != buffer_distance:
+            logger.info("Building KDTree from %d geometries with buffer distance %e" % (len(self.polys), buffer_distance))
 
-            polys_buffered = gpd.GeoSeries(self.polys).buffer(buffer).tolist()
-            xy = unwrap(polys_buffered)
+            _land_polygon_buffered = shp.unary_union(self.polys).buffer(buffer_distance)
+            xy = unwrap(_land_polygon_buffered)
 
-            self.kdtree = cKDTree(xy.transpose())
-            self.kdtree_buffer = buffer
-            self.kdtree_buffered_polys = polys_buffered
+            self._land_kdtree = cKDTree(xy.transpose())
+            self._land_kdtree_buffer_distance = buffer_distance
 
-        dist, ind = self.kdtree.query(np.stack((x, y), axis=1))
+        dist, ind = self._land_kdtree.query(np.stack((x, y), axis=1))
 
-        return self.kdtree.data[ind, 0], self.kdtree.data[ind, 1], dist
+        return self._land_kdtree.data[ind, 0], self._land_kdtree.data[ind, 1], dist
 
 
 def unwrap(geom):

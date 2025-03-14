@@ -329,22 +329,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'description': 'The precision of the particle position approximation to the coastline.',
                 'level': CONFIG_LEVEL_BASIC
             },
-            'general:land_to_ocean_move_buffer': {
-                'type':
-                'float',
-                'min':
-                0.0,
-                'max':
-                np.inf,
-                'default':
-                0,
-                'units':
-                'shape reader projection units',
-                'level':
-                CONFIG_LEVEL_ADVANCED,
-                'description':
-                'Move land particles this many projection units into ocean.'
-            },            
             'general:time_step_minutes': {
                 'type': 'float',
                 'min': .01,
@@ -935,7 +919,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             lon[is_inside], lat[is_inside], _ = land_reader.get_nearest_outside(
                 lon[is_inside],
                 lat[is_inside],
-                buffer=self.get_config('general:land_to_ocean_move_buffer'),
+                buffer_distance=land_reader.get_nearest_outside_buffer,
             )
 
         else:
