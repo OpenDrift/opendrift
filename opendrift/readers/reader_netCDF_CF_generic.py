@@ -206,36 +206,30 @@ class Reader(StructuredReader, BaseReader):
                         self.z = -var_data
             if standard_name == 'time' or axis == 'T' or var_name in ['time', 'vtime']:
                 # Read and store time coverage (of this particular file)
-                #var_data = var.values
-                #time = var_data
-                #time_units = units
                 if len(var.dims)==1:
                     self.dimensions['time'] = var.dims[0]
 
-                #if isinstance(time[0], np.bytes_):
-                #    # This hack is probably only necessary for CERSAT/GELOBCURRENT
-                #    time = [t.decode('ascii') for t in time]
-                #    self.times = [datetime.fromisoformat(t.replace('Z', '')) for t in time]
-                #elif time.ndim == 2:
-                #    self.times = [datetime.fromisoformat(''.join(t).replace('Z', '')) for t in time.astype(str)]
-                #else:
-                #    if 'calendar' in var.attrs:
-                #        calendar = var.attrs['calendar']
-                #    else:
-                #        calendar = 'standard'
-                #    if np.issubdtype(var.dtype, np.datetime64):
-                #        import pandas as pd
-                #        self.times = [pd.to_datetime(str(d)) for d in time]
-                #    else:
-                #        self.times = num2date(time, time_units, calendar=calendar)
-                #self.times = pd.to_datetime(var).to_pydatetime()
                 self.times = datetime_from_variable(var)
-                self.start_time = self.times[0]
-                self.end_time = self.times[-1]
                 if len(self.times) > 1:
+                    if len(self.times) > 5:  # Check that times are not corrupted, necessary hack for NOAA winds on thredds
+                        first_timestep = self.times[1] - self.times[0]
+                        second_timestep = self.times[2] - self.times[1]
+                        if first_timestep/second_timestep > 2:
+                            logger.warning('First time steps is larger than second timestep, starting at second timestep')
+                            self.times = self.times[1:]
+                            self.Dataset = self.Dataset.isel({var.dims[0]: slice(1, len(var))})
+                        second_last_timestep = self.times[-2] - self.times[-3]
+                        last_timestep = self.times[-1] - self.times[-2]
+                        if last_timestep/second_last_timestep > 2:
+                            logger.warning('Last time steps is larger than second last timestep, stopping at second last timestep')
+                            self.times = self.times[0:-2]
+                            self.Dataset = self.Dataset.isel({var.dims[0]: slice(0, len(var)-1)})
                     self.time_step = self.times[1] - self.times[0]
                 else:
                     self.time_step = None
+                self.start_time = self.times[0]
+                self.end_time = self.times[-1]
+
             if standard_name == 'realization':
                 if ensemble_member == None:
                     var_data = np.atleast_1d(var.values)

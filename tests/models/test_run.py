@@ -288,6 +288,7 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon=4, lat=60, time=datetime(2016, 1, 1), number=1000, radius=1000)
         o.run(steps=3)
         o.write_geotiff('geotiff.tif')
+        os.remove('geotiff.tif')
 
     def test_seed_single_point_over_time(self):
         """Test a model run"""
@@ -626,7 +627,7 @@ class TestRun(unittest.TestCase):
         o.set_config('drift:vertical_mixing', True)
         o.set_config('vertical_mixing:timestep', 1)  # s
         o.seed_elements(lon, lat, z='seafloor', time=reader_norkyst.start_time,
-                        density=1000, oiltype='GENERIC BUNKER C')
+                        density=1000, oil_type='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
         self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.3, 1)  # Seeded at seafloor depth
         self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -137.0, 1)  # After some rising

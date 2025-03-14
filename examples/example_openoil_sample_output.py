@@ -49,9 +49,5 @@ args = [ "ncdump", "-h", ncfile ]
 ncdump = check_output(args).decode().strip()
 print(ncdump)
 
-#%%
-#.. only :: html
-#
-# .. container:: sphx-glr-download
-#
-#    :download:`Download sample file <openoil_sample_output.nc>`
+# Cleaning up
+os.remove(ncfile)
