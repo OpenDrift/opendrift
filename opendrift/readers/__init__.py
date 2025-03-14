@@ -28,7 +28,7 @@ import json
 import opendrift
 import xarray as xr
 
-def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_options={}, chunks={}):
+def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_options={}, chunks=None):
     """ Wrapper around Xarray open_dataset and open_mfdataset.
 
     Common wrapper/opener to be used for all Xarray based readers
@@ -45,6 +45,9 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
 
     """
 
+    if chunks is not None:
+        open_mfdataset_options['chunks'] = chunks
+
     if isinstance(source, xr.Dataset):
         ds = source
     elif zarr_storage_options is not None:  # This could better be handled outside of this method
@@ -53,7 +56,7 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
     elif isinstance(source, list) or any(s in str(source) for s in [ '*', '?', '[' ]):
         logger.info('Opening files with xarray.open_mfdataset')
         ds = xr.open_mfdataset(source, data_vars='minimal', coords='minimal', compat='override',
-                               chunks=chunks, decode_times=False, **open_mfdataset_options)
+                               decode_times=False, **open_mfdataset_options)
     else:
         logger.info('Opening file with xr.open_dataset')
         ds = xr.open_dataset(source, decode_times=False)
