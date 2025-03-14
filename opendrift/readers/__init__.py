@@ -28,7 +28,7 @@ import json
 import opendrift
 import xarray as xr
 
-def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_options={}):
+def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_options={}, chunks=None):
     """ Wrapper around Xarray open_dataset and open_mfdataset.
 
     Common wrapper/opener to be used for all Xarray based readers
@@ -44,6 +44,9 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
         (e.g. if units equals "hours since analysis")
 
     """
+
+    if chunks is not None:
+        open_mfdataset_options['chunks'] = chunks
 
     if isinstance(source, xr.Dataset):
         ds = source
@@ -65,7 +68,15 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
         ds = ds.drop_vars(offending)
     ds = xr.decode_cf(ds, decode_times=True)
 
-    # TODO: chunk time dimension to 1
+    # Chunk size of time dimension should be 1
+    for dim,chunksize in ds.chunks.items():
+        chunksize = chunksize[0]
+        if 'time' in dim:
+            if chunksize > 1:
+                # Note: ds = ds.chunk({dim: 1}) does not have the desired effect
+                logger.warning(f'Chunk size for dimension {dim} is {chunksize}. Reopening dataset with chunk {dim}:1.')
+                ds = open_dataset_opendrift(source, zarr_storage_options=zarr_storage_options,
+                                            open_mfdataset_options=open_mfdataset_options, chunks={dim: 1})
 
     return ds
 
