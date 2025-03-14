@@ -25,7 +25,6 @@ import itertools
 import logging
 import numpy as np
 from scipy.spatial import cKDTree
-import geopandas as gpd
 import shapely as shp
 from typing import Iterable
 
