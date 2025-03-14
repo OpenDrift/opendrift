@@ -919,7 +919,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             lon[is_inside], lat[is_inside], _ = land_reader.get_nearest_outside(
                 lon[is_inside],
                 lat[is_inside],
-                buffer_distance=land_reader.get_nearest_outside_buffer,
+                buffer_distance=land_reader._land_kdtree_buffer_distance,
             )
 
         else:
