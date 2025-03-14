@@ -931,7 +931,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if isinstance(land_reader, ShapeReader):
             # can do this better
-            is_inside = land_reader.is_inside(lon, lat)
+            is_inside = land_reader.__on_land__(lon, lat)
             lon[is_inside], lat[is_inside], _ = land_reader.get_nearest_outside(
                 lon[is_inside],
                 lat[is_inside],

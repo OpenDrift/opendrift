@@ -164,24 +164,6 @@ class Reader(BaseReader, ContinuousReader):
 
         return self.kdtree.data[ind, 0], self.kdtree.data[ind, 1], dist
 
-    def is_inside(self, x, y):
-        """
-        Determine whether a set of points are
-            Args:
-                x (deg[]): longitude (decimal degrees) or projected x coordinate
-                y (deg[]): latitude (decimal degrees) or projected y coordinate
-                ...
-
-            x, y, buffer are given in reader local projection.
-
-            Returns:
-                array of bools of the same shape as x, y
-
-        """
-        land = shp.unary_union(self.polys)
-        elements = gpd.GeoSeries.from_xy(x, y)
-        return elements.intersects(land).values
-    
 
 def unwrap(geom):
     """
