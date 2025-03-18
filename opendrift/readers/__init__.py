@@ -69,6 +69,7 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
     ds = xr.decode_cf(ds, decode_times=True)
 
     # Chunk size of time dimension should be 1
+    ds = ds.unify_chunks()
     for dim,chunksize in ds.chunks.items():
         chunksize = chunksize[0]
         if 'time' in dim:
