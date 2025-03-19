@@ -1,6 +1,17 @@
 History
 =======
 
+2025-03-19 / Release v1.13.1
+----------------------------
+* netCDF readers: Making sure chunk size of time dimension is 1, by reopening dataset if necessary. This may have large impact on reader performance. Also Unifying chunks to avoid problems with mfdatasets with varying chunks.
+* Added hack in ``reader_netCDF_CF_generic`` to deal with corrupted times (first and last) in NCEP winds on thredds
+* OpenOil: allow providing json file or dictionary as ``oil_type`` argument to seed methods. Using keyword oiltype instead of oil_type now raises an error.
+* Moved skillscore methods to independent package TrajAn. TrajAn now installed with pip directly from GitHub, to always use latest.
+* Fixed bug due to mutating list of required variables when applying environmental_mappings.
+* Project: remove poetry, use standard pyproject.toml. Using setuptools backend.
+* Requiring copernicusmarine > 2.0. Specifying 'chunk_size_limit=0' to copernicusmarine.open_dataset() to avoid large performance drop due to default chunking of 50 along time.
+* Internal element property ID is not starting from 0 and not 1. ID corresponds now to trajectory coordinate in ``self.result``
+
 2025-02-11 / Release v1.13.0
 ----------------------------
 * Major internal change: recarray ``self.history`` is replaced with Xarray dataset ``self.result``, with some minor API changes:
