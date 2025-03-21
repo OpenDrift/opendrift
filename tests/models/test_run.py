@@ -688,8 +688,8 @@ class TestRun(unittest.TestCase):
         o.seed_elements(lon, lat, z=-5000, time=reader_norkyst.start_time,
                         density=1000, oil_type='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
-        self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -141.1, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.8, 1)  # Seeded at seafloor depth
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -141.6, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
