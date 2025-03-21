@@ -736,10 +736,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         i = self.get_config('general:seafloor_action')
         if i == 'lift_to_seafloor':
             logger.debug('Lifting %s elements to seafloor.' % len(below))
-            self.elements.z[below] = -sea_floor_depth[below]
+            self.elements.z[below] = -(sea_floor_depth + sea_surface_height)[below]
         elif i == 'deactivate':
             self.deactivate_elements(ibelow, reason='seafloor')
-            self.elements.z[below] = -sea_floor_depth[below]
+            self.elements.z[below] = -(sea_floor_depth + sea_surface_height)[below]
         elif i == 'previous':  # Go back to previous position (in water)
             logger.warning('%s elements hit seafloor, '
                            'moving back ' % len(below))
