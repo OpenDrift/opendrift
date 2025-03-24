@@ -82,7 +82,7 @@ def versions():
     def version(package):
         try:
             return importlib.metadata.version(package)
-        except ImportError:
+        except importlib.metadata.PackageNotFoundError:
             return "N/A"
         
     import multiprocessing
