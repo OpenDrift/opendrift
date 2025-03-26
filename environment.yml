@@ -34,5 +34,6 @@ dependencies:
   - copernicusmarine>=2.0
   - bottleneck
   - pip
+  - pygeos
   - pip:
     - git+http://github.com/OpenDrift/trajan.git
