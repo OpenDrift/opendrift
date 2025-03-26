@@ -203,15 +203,11 @@ class Environment(Timeable, Configurable):
                 ('land_binary_mask' in self.required_variables and \
                 'land_binary_mask' not in self.priority_list):
             if self.get_config('environment:constant:land_binary_mask') is None:
-                logger.info(
-                    'Adding a dynamical landmask with max. priority based on '
-                    'assumed maximum speed of %s m/s. '
-                    'Adding a customised landmask may be faster...' %
-                    self.get_config('drift:max_speed'))
-                self.timer_start('preparing main loop:making dynamical landmask')
+                logger.info('Adding a global landmask from GSHHG')
+                self.timer_start('preparing main loop:loading global landmask')
                 reader_landmask = reader_global_landmask.Reader()
                 self.add_reader(reader_landmask)
-                self.timer_end('preparing main loop:making dynamical landmask')
+                self.timer_end('preparing main loop:loading global landmask')
             else:
                 logger.warning('Using constant reader for land_binary_mask, ' 
                                'although config general:use_auto_landmask is True')

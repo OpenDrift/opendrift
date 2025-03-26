@@ -79,7 +79,12 @@ def open(filename):
     return o
 
 def versions():
-    from importlib.metadata import version
+    def version(package):
+        try:
+            return importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            return "N/A"
+        
     import multiprocessing
     import platform
     import sys
