@@ -92,7 +92,9 @@ def close(self):
         else:
             self._netCDF_encoding[varname] = compression
     self.result.to_netcdf(self.outfile_name + '_tmp', unlimited_dims={}, encoding=self._netCDF_encoding)
+    self.result.close()  # Closing so that tmp-file can be renamed, thereafter opening lazily again
     shutil.move(self.outfile_name + '_tmp', self.outfile_name)  # Replace original
+    self.result = xr.open_dataset(self.outfile_name)
 
 def import_file(self, filename):
     """Create OpenDrift object from imported file.
