@@ -200,6 +200,16 @@ class Reader(BaseReader, UnstructuredReader):
                         nodes - nodes.min(),
                         level_ind - level_ind.min(),
                         ]
+            elif len(dvar.shape) == 2:
+                # Reading the smallest block covering the actual data
+                block = dvar[indx_nearest,
+                             slice(nodes.min(),
+                                   nodes.max() + 1), ]
+
+                # Picking the nearest value
+                variables[var] = block[
+                        nodes - nodes.min(),
+                        ]
             elif len(dvar.shape) == 1:
                 # Reading the smallest block covering the actual data
                 block = dvar[slice(nodes.min(),
