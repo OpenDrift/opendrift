@@ -2000,7 +2000,8 @@ class ChemicalDrift(OceanDrift):
         if mass_unit==None:
             mass_unit='microgram'  # default unit for chemicals
 
-        z = self.get_property('z')[0]
+        z = self.result.z
+
         if not zlevels==None:
             zlevels = np.sort(zlevels)
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
@@ -2022,11 +2023,13 @@ class ChemicalDrift(OceanDrift):
         lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
+
         landmask = np.zeros_like(H[0,0,0,:,:])
+
         if landmask_shapefile is not None:
-            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array).reshape(landmask.shape)
         else:
-            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array).reshape(landmask.shape)
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
@@ -2265,8 +2268,8 @@ class ChemicalDrift(OceanDrift):
         Use user defined projection (density_proj=<proj4_string>)
         or create a lon/lat grid (density_proj=None)
         '''
-        lon = self.get_property('lon')[0]
-        lat = self.get_property('lat')[0]
+        lon = self.result.lon
+        lat = self.result.lat
         times = self.get_time_array()[0]
 
         # Redundant ??
@@ -2287,14 +2290,13 @@ class ChemicalDrift(OceanDrift):
         y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
         bins=(x_array, y_array)
         outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
-        z = self.get_property('z')[0]
+        z = self.result.z.load()
         if weight is not None:
-            weight_array = self.get_property(weight)[0]
+            weight_array = self.result.mass.load()
 
-        status = self.get_property('status')[0]
-        specie = self.get_property('specie')[0]
+        specie = self.result.specie.load()
         if origin_marker is not None:
-            originmarker = self.get_property('origin_marker')[0]
+            originmarker = self.result.origin_marker.load()
         Nspecies = self.nspecies
         H = np.zeros((len(times),
                       Nspecies,
@@ -2306,16 +2308,16 @@ class ChemicalDrift(OceanDrift):
         for sp in range(Nspecies):
             for i in range(len(times)):
                 if weight is not None:
-                    weights = weight_array[i,:]
+                    weights = weight_array[:,i]
                     if origin_marker is not None:
-                        weight_array[i,:] = weight_array[i,:] * (originmarker[i,:]==origin_marker)
+                        weight_array[:,i] = weight_array[:,i] * (originmarker[:,i]==origin_marker)
                 else:
                     weights = None
                 for zi in range(len(z_array)-1):
-                    kktmp = ( (specie[i,:]==sp) & (z[i,:]>z_array[zi]) & (z[i,:]<=z_array[zi+1]) )
+                    kktmp = ( (specie[:,i]==sp) & (z[:,i]>z_array[zi]) & (z[:,i]<=z_array[zi+1]) )
                     H[i,sp,zi,:,:], dummy, dummy = \
-                        np.histogram2d(x[i,kktmp], y[i,kktmp],
-                                   weights=weight_array[i,kktmp], bins=bins)
+                        np.histogram2d(x[kktmp,i], y[kktmp,i],
+                                   weights=weight_array[kktmp,i], bins=bins)
 
         if density_proj is not None:
             Y,X = np.meshgrid(y_array, x_array)
