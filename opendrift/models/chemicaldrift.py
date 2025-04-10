@@ -2081,7 +2081,8 @@ class ChemicalDrift(OceanDrift):
                     if horizontal_smoothing:
                         Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_sed_mass
 
-        times = np.array( self.get_time_array()[0] )
+        times = self.result.time.data
+
         if time_avg_conc:
             conctmp = H[:-1,:,:,:,:]
             cshape = conctmp.shape
@@ -2089,7 +2090,7 @@ class ChemicalDrift(OceanDrift):
             if deltat==None:
                 ndt = 1
             else:
-                ndt = int( deltat / (mdt.total_seconds()/3600.) )
+                ndt = int( deltat / (mdt.astype('timedelta64[s]').astype('int')/3600.) )
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
@@ -2119,14 +2120,14 @@ class ChemicalDrift(OceanDrift):
 #        times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time',))
-        nc.variables['time'][:] = date2num(times, timestr)
+        nc.variables['time'][:] = times.astype('datetime64[s]').astype(int)
         nc.variables['time'].units = timestr
         nc.variables['time'].standard_name = 'time'
 
         if time_avg_conc:
             nc.createDimension('avg_time', odt)
             nc.createVariable('avg_time', 'f8', ('avg_time',))
-            nc.variables['avg_time'][:] = date2num(times2, timestr) # np.arange(mean_conc.shape[0])
+            nc.variables['avg_time'][:] = times2.astype('datetime64[s]').astype(int) # np.arange(mean_conc.shape[0])
             nc.variables['avg_time'].units = timestr
 
         # Projection
@@ -2270,7 +2271,7 @@ class ChemicalDrift(OceanDrift):
         '''
         lon = self.result.lon
         lat = self.result.lat
-        times = self.get_time_array()[0]
+        times = self.result.time.data
 
         # Redundant ??
         if density_proj is None: # add default projection with equal-area property
