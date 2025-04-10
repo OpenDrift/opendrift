@@ -2117,7 +2117,6 @@ class ChemicalDrift(OceanDrift):
         nc.createDimension('specie', self.nspecies)
         nc.createDimension('time', H.shape[0])
 
-#        times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time',))
         nc.variables['time'][:] = times.astype('datetime64[s]').astype(int)
@@ -2952,8 +2951,8 @@ class ChemicalDrift(OceanDrift):
         if not title == []:
             fig.suptitle(title)
 
-        mass=self.get_property('mass')
-        sp=self.get_property('specie')
+        mass=self.result.mass
+        sp=self.result.specie
 
         steps=len(self.result.time)
 
@@ -2981,31 +2980,32 @@ class ChemicalDrift(OceanDrift):
 
         for i in range(steps):
 
-            bars[i]=[np.sum(mass[0][i,:]*(sp[0][i,:]==0))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==1))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==2))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==3))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==4))*mass_conversion_factor]
+            bars[i]=[np.sum(mass[:,i]*(sp[:,i]==0))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==1))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==2))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==3))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==4))*mass_conversion_factor]
         bottom=np.zeros_like(bars[:,0])
         if 'dissolved' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.25,color='midnightblue')
+            ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.01,color='midnightblue')
             bottom=bars[:,self.num_lmm]
             print('dissolved' + ' : ' + str(bars[-1,self.num_lmm]) + mass_unit +' ('+ str(100*bars[-1,self.num_lmm]/np.sum(bars[-1,:]))+'%)')
         if 'DOC' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_humcol],bottom=bottom,width=1.25,color='royalblue')
+            ax.bar(np.arange(steps),bars[:,self.num_humcol],bottom=bottom,width=1.01,color='royalblue')
             bottom=bottom+bars[:,self.num_humcol]
             print('DOC' + ' : ' + str(bars[-1,self.num_humcol]) + mass_unit +' ('+ str(100*bars[-1,self.num_humcol]/np.sum(bars[-1,:]))+'%)')
         if 'SPM' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.25,color='palegreen')
+            ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.01,color='palegreen')
             bottom=bottom+bars[:,self.num_prev]
             print('SPM' + ' : ' + str(bars[-1,self.num_prev]) + mass_unit +' ('+ str(100*bars[-1,self.num_prev]/np.sum(bars[-1,:]))+'%)')
         if 'sediment' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_srev],bottom=bottom,width=1.25,color='orange')
+            ax.bar(np.arange(steps),bars[:,self.num_srev],bottom=bottom,width=1.01,color='orange')
             bottom=bottom+bars[:,self.num_srev]
             print('sediment' + ' : ' + str(bars[-1,self.num_srev]) + mass_unit +' ('+ str(100*bars[-1,self.num_srev]/np.sum(bars[-1,:]))+'%)')
 
         ax.legend(list(filter(None, legend)))
         ax.set_ylabel('mass (' + mass_unit + ')')
+        ax.set_xlim(-.49,steps-1+0.49)
         if start_date is None:
             ax.axes.get_xaxis().set_ticklabels(np.round(ax.axes.get_xticks() * time_conversion_factor))
             ax.set_xlabel('time (' + time_unit + ')')
