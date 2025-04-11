@@ -968,7 +968,7 @@ class PhysicsMethods:
                 self.env.get_environment(['sea_floor_depth_below_sea_level'],
                                      time=self.time, lon=self.elements.lon,
                                      lat=self.elements.lat,
-                                     z=0*self.elements.lon, profiles=None)
+                                     z=self.elements.z, profiles=None)
             sea_floor_depth = \
                 env['sea_floor_depth_below_sea_level'].astype('float32')
         return sea_floor_depth
@@ -987,7 +987,7 @@ class PhysicsMethods:
                 self.env.get_environment(['sea_surface_height'],
                                      time=self.time, lon=self.elements.lon,
                                      lat=self.elements.lat,
-                                     z=0*self.elements.lon, profiles=None)
+                                     z=self.elements.z, profiles=None)
             sea_surface_height = \
                 env['sea_surface_height'].astype('float32')
         return sea_surface_height
