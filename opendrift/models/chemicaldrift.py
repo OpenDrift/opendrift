@@ -371,6 +371,27 @@ class ChemicalDrift(OceanDrift):
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.DOC_vertical_levels_given = True
 
+        # List of additional variables that should be saved to self.result
+        # TODO: Move this to post_run() when this is available, in case these
+        # are changed during run()
+
+        savelist = ['nspecies',
+                    'name_species',
+                    'transfer_rates',
+                    'ntransformations']
+
+        # Add all attributes starting with "num_"
+        savelist.extend(k for k in vars(self) if k.startswith("num_"))
+
+        # Saving the variables
+        for attr_name in savelist:
+            value = getattr(self, attr_name)
+            if isinstance(value, np.ndarray):
+                dims = tuple(f'dim_{i}' for i in range(value.ndim))
+                self.result[attr_name] = (dims, value)
+            else:
+                self.result[attr_name] = value
+
         super(ChemicalDrift, self).prepare_run()
 
     def init_species(self):
@@ -2987,21 +3008,21 @@ class ChemicalDrift(OceanDrift):
                      np.sum(mass[:,i]*(sp[:,i]==4))*mass_conversion_factor]
         bottom=np.zeros_like(bars[:,0])
         if 'dissolved' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.01,color='midnightblue')
-            bottom=bars[:,self.num_lmm]
-            print('dissolved' + ' : ' + str(bars[-1,self.num_lmm]) + mass_unit +' ('+ str(100*bars[-1,self.num_lmm]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_lmm],width=1.01,color='midnightblue')
+            bottom=bars[:,self.result.num_lmm]
+            print('dissolved' + ' : ' + str(bars[-1,self.result.num_lmm]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_lmm]/np.sum(bars[-1,:]))+'%)')
         if 'DOC' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_humcol],bottom=bottom,width=1.01,color='royalblue')
-            bottom=bottom+bars[:,self.num_humcol]
-            print('DOC' + ' : ' + str(bars[-1,self.num_humcol]) + mass_unit +' ('+ str(100*bars[-1,self.num_humcol]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_humcol],bottom=bottom,width=1.01,color='royalblue')
+            bottom=bottom+bars[:,self.result.num_humcol]
+            print('DOC' + ' : ' + str(bars[-1,self.result.num_humcol]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_humcol]/np.sum(bars[-1,:]))+'%)')
         if 'SPM' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.01,color='palegreen')
-            bottom=bottom+bars[:,self.num_prev]
-            print('SPM' + ' : ' + str(bars[-1,self.num_prev]) + mass_unit +' ('+ str(100*bars[-1,self.num_prev]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_prev],bottom=bottom,width=1.01,color='palegreen')
+            bottom=bottom+bars[:,self.result.num_prev]
+            print('SPM' + ' : ' + str(bars[-1,self.result.num_prev]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_prev]/np.sum(bars[-1,:]))+'%)')
         if 'sediment' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_srev],bottom=bottom,width=1.01,color='orange')
-            bottom=bottom+bars[:,self.num_srev]
-            print('sediment' + ' : ' + str(bars[-1,self.num_srev]) + mass_unit +' ('+ str(100*bars[-1,self.num_srev]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_srev],bottom=bottom,width=1.01,color='orange')
+            bottom=bottom+bars[:,self.result.num_srev]
+            print('sediment' + ' : ' + str(bars[-1,self.result.num_srev]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_srev]/np.sum(bars[-1,:]))+'%)')
 
         ax.legend(list(filter(None, legend)))
         ax.set_ylabel('mass (' + mass_unit + ')')
