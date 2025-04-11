@@ -568,6 +568,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Copy profile_depth from config
         self.profiles_depth = self.get_config('drift:profiles_depth')
 
+    # To be overloaded by sublasses, but this parent method must be called
+    def post_run(self):
+        pass
+
     def store_present_positions(self, IDs=None, lons=None, lats=None):
         """Store present element positions, in case they shall be moved back"""
         if self.get_config('general:coastline_action') in ['previous', 'stranding'] or (
@@ -2176,6 +2180,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.timer_end('cleaning up')
         self.timer_end('total time')
         self.state_to_buffer(final=True)  # Append final status to buffer
+
+        ## Add any other data to the result here.
+        self.post_run()
 
         if outfile is not None:
             logger.debug('Finalising and closing output file: %s' % outfile)
