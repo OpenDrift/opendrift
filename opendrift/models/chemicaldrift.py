@@ -371,6 +371,27 @@ class ChemicalDrift(OceanDrift):
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.DOC_vertical_levels_given = True
 
+        # List of additional variables that should be saved to self.result
+        # TODO: Move this to post_run() when this is available, in case these
+        # are changed during run()
+
+        savelist = ['nspecies',
+                    'name_species',
+                    'transfer_rates',
+                    'ntransformations']
+
+        # Add all attributes starting with "num_"
+        savelist.extend(k for k in vars(self) if k.startswith("num_"))
+
+        # Saving the variables
+        for attr_name in savelist:
+            value = getattr(self, attr_name)
+            if isinstance(value, np.ndarray):
+                dims = tuple(f'dim_{i}' for i in range(value.ndim))
+                self.result[attr_name] = (dims, value)
+            else:
+                self.result[attr_name] = value
+
         super(ChemicalDrift, self).prepare_run()
 
     def init_species(self):
@@ -2000,7 +2021,8 @@ class ChemicalDrift(OceanDrift):
         if mass_unit==None:
             mass_unit='microgram'  # default unit for chemicals
 
-        z = self.get_property('z')[0]
+        z = self.result.z
+
         if not zlevels==None:
             zlevels = np.sort(zlevels)
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
@@ -2022,11 +2044,13 @@ class ChemicalDrift(OceanDrift):
         lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
+
         landmask = np.zeros_like(H[0,0,0,:,:])
+
         if landmask_shapefile is not None:
-            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array).reshape(landmask.shape)
         else:
-            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array).reshape(landmask.shape)
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
@@ -2078,7 +2102,8 @@ class ChemicalDrift(OceanDrift):
                     if horizontal_smoothing:
                         Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_sed_mass
 
-        times = np.array( self.get_time_array()[0] )
+        times = self.result.time.data
+
         if time_avg_conc:
             conctmp = H[:-1,:,:,:,:]
             cshape = conctmp.shape
@@ -2086,7 +2111,7 @@ class ChemicalDrift(OceanDrift):
             if deltat==None:
                 ndt = 1
             else:
-                ndt = int( deltat / (mdt.total_seconds()/3600.) )
+                ndt = int( deltat / (mdt.astype('timedelta64[s]').astype('int')/3600.) )
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
@@ -2113,17 +2138,16 @@ class ChemicalDrift(OceanDrift):
         nc.createDimension('specie', self.nspecies)
         nc.createDimension('time', H.shape[0])
 
-#        times = self.get_time_array()[0]
         timestr = 'seconds since 1970-01-01 00:00:00'
         nc.createVariable('time', 'f8', ('time',))
-        nc.variables['time'][:] = date2num(times, timestr)
+        nc.variables['time'][:] = times.astype('datetime64[s]').astype(int)
         nc.variables['time'].units = timestr
         nc.variables['time'].standard_name = 'time'
 
         if time_avg_conc:
             nc.createDimension('avg_time', odt)
             nc.createVariable('avg_time', 'f8', ('avg_time',))
-            nc.variables['avg_time'][:] = date2num(times2, timestr) # np.arange(mean_conc.shape[0])
+            nc.variables['avg_time'][:] = times2.astype('datetime64[s]').astype(int) # np.arange(mean_conc.shape[0])
             nc.variables['avg_time'].units = timestr
 
         # Projection
@@ -2265,9 +2289,9 @@ class ChemicalDrift(OceanDrift):
         Use user defined projection (density_proj=<proj4_string>)
         or create a lon/lat grid (density_proj=None)
         '''
-        lon = self.get_property('lon')[0]
-        lat = self.get_property('lat')[0]
-        times = self.get_time_array()[0]
+        lon = self.result.lon
+        lat = self.result.lat
+        times = self.result.time.data
 
         # Redundant ??
         if density_proj is None: # add default projection with equal-area property
@@ -2287,14 +2311,13 @@ class ChemicalDrift(OceanDrift):
         y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
         bins=(x_array, y_array)
         outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
-        z = self.get_property('z')[0]
+        z = self.result.z.load()
         if weight is not None:
-            weight_array = self.get_property(weight)[0]
+            weight_array = self.result.mass.load()
 
-        status = self.get_property('status')[0]
-        specie = self.get_property('specie')[0]
+        specie = self.result.specie.load()
         if origin_marker is not None:
-            originmarker = self.get_property('origin_marker')[0]
+            originmarker = self.result.origin_marker.load()
         Nspecies = self.nspecies
         H = np.zeros((len(times),
                       Nspecies,
@@ -2306,16 +2329,16 @@ class ChemicalDrift(OceanDrift):
         for sp in range(Nspecies):
             for i in range(len(times)):
                 if weight is not None:
-                    weights = weight_array[i,:]
+                    weights = weight_array[:,i]
                     if origin_marker is not None:
-                        weight_array[i,:] = weight_array[i,:] * (originmarker[i,:]==origin_marker)
+                        weight_array[:,i] = weight_array[:,i] * (originmarker[:,i]==origin_marker)
                 else:
                     weights = None
                 for zi in range(len(z_array)-1):
-                    kktmp = ( (specie[i,:]==sp) & (z[i,:]>z_array[zi]) & (z[i,:]<=z_array[zi+1]) )
+                    kktmp = ( (specie[:,i]==sp) & (z[:,i]>z_array[zi]) & (z[:,i]<=z_array[zi+1]) )
                     H[i,sp,zi,:,:], dummy, dummy = \
-                        np.histogram2d(x[i,kktmp], y[i,kktmp],
-                                   weights=weight_array[i,kktmp], bins=bins)
+                        np.histogram2d(x[kktmp,i], y[kktmp,i],
+                                   weights=weight_array[kktmp,i], bins=bins)
 
         if density_proj is not None:
             Y,X = np.meshgrid(y_array, x_array)
@@ -2949,8 +2972,8 @@ class ChemicalDrift(OceanDrift):
         if not title == []:
             fig.suptitle(title)
 
-        mass=self.get_property('mass')
-        sp=self.get_property('specie')
+        mass=self.result.mass
+        sp=self.result.specie
 
         steps=len(self.result.time)
 
@@ -2978,31 +3001,32 @@ class ChemicalDrift(OceanDrift):
 
         for i in range(steps):
 
-            bars[i]=[np.sum(mass[0][i,:]*(sp[0][i,:]==0))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==1))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==2))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==3))*mass_conversion_factor,
-                     np.sum(mass[0][i,:]*(sp[0][i,:]==4))*mass_conversion_factor]
+            bars[i]=[np.sum(mass[:,i]*(sp[:,i]==0))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==1))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==2))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==3))*mass_conversion_factor,
+                     np.sum(mass[:,i]*(sp[:,i]==4))*mass_conversion_factor]
         bottom=np.zeros_like(bars[:,0])
         if 'dissolved' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_lmm],width=1.25,color='midnightblue')
-            bottom=bars[:,self.num_lmm]
-            print('dissolved' + ' : ' + str(bars[-1,self.num_lmm]) + mass_unit +' ('+ str(100*bars[-1,self.num_lmm]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_lmm],width=1.01,color='midnightblue')
+            bottom=bars[:,self.result.num_lmm]
+            print('dissolved' + ' : ' + str(bars[-1,self.result.num_lmm]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_lmm]/np.sum(bars[-1,:]))+'%)')
         if 'DOC' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_humcol],bottom=bottom,width=1.25,color='royalblue')
-            bottom=bottom+bars[:,self.num_humcol]
-            print('DOC' + ' : ' + str(bars[-1,self.num_humcol]) + mass_unit +' ('+ str(100*bars[-1,self.num_humcol]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_humcol],bottom=bottom,width=1.01,color='royalblue')
+            bottom=bottom+bars[:,self.result.num_humcol]
+            print('DOC' + ' : ' + str(bars[-1,self.result.num_humcol]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_humcol]/np.sum(bars[-1,:]))+'%)')
         if 'SPM' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_prev],bottom=bottom,width=1.25,color='palegreen')
-            bottom=bottom+bars[:,self.num_prev]
-            print('SPM' + ' : ' + str(bars[-1,self.num_prev]) + mass_unit +' ('+ str(100*bars[-1,self.num_prev]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_prev],bottom=bottom,width=1.01,color='palegreen')
+            bottom=bottom+bars[:,self.result.num_prev]
+            print('SPM' + ' : ' + str(bars[-1,self.result.num_prev]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_prev]/np.sum(bars[-1,:]))+'%)')
         if 'sediment' in legend:
-            ax.bar(np.arange(steps),bars[:,self.num_srev],bottom=bottom,width=1.25,color='orange')
-            bottom=bottom+bars[:,self.num_srev]
-            print('sediment' + ' : ' + str(bars[-1,self.num_srev]) + mass_unit +' ('+ str(100*bars[-1,self.num_srev]/np.sum(bars[-1,:]))+'%)')
+            ax.bar(np.arange(steps),bars[:,self.result.num_srev],bottom=bottom,width=1.01,color='orange')
+            bottom=bottom+bars[:,self.result.num_srev]
+            print('sediment' + ' : ' + str(bars[-1,self.result.num_srev]) + mass_unit +' ('+ str(100*bars[-1,self.result.num_srev]/np.sum(bars[-1,:]))+'%)')
 
         ax.legend(list(filter(None, legend)))
         ax.set_ylabel('mass (' + mass_unit + ')')
+        ax.set_xlim(-.49,steps-1+0.49)
         if start_date is None:
             ax.axes.get_xaxis().set_ticklabels(np.round(ax.axes.get_xticks() * time_conversion_factor))
             ax.set_xlabel('time (' + time_unit + ')')

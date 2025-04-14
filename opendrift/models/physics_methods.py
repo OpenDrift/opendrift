@@ -77,7 +77,19 @@ def wind_drift_factor_from_trajectory(trajectory_dict, min_period=None):
     azimuth_offset = (azimuth_offset + 360) % 360
     azimuth_offset[azimuth_offset>180] -= 360
 
-    return wind_drift_factor, azimuth_offset
+    # # New: optimize combined cdf and wdf
+    # azimuth_north, a2, distance_north = geod.inv(lon[0:-1], lat[0:-1], lon[0:-1], lat[1:])
+    # azimuth_east, a2, distance_east = geod.inv(lon[0:-1], lat[0:-1], lon[1:], lat[0:-1])
+    # cu = cu[0:-1]
+    # cv = cv[0:-1]
+    # wu = wu[0:-1]
+    # wv = wv[0:-1]
+    # su = distance_east / time_step
+    # sv = distance_north / time_step
+    # wdf = (sv - su*(cv/cu) ) / (wv - wu*(cv/cu))
+    # cdf = (sv - su*(wv/wu) ) / (cv - cu*(wv/wu))
+
+    return wind_drift_factor, azimuth_offset #, wdf, cdf
 
 def plot_wind_drift_factor(wdf, azimuth, wmax_plot=None):
     '''Polar plot of array of wind drift factor, with associated azimuthal offset'''
@@ -956,7 +968,7 @@ class PhysicsMethods:
                 self.env.get_environment(['sea_floor_depth_below_sea_level'],
                                      time=self.time, lon=self.elements.lon,
                                      lat=self.elements.lat,
-                                     z=0*self.elements.lon, profiles=None)
+                                     z=self.elements.z, profiles=None)
             sea_floor_depth = \
                 env['sea_floor_depth_below_sea_level'].astype('float32')
         return sea_floor_depth
@@ -975,7 +987,7 @@ class PhysicsMethods:
                 self.env.get_environment(['sea_surface_height'],
                                      time=self.time, lon=self.elements.lon,
                                      lat=self.elements.lat,
-                                     z=0*self.elements.lon, profiles=None)
+                                     z=self.elements.z, profiles=None)
             sea_surface_height = \
                 env['sea_surface_height'].astype('float32')
         return sea_surface_height
