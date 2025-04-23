@@ -51,8 +51,9 @@ def write_buffer(self):
     numtimes = self.outfile['time'].shape[0]
 
     for varname in self.result.data_vars:
-        var = self.outfile.variables[varname]
-        var[:, numtimes:numtimes + self.result.sizes['time']] = self.result[varname]
+        if 'time' in self.result[varname].dims:
+            var = self.outfile.variables[varname]
+            var[:, numtimes:numtimes + self.result.sizes['time']] = self.result[varname]
     self.outfile.variables['time'][numtimes:numtimes + self.result.sizes['time']] = \
         date2num(pd.to_datetime(self.result.time).to_pydatetime(),
                  self.outfile['time'].units, self.outfile['time'].calendar)
