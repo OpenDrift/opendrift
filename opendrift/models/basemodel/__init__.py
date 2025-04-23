@@ -2347,7 +2347,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if final is False and buffer_is_full:
             logger.debug(f'Initialising new buffer')
             for var in self.result.data_vars:
-                self.result[var][:] = np.nan
+                if 'time' in self.result[var].dims:
+                    self.result[var][:] = np.nan
             newtime = self.result.coords['time'] + pd.Timedelta(self.time_step_output)*self.export_buffer_length
             self.result.coords['time'] = newtime
             logger.debug(f'Reset self.result, size {self.result.sizes}')
