@@ -51,14 +51,18 @@ def test_custom_result(tmpdir):
 
     outfile = tmpdir + "test_custom_result.nc"
     o = OceanDrift(loglevel=50)
+    time = datetime.now()
     o.prepare_run = prepare_run.__get__(o)  # Bind custom prepare_run to the instance
-    o.seed_elements(lon=4, lat=60, time=datetime.now())
+    o.seed_elements(lon=4, lat=60, time=time)
     o.run(steps=4, export_buffer_length=2, outfile=outfile)
+
     assert o.result.custom_array.shape == (3, 3)
     assert o.result.custom_scalar == 5
     assert len(o.result.custom_list) == 3
     ds = xr.open_dataset(outfile)
     assert(ds.custom_scalar == 5)
+    assert 'time_coverage_end' in o.result.attrs
+    assert 'time_coverage_end' in ds.attrs
 
 @need_fastparquet
 def test_io_parquet(tmpdir):
