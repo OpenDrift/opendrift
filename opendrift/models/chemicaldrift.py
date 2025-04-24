@@ -371,26 +371,26 @@ class ChemicalDrift(OceanDrift):
                 if (hasattr(value,'sigma') or hasattr(value,'z') ):
                     self.DOC_vertical_levels_given = True
 
-        # List of additional variables that should be saved to self.result
-        # TODO: Move this to post_run() when this is available, in case these
-        # are changed during run()
+        # List of additional custom variables to be saved in self.result
+        # TODO: These could now be moved to post_run() which should be 
+        # more robust in case variables are changed during run()
 
         savelist = ['nspecies',
                     'name_species',
                     'transfer_rates',
                     'ntransformations']
 
-        # Add all attributes starting with "num_"
+        # Add all variables starting with "num_"
         savelist.extend(k for k in vars(self) if k.startswith("num_"))
 
         # Saving the variables
-        for attr_name in savelist:
-            value = getattr(self, attr_name)
-            if isinstance(value, np.ndarray):
-                dims = tuple(f'dim_{i}' for i in range(value.ndim))
-                self.result[attr_name] = (dims, value)
+        for var_name in savelist:
+            var_value = getattr(self, var_name)
+            if isinstance(var_value, np.ndarray):
+                dims = tuple(f'specie_{i}' for i in range(var_value.ndim))
+                self.result[var_name] = (dims, var_value)
             else:
-                self.result[attr_name] = value
+                self.result[var_name] = var_value
 
         super(ChemicalDrift, self).prepare_run()
 
