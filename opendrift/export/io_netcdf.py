@@ -71,7 +71,8 @@ def close(self):
         for atn, atv in self.result[var].attrs.items():
             if atn != '_FillValue':
                 self.outfile[var].setncattr(atn, atv)
-
+    for atn, atv in self.result.attrs.items():  # Updating global attributes
+        self.outfile.setncattr(atn, atv)
     self.outfile.close()  # Finally close file
     logger.debug('Closed netCDF-file')
 

@@ -27,8 +27,8 @@ class Reader(BaseReader, ContinuousReader):
         '''
 
         self.times = parameter_value_map['time']
-        if type(self.times) is not list:
-            raise ValueError('time must be a list of datetime objects')
+        if not hasattr(self.times, '__len__'):
+            raise ValueError('time must be an array of datetime objects')
         del parameter_value_map['time']
 
         for key, var in parameter_value_map.items():
