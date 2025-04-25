@@ -20,6 +20,8 @@
 import os
 import pytest
 from datetime import datetime, timedelta
+import numpy as np
+import xarray as xr
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
@@ -32,6 +34,35 @@ except:
 need_fastparquet = pytest.mark.skipif(has_fastparquet == False,
         reason = 'fastparquet must be installed to use fastparquet writer')
 
+def test_custom_result(tmpdir):
+    """Adding custom data to self.result during self.prepare_run()"""
+
+    def prepare_run(self):
+        # Add custom scalar as attribute
+        self.result['custom_scalar'] = 5
+        # Add custom list as attribute
+        self.result['custom_list'] = ['item1', 'item2', 'item3']
+        # Add custom array as DataArray with dimensions other than (time, trajectory)
+        da = xr.DataArray(
+            data=np.random.rand(3, 3),
+            dims=["dim1", "dim2"]
+             )
+        self.result['custom_array'] = da
+
+    outfile = tmpdir + "test_custom_result.nc"
+    o = OceanDrift(loglevel=50)
+    time = datetime.now()
+    o.prepare_run = prepare_run.__get__(o)  # Bind custom prepare_run to the instance
+    o.seed_elements(lon=4, lat=60, time=time)
+    o.run(steps=4, export_buffer_length=2, outfile=outfile)
+
+    assert o.result.custom_array.shape == (3, 3)
+    assert o.result.custom_scalar == 5
+    assert len(o.result.custom_list) == 3
+    ds = xr.open_dataset(outfile)
+    assert(ds.custom_scalar == 5)
+    assert 'time_coverage_end' in o.result.attrs
+    assert 'time_coverage_end' in ds.attrs
 
 @need_fastparquet
 def test_io_parquet(tmpdir):
