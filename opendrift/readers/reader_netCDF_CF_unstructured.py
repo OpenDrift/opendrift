@@ -171,10 +171,10 @@ class Reader(BaseReader, UnstructuredReader):
 
         self.timer_start("build index")
         logger.debug("building index of nodes..")
-        self.nodes_idx = self._build_ckdtree_(self.x, self.y)
+        self.nodes_idx = self._build_strtree_(self.x, self.y)
 
         logger.debug("building index of faces..")
-        self.faces_idx = self._build_ckdtree_(self.xc, self.yc)
+        self.faces_idx = self._build_strtree_(self.xc, self.yc)
 
         self.timer_end("build index")
 

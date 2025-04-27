@@ -125,7 +125,7 @@ class Reader(BaseReader, UnstructuredReader):
 
         self.timer_start("build index")
         logger.debug("building index of nodes..")
-        self.nodes_idx = self._build_ckdtree_(self.x, self.y)
+        self.nodes_idx = self._build_strtree_(self.x, self.y)
         self.timer_end("build index")
 
         self.timer_end("open dataset")
