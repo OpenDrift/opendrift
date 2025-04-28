@@ -12,8 +12,6 @@ o = OpenBerg()
 # The user can overwrite the default setup using set_config method
 o.set_config('drift:vertical_profile', False) # use surface currents for this test
 
-
-
 o.add_readers_from_list([
         'https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml',
         'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
