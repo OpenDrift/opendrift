@@ -195,4 +195,22 @@ def get_water_fractions():
        json.dump(oilmax , json_file)
 
 if __name__ == '__main__':
-    get_water_fractions()
+    # This was done once, for later updates we simply add manually as below
+    #get_water_fractions()
+
+    import json
+    json_filename = 'max_water_fraction.json'
+    oilmax = json.load(open(json_filename, 'r'))
+
+    additional = {
+        'CALYPSO 2024': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.77, 0.8]},
+        'LANGJELLET 2023': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.78, 0.8]},
+        'BLANE 2009': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.8, 0.8]},
+        'CARISA 2025': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.42, 0.58]},
+        }
+
+    oilmax = oilmax | additional
+    oilmax = dict(sorted(oilmax.items()))
+
+    with open(json_filename, 'w') as json_file:
+       json.dump(oilmax, json_file, indent=2)
