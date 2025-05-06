@@ -2020,7 +2020,7 @@ active_status=False,
 
         if reader_sea_depth is not None:
             from opendrift.readers import reader_netCDF_CF_generic
-import xarray as xr
+            import xarray as xr
 
             reader_sea_depth_res = xr.open_dataset(reader_sea_depth)
             reader_sea_depth_res = (reader_sea_depth_res[list(reader_sea_depth_res.data_vars)[0]])
@@ -2212,12 +2212,6 @@ import xarray as xr
             # Compute horizontally smoother field
             logger.debug('H.shape: ' + str(H.shape))
 
-            # Hsm = np.zeros_like(H)
-            # for zi in range(len(z_array)-1):
-            #     for sp in range(self.nspecies):
-            #         for ti in range(H.shape[0]):
-            #             Hsm[ti,sp,zi,:,:] = self.horizontal_smooth(H[ti,sp,zi,:,:],n=smoothing_cells)
-
             Hsm = np.array([
                             [[self.horizontal_smooth(H[ti, sp, zi, :, :], n=smoothing_cells) 
                               for zi in range(len(z_array) - 1)]
@@ -2285,18 +2279,6 @@ import xarray as xr
             logger.debug ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
             logger.debug ('odt '+ str(odt))   # number of average slices
 
-            # Landmask=np.zeros_like(H[0:odt,:,:,:,:])
-            # for zi in range(len(z_array)-1):
-            #     for sp in range(self.nspecies):
-            #         for ti in range(odt):
-            #             Landmask[ti,sp,zi,:,:] = landmask
-
-            # This may probably be written more efficiently!
-            # mean_conc = np.zeros( [odt,cshape[1],cshape[2],cshape[3],cshape[4]] )
-            # for ii in range(odt):
-            #     meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
-            #     mean_conc[ii,:,:,:,:] = meantmp
-            # Optimized
             try:
                 mean_conc = np.mean(conctmp.reshape(odt, ndt, *cshape[1:]), axis=1)
             except: # If (times) is not a perfect multiple of deltat
@@ -2572,8 +2554,6 @@ import xarray as xr
         t_resol = (times[1][0] - times[0][0])/2
         t_array = np.append(times[:,0] - t_resol, np.array(times[:,0][-1] + t_resol))
 
-        # bins=(x_array, y_array)
-        # outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
         z = (self.result.z.T).values
         if weight is not None:
             weight_array = (self.result[weight].T).values
@@ -2597,26 +2577,6 @@ import xarray as xr
                       len(x_array) - 1,
                       len(y_array) - 1
                       ))
-
-        # for sp in range(Nspecies):
-        #     for i in range(len(times)):
-        #         if weight is not None:
-        #             weights = weight_array[i,:]
-        #             if ((origin_marker is not None) and (active_status is False)):
-        #                 weight_array[i,:] = weight_array[i,:] * (originmarker[i,:]==origin_marker)
-        #             elif ((origin_marker is not None) and (active_status is True)):
-        #                 weight_array[i,:] = weight_array[i,:] * (originmarker[i,:]==origin_marker) * (status[i,:]==active_index)
-        #             elif ((origin_marker is None) and (active_status is True)):
-        #                 weight_array[i,:] = weight_array[i,:] * (status[i,:]==active_index)
-        #             else:
-        #                 pass
-        #         else:
-        #             weights = None
-        #         for zi in range(len(z_array)-1):
-        #             kktmp = ( (specie[i,:]==sp) & (z[i,:]>z_array[zi]) & (z[i,:]<=z_array[zi+1]) )
-        #             H[i,sp,zi,:,:], dummy, dummy = \
-        #                 np.histogram2d(x[i,kktmp], y[i,kktmp],
-        #                            weights=weight_array[i,kktmp], bins=bins)
 
         # Mask elements based on oring_marker and status
         if weight is not None:
