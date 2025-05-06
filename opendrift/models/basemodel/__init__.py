@@ -1463,7 +1463,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             g = geom.GetGeometryRef(i)
             total_area += g.GetArea()
 
-        logger.info('Total area of all polygons: %s m2' % total_area)
+        logger.info(f'Total area of all polygons: {total_area}')
         num_seeded = 0
         for i in range(0, geom.GetGeometryCount()):
             g = geom.GetGeometryRef(i)
@@ -1472,8 +1472,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 # For the last feature we seed the remaining number,
                 # avoiding difference due to rounding:
                 num_elements = number - num_seeded
-            logger.info('\tSeeding %s elements within polygon number %s' %
-                        (num_elements, str(i)))
+            logger.info(f'\tSeeding {num_elements} elements within polygon number {str(i)} of area {g.GetArea()}')
             try:
                 g.Transform(coordTrans)
             except:
@@ -1573,8 +1572,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     continue
                 num_elements = numbers[i]
                 geom = feature.GetGeometryRef()
-                logger.info('\tSeeding %s elements within polygon number %s' %
-                            (num_elements, featurenum[i]))
+                logger.info(f'\tSeeding {num_elements} elements within polygon number {featurenum[i]} of area {areas[i]} m3')
                 try:
                     geom.Transform(coordTrans)
                 except Exception as e:
