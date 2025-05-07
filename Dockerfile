@@ -10,8 +10,10 @@ RUN mkdir code
 WORKDIR code
 
 # Add git since not included in minimal base image
+USER root
 RUN apt-get -y update
 RUN apt-get install -y git
+USER 1001
 
 # Copy environment file
 COPY environment.yml .
