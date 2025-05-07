@@ -402,22 +402,22 @@ class Reader(BaseReader, UnstructuredReader):
             xp = xr.DataArray(
                 xp, dims=["node"]
             )  # add dummy dimension for easier xr magic
-            inds = (X - xp).argmin(dim="siglay").values
+            inds = np.abs(X - xp).argmin(dim="siglay").values
         elif "siglay_center" in X.dims:
             xp = xr.DataArray(
                 xp, dims=["nele"]
             )  # add dummy dimension for easier xr magic
-            inds = (X - xp).argmin(dim="siglay_center").values
+            inds = np.abs(X - xp).argmin(dim="siglay_center").values
         elif "siglev" in X.dims:
             xp = xr.DataArray(
                 xp, dims=["node"]
             )  # add dummy dimension for easier xr magic
-            inds = (X - xp).argmin(dim="siglev").values
+            inds = np.abs(X - xp).argmin(dim="siglev").values
         elif "siglev_center" in X.dims:
             xp = xr.DataArray(
                 xp, dims=["nele"]
             )  # add dummy dimension for easier xr magic
-            inds = (X - xp).argmin(dim="siglev_center").values
+            inds = np.abs(X - xp).argmin(dim="siglev_center").values
 
         return inds
 
