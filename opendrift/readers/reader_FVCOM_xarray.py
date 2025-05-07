@@ -408,6 +408,16 @@ class Reader(BaseReader, UnstructuredReader):
                 xp, dims=["nele"]
             )  # add dummy dimension for easier xr magic
             inds = (X - xp).argmin(dim="siglay_center").values
+        elif "siglev" in X.dims:
+            xp = xr.DataArray(
+                xp, dims=["node"]
+            )  # add dummy dimension for easier xr magic
+            inds = (X - xp).argmin(dim="siglev").values
+        elif "siglev_center" in X.dims:
+            xp = xr.DataArray(
+                xp, dims=["nele"]
+            )  # add dummy dimension for easier xr magic
+            inds = (X - xp).argmin(dim="siglev_center").values
 
         return inds
 
