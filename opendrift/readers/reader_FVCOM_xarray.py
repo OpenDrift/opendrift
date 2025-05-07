@@ -58,6 +58,9 @@ class Reader(BaseReader, UnstructuredReader):
         "northward wind": "y_wind",
         "ww": "upward_sea_water_velocity",
         "sea_floor_depth_below_geoid": "sea_floor_depth_below_sea_level",
+        "l": "turbulent_generic_length_scale",
+        "q2": "turbulent_kinetic_energy",
+        "kh": "ocean_vertical_diffusivity",
     }
 
     node_variables = [
@@ -65,6 +68,9 @@ class Reader(BaseReader, UnstructuredReader):
         "sea_water_salinity",
         "sea_water_temperature",
         "sea_surface_height_above_geoid",
+        "turbulent_generic_length_scale",
+        "turbulent_kinetic_energy",
+        "ocean_vertical_diffusivity",
     ]
 
     face_variables = [
