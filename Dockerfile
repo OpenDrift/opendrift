@@ -9,6 +9,9 @@ ENV MAMBA_DOCKERFILE_ACTIVATE=1
 RUN mkdir code
 WORKDIR code
 
+# Add git since not included in minimal base image
+RUN apk update && apk add git
+
 # Copy environment file
 COPY environment.yml .
 
