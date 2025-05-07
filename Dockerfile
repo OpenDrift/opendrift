@@ -13,6 +13,7 @@ WORKDIR code
 USER root
 RUN apt-get -y update
 RUN apt-get install -y git
+RUN chmod a+w /tmp/code/
 USER 1001
 
 # Copy environment file
