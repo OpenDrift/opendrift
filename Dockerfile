@@ -10,8 +10,7 @@ RUN mkdir code
 WORKDIR code
 
 # Add git since not included in minimal base image
-RUN apt-get -y update
-RUN apt-get install -y git
+RUN micromamba install git
 
 # Copy environment file
 COPY environment.yml .
