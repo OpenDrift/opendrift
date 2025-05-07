@@ -9,13 +9,6 @@ ENV MAMBA_DOCKERFILE_ACTIVATE=1
 RUN mkdir code
 WORKDIR code
 
-# Add git since not included in minimal base image
-USER root
-RUN apt-get -y update
-RUN apt-get install -y git
-RUN chmod a+w /tmp/code/
-USER 1001
-
 # Copy environment file
 COPY environment.yml .
 
