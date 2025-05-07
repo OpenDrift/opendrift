@@ -10,7 +10,7 @@ RUN mkdir code
 WORKDIR code
 
 # Add git since not included in minimal base image
-RUN apk update && apk add git
+RUN apt-get update && apt-get install -y git
 
 # Copy environment file
 COPY environment.yml .
