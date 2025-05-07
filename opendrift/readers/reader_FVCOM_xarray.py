@@ -180,18 +180,22 @@ class Reader(BaseReader, UnstructuredReader):
 
             attrs = self.dataset[var_name].attrs
             if "standard_name" in attrs:
-                std_name = attrs["standard_name"]
+                name = attrs["standard_name"]
                 # TBD: check against requested_variables before adding
-                logger.debug(f"Adding FVCOM std_name {std_name}")
-                std_name = self.variable_aliases.get(std_name, std_name)
-                logger.debug(f"Using OpenDrift alias: {std_name}")
-                self.variable_mapping[std_name] = str(var_name)
-            elif "long_name" in attrs:
-                std_name = attrs["long_name"]
-                logger.debug(f"Adding FVCOM long_name {std_name}")
-                std_name = self.variable_aliases.get(std_name, std_name)
-                logger.debug(f"Using OpenDrift alias: {std_name}")
-                self.variable_mapping[std_name] = str(var_name)
+                logger.debug(f"Adding FVCOM std_name {name}")
+                name = self.variable_aliases.get(name, name)
+                logger.debug(f"Using OpenDrift alias: {name}")
+                self.variable_mapping[name] = str(var_name)
+            elif var_name in self.dataset.data_vars:
+                if var_name in self.variable_aliases:
+                    name = self.variable_aliases[var_name]
+                    logger.debug(f"Using OpenDrift alias: {var_name} for {name}")
+                else:
+                    name = var_name
+                    logger.debug(f"Using {var_name} from dataset variable name")
+                self.variable_mapping[name] = str(var_name)
+            else:
+                logger.debug(f"Dropping {var_name} - no mapping found")
 
         self.variables = list(self.variable_mapping.keys())
 
