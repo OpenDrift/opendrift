@@ -2416,7 +2416,7 @@ active_status=False,
             H = np.swapaxes(H, 3, 4)
             H = np.ma.masked_where(Landmask==1,H)
             nc.variables['concentration'][:] = H
-            nc.variables['concentration'].long_name = self.get_config('chemical:compound') +' concentration ' + '\n' + 'specie '+ \
+            nc.variables['concentration'].long_name = self.get_config('chemical:compound') +' concentration of ' + weight + '\n' + 'specie '+ \
                                                             ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
             nc.variables['concentration'].grid_mapping = density_proj_str
             nc.variables['concentration'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg d.w.)'
@@ -2427,7 +2427,7 @@ active_status=False,
             mean_conc = np.swapaxes(mean_conc, 3, 4)
             mean_conc = np.ma.masked_where(Landmask==1, mean_conc)
             nc.variables['concentration_avg'][:] = mean_conc
-            nc.variables['concentration_avg'].long_name = self.get_config('chemical:compound') + ' time averaged concentration ' + '\n' + 'specie '+ \
+            nc.variables['concentration_avg'].long_name = self.get_config('chemical:compound') + ' time averaged concentration of ' + weight + '\n' + 'specie '+ \
                                                             ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
             nc.variables['concentration_avg'].grid_mapping = density_proj_str
             nc.variables['concentration_avg'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
@@ -2441,7 +2441,7 @@ active_status=False,
                 Hsm = np.swapaxes(Hsm, 3, 4)
                 Hsm = np.ma.masked_where(Landmask==1, Hsm)
                 nc.variables['concentration_smooth'][:] = Hsm
-                nc.variables['concentration_smooth'].long_name = self.get_config('chemical:compound') +' horizontally smoothed concentration '  + '\n' + 'specie '+ \
+                nc.variables['concentration_smooth'].long_name = self.get_config('chemical:compound') +' horizontally smoothed concentration of ' + weight + '\n' + 'specie '+ \
                                                                 ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
                 nc.variables['concentration_smooth'].grid_mapping = density_proj_str
                 nc.variables['concentration_smooth'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
@@ -2453,7 +2453,7 @@ active_status=False,
                 mean_Hsm = np.swapaxes(mean_Hsm, 3, 4)
                 mean_Hsm = np.ma.masked_where(Landmask==1, mean_Hsm)
                 nc.variables['concentration_smooth_avg'][:] = mean_Hsm
-                nc.variables['concentration_smooth_avg'].long_name = self.get_config('chemical:compound') +' horizontally smoothed time averaged concentration '  + '\n' + 'specie '+ \
+                nc.variables['concentration_smooth_avg'].long_name = self.get_config('chemical:compound') +' horizontally smoothed time averaged concentration of ' + weight + '\n' + 'specie '+ \
                                                                 ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
                 nc.variables['concentration_smooth_avg'].grid_mapping = density_proj_str
                 nc.variables['concentration_smooth_avg'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
@@ -2524,21 +2524,34 @@ active_status=False,
 
         lon = (self.result.lon.T).values
         lat = (self.result.lat.T).values
+        # Create masks for valid ranges
+        valid_lon_mask = (lon >= -180) & (lon <= 180)
+        valid_lat_mask = (lat >= -90) & (lat <= 90)
+        # Combine masks
+        valid_mask = valid_lon_mask & valid_lat_mask
+        del valid_lon_mask, valid_lat_mask
+        # Apply mask: set invalid values to np.nan
+        lon = np.where(valid_mask, lon, np.nan)
+        lat = np.where(valid_mask, lat, np.nan)
+        del valid_mask
+        
         times = (self.result.time).values
         times = np.repeat(np.expand_dims(times, axis=0), lon.shape[1], axis=0).T
 
-        # Create a grid in the specified projection
-        x,y = density_proj(lon, lat)
+        # Create a grid in the specified projection     
         if llcrnrlon is not None:
             llcrnrx,llcrnry = density_proj(llcrnrlon,llcrnrlat)
             urcrnrx,urcrnry = density_proj(urcrnrlon,urcrnrlat)
         else:
+            x,y = density_proj(lon, lat)
             if density_proj == pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0'):
                 llcrnrx,llcrnry = x.min()-pixelsize_m, y.min()-pixelsize_m
                 urcrnrx,urcrnry = x.max()+pixelsize_m, y.max()+pixelsize_m
+                del x,y
             else:
                 llcrnrx,llcrnry = x.min()-lon_resol, y.min()-lat_resol
                 urcrnrx,urcrnry = x.max()+lon_resol, y.max()+lat_resol
+                del x,y
 
         if density_proj == pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0'):
             if pixelsize_m == None:
