@@ -17,6 +17,7 @@ dependencies = [
   "netCDF4>=1.6",
   "pyproj>=2.3",
   "xarray>=2022.6.0",
+  "geopandas>=0.14",
   "cmocean>=2.0",
   "geojson>=2.5",
   "nc-time-axis>=1.4",
