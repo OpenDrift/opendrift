@@ -48,7 +48,7 @@ commands:
 
       - run:
           name: Install requirements
-          no_output_timeout: 30m
+          no_output_timeout: 60m
           command: |
             if [ ! -e /opt/conda/envs/opendrift ]; then
               if [ -v PYTHON_VERSION ]; then
