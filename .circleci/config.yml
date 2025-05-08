@@ -54,14 +54,14 @@ commands:
               if [ -v PYTHON_VERSION ]; then
                 echo "Pinning python: ${PYTHON_VERSION}."
                 # pin python
-                mamba create -c conda-forge -n opendrift -q -y "python=${PYTHON_VERSION}"
+                mamba create -c conda-forge -n opendrift -y "python=${PYTHON_VERSION}"
 
                 echo "python ${PYTHON_VERSION}.*" > /opt/conda/envs/opendrift/conda-meta/pinned
                 cat /opt/conda/envs/opendrift/conda-meta/pinned
 
-                mamba env update -n opendrift -q -f environment.yml
+                mamba env update -n opendrift -f environment.yml
               else
-                mamba env create -q --file environment.yml
+                mamba env create --file environment.yml
               fi
 
               source activate opendrift
