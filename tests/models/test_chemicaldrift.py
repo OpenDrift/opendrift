@@ -19,7 +19,8 @@
 
 from datetime import datetime, timedelta
 import numpy as np
-
+import xarray as xr
+import opendrift
 from opendrift.models.chemicaldrift import ChemicalDrift
 from opendrift.readers.reader_constant import Reader as ConstantReader
 
@@ -116,9 +117,8 @@ def test_chemicaldrift_partitioning_organics():
     assert sum(o[4].elements.specie==2) == 64
 
 def test_chemicaldrift_degradation():
-    """ Test dynamic partitioning for organic compunds with different values of
-        fOC (organic carbon fraction) in suspended particles and KOW.
-        High SPM concentration, 80 g/m3."""
+    """ Test degradation for organic compounds with different values of
+        t12 (half life) """
 
     days=200
     ntraj=200
@@ -171,7 +171,7 @@ def test_chemicaldrift_degradation():
             for j in range(len(o)):
                 o[j].set_config(configs[i][0],configs[i][1])
 
-    # seed in the middle of the Altantic Ocean
+    # seed in the middle of the Atlantic Ocean
     lonmin=-50
     lonmax=-50+1
     lat=25
@@ -206,33 +206,30 @@ def test_chemicaldrift_degradation():
         print("dissolved: ", sum(o[j].result.specie.values==0 ))        
 
     #assert 0
-    
+
     # Check t12 500
     assert abs(sum(o[0].result.mass.values)[-1] - 20771.232) < 0.01
     assert abs(sum(o[0].result.mass_degraded.values)[-1] - 179228.38) < 0.01
-    
+
     # Check mass conservation residual + degraded = total
     assert abs(sum(o[0].result.mass.values)[-1] + sum(o[0].result.mass_degraded.values)[-1] - 200000) < 0.5
+
+    # Check mass conservation residual + degraded = initial = ( 1000 ug default value )
+    assert np.all(o[0].result.mass.values + o[0].result.mass_degraded.values == 1000)
 
     # Check t12 1000
     # Residual mass larger, degraded mass smaller
     assert abs(sum(o[1].result.mass.values)[-1] - 64513.277) < 0.01
     assert abs(sum(o[1].result.mass_degraded.values)[-1] - 135486.4) < 0.01
 
-    # Check mass conservation residual + degraded = total
-    assert abs(sum(o[1].result.mass.values)[-1] + sum(o[1].result.mass_degraded.values)[-1] - 200000) < 0.5
-
-    # TODO: Check why conserved mass is not exactly 200000 - some rounding issues?
-    # Or is it because of deactivated elements that are not counted?
-    # This should be investigated
+    # Check mass conservation residual + degraded = initial = ( 1000 ug default value )
+    assert np.all(o[1].result.mass.values + o[1].result.mass_degraded.values == 1000)
 
 def test_chemicaldrift_volatilization():
-    """ Test dynamic partitioning for organic compunds with different values of
-        fOC (organic carbon fraction) in suspended particles and KOW.
-        High SPM concentration, 80 g/m3."""
+    """ Test volatilization for different values of wind speed. """
 
-    days=200
-    ntraj=200
+    days=2
+    ntraj=2
 
     # If one parameter is given as a list, different instances of
     # ChemicalDrift will be created
@@ -242,7 +239,6 @@ def test_chemicaldrift_volatilization():
     [ "chemical:species:Sediment_reversible"    , True                  ],
     [ "chemical:dynamic_partitioning"           , True                  ],
     [ "chemical:transfer_setup"                 , 'organics'            ],
-    [ "chemical:transformations:LogKOW"         , 6                     ],
     [ "chemical:transformations:fOC_SPM"        , 0.1                   ],
     [ "chemical:transformations:LogKOW"         , 2                     ],
     [ "chemical:transformations:DeltaH_KOC_Sed" , 0                     ],
@@ -253,7 +249,7 @@ def test_chemicaldrift_volatilization():
     [ "environment:constant:land_binary_mask"   , 0                     ],
     [ "general:use_auto_landmask"               , False                 ],
     [ "chemical:transformations:degradation"    , False                 ],
-    [ "chemical:transformations:volatilization" , True                 ],
+    [ "chemical:transformations:volatilization" , True                  ],
     ]
 
     # possible to specify lists of different constant readers values
@@ -261,7 +257,10 @@ def test_chemicaldrift_volatilization():
     readers = [
     [ "spm"                                     , 0.1                   ],
     [ "x_sea_water_velocity"                    , 0                     ],
-    [ "y_sea_water_velocity"                    , 0                     ]]
+    [ "y_sea_water_velocity"                    , 0                     ],
+    [ "x_wind"                                  , [5,10]                ],
+    [ "y_wind"                                  , 0                     ],
+    ]
 
     # Build list of ChemicalDrift objecs with different parameters
     o=list()
@@ -281,10 +280,10 @@ def test_chemicaldrift_volatilization():
             for j in range(len(o)):
                 o[j].set_config(configs[i][0],configs[i][1])
 
-    # seed in the middle of the Altantic Ocean
-    lonmin=-50
-    lonmax=-50+1
-    lat=25
+    # seed in the middle of the Atlantic Ocean
+    lonmin=0
+    lonmax=0+1
+    lat=0
 
     r=list()
     for i in range(len(readers)):
@@ -302,23 +301,131 @@ def test_chemicaldrift_volatilization():
     for j in range(len(o)):
         iniz=np.random.rand(ntraj) * -10. # seeding the chemicals in the upper 10m
         for k in range(lonmax-lonmin):
-            o[j].seed_elements(lon=lonmin+0.5+k, lat=lat, time=datetime(2015, 1, 1, 0), z=iniz, number=ntraj, radius=20000)
+            o[j].seed_elements(lon=lonmin+0.5+k, lat=lat, time=datetime(2015, 1, 1, 0), z=iniz, number=ntraj, radius=1000., mass=1.)
 
-        o[j].run(duration=timedelta(hours=24*days),time_step=60*60*24*100,time_step_output=60*60*24*100)
+        o[j].run(duration=timedelta(hours=24*days),time_step=60*60*24*1,time_step_output=60*60*24*1)
 
     # Show actual computed values (use --show-capture=stdout option in pytest)
     for j in range(len(o)):
         print("run ", j)
-        print("mass: ", sum(o[j].result.mass.values ))
-        print("volatilized : ", sum(o[j].result.mass_volatilized.values ))
-        print("total: ", sum(o[j].result.mass.values) + sum(o[j].result.mass_volatilized.values ))
-        print("dissolved: ", sum(o[j].result.specie.values==0 ))        
+        print("mass: ", o[j].result.mass.values )
+        print("volatilized : ", o[j].result.mass_volatilized.values )
+        print("total: ", o[j].result.mass.values + o[j].result.mass_volatilized.values)
+        print("wind: ", o[j].result.x_wind.values )
 
     #assert 0
     
-    # Check t12 500
-    assert abs(sum(o[0].result.mass.values)[-1] - 59328.223) < 0.01
-    assert abs(sum(o[0].result.mass_volatilized.values)[-1] - 140672.05) < 0.01
+    # Check trajectory 0, wind 5 m/s
+    assert abs( o[0].result.mass_volatilized.sel(trajectory=0,time='2015-01-03') - 0.03400866) < 1e-5
+
+    # Check trajectory 2, wind 10 m/2, stronger volatilization
+    assert abs( o[0].result.mass_volatilized.sel(trajectory=2,time='2015-01-03') - 0.11619269) < 1e-5
     
-    # Check mass conservation residual + degraded = total
-    assert abs(sum(o[0].result.mass.values)[-1] + sum(o[0].result.mass_volatilized.values)[-1] - 200000) < 0.5
+    # Check mass conservation mass residual + mass volatilized = initial = 1
+    # for all trajectories
+    assert np.all(o[0].result.mass.values + o[0].result.mass_volatilized.values == 1 )
+
+
+def test_chemicaldrift_write_concentration_map():
+    import os
+
+    def delete_file(file_path):
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    o = ChemicalDrift(loglevel=0, seed=0)
+
+    mixed_layer = ConstantReader({'ocean_mixed_layer_thickness': 40})
+    u = ConstantReader({'x_sea_water_velocity' : 0})
+    v = ConstantReader({'y_sea_water_velocity' : 0})
+    o.add_reader([u,v,mixed_layer])
+
+    o.set_config('environment:constant:land_binary_mask',0)
+    o.set_config('general:use_auto_landmask', False)
+    o.set_config("drift:horizontal_diffusivity", 10)
+    o.set_config("seed:LMM_fraction",1)
+    o.set_config("seed:particle_fraction",0)
+    o.set_config("chemical:dynamic_partitioning", False)
+    o.init_chemical_compound("Copper")
+
+    # Seeding 500 lagrangian elements each representign 2mg og target chemical
+
+    time = datetime(1976, 4, 14, 0, 0)
+
+    ntraj=500
+    mass=2e3
+    import numpy as np
+    iniz=np.random.rand(ntraj) * -10. # seeding the chemicals in the upper 10m
+
+    o.seed_elements(0., 0., z=iniz, radius=2000,number=ntraj,time=time, mass=mass) 
+
+    # Running model
+    #
+    # if we want to test that it works also after saving the output file and reloading
+    #
+    # o.run(steps=10, time_step=1800, time_step_output=1800, outfile="tmp_test_chemicaldrift_output.nc",export_buffer_length=5)
+    # del(o)
+    # import opendrift
+    # o=opendrift.open("tmp_test_chemicaldrift_output.nc")
+
+    o.run(steps=10, time_step=60*60*24, time_step_output=60*60*24)
+
+    # Define the grid
+    lat = np.linspace(-2., 2., 100)
+    lon = np.linspace(-2., 2., 200)
+
+    # Create constant depth data (e.g., 1500 meters everywhere)
+    depth = np.full((len(lat), len(lon)), 1500.0)
+
+    # Create the dataset
+    ds_depth = xr.Dataset(
+        {
+            "sea_floor_depth_below_sea_level": (["lat", "lon"], depth)
+        },
+        coords={
+            "lat": lat,
+            "lon": lon,
+        },
+    )
+
+    # Add attributes
+    ds_depth["sea_floor_depth_below_sea_level"].attrs["units"] = "m"
+    ds_depth["sea_floor_depth_below_sea_level"].attrs["standard_name"] = "sea_floor_depth_below_sea_level"
+
+    bathymetry_file="tmp_test_chemicaldrift_bathymetry.nc"
+    delete_file(bathymetry_file)
+    ds_depth.to_netcdf(bathymetry_file)
+    
+    concentration_file="tmp_test_chemicaldrift_concentgration.nc"
+    delete_file(concentration_file)
+    o.write_netcdf_chemical_density_map(concentration_file, pixelsize_m=1000.,
+                                             zlevels=None,
+                                             mass_unit='ug',
+                                             horizontal_smoothing=False,
+                                             smoothing_cells=1,
+                                             time_avg_conc=True,
+                                             deltat=24, # hours
+                                             llcrnrlon=-1., llcrnrlat=-1.,
+                                             urcrnrlon=1., urcrnrlat=1.,
+                                             reader_sea_depth='./'+bathymetry_file)
+    
+    # Check that the concentration file is created
+
+    assert os.path.exists(concentration_file)
+    ds=xr.open_dataset(concentration_file)
+
+    # Check for each timestep that the mass in conserved
+    # total mass = sum_for_all_cells of concentration x volume )
+
+    for time in ds.concentration_avg.avg_time:
+        assert np.sum(ds.concentration_avg.sel(avg_time=time).sum(dim='specie')*ds.volume) == (ntraj*mass)
+    
+    # Check that, due to diffusion, the number of cells with concentration > 0 increase at each time step
+
+    cells=[]
+    for time in ds.avg_time:
+        cells.append(np.sum(ds.sel(avg_time=time,depth=0,specie=0).concentration_avg.data>0))
+    assert all(x < y for x, y in zip(cells, cells[1:]))
+
+    delete_file(concentration_file)
+    delete_file(bathymetry_file)
