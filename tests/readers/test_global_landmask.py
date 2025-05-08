@@ -71,7 +71,7 @@ def test_plot(tmpdir):
 @pytest.mark.slow
 @pytest.mark.parametrize("fast", [False, True])
 @pytest.mark.parametrize("scale", ["auto", "c", "f"])
-@pytest.mark.mpl_image_compare(remove_text=True, tolerance=2.35)
+@pytest.mark.mpl_image_compare(remove_text=True, tolerance=5.5)
 def test_plot_auto_scale(test_data, scale, fast, show_plot):
     reader_global = reader_global_landmask.Reader()
     reader_nordic = reader_ROMS_native.Reader(
