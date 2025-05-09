@@ -897,14 +897,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def closest_ocean_points(self, lon, lat):
         """Return the closest ocean points for given lon, lat"""
+        from opendrift.readers.reader_shape import Reader as ShapeReader
 
-        deltalon = 0.01  # grid
-        deltalat = 0.01
-        numbuffer = 10
-        lonmin = lon.min() - deltalon * numbuffer
-        lonmax = lon.max() + deltalon * numbuffer
-        latmin = lat.min() - deltalat * numbuffer
-        latmax = lat.max() + deltalat * numbuffer
         if not 'land_binary_mask' in self.env.priority_list:
             logger.info('No land reader added, '
                         'making a temporary landmask reader')
@@ -925,47 +919,67 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             land_reader = self.env.readers[land_reader_name]
             o = self
 
-        land = o.env.get_environment(['land_binary_mask'],
-                                     lon=lon,
-                                     lat=lat,
-                                     z=0 * lon,
-                                     time=land_reader.start_time)[0]['land_binary_mask']
-        if land.max() == 0:
-            logger.info('All points are in ocean')
-            return lon, lat
-        logger.info('Moving %i out of %i points from land to water' %
-                    (np.sum(land != 0), len(lon)))
-        landlons = lon[land != 0]
-        landlats = lat[land != 0]
-        longrid = np.arange(lonmin, lonmax, deltalon)
-        latgrid = np.arange(latmin, latmax, deltalat)
-        longrid, latgrid = np.meshgrid(longrid, latgrid)
-        longrid = longrid.ravel()
-        latgrid = latgrid.ravel()
-        # Remove grid-points not covered by this reader
-        latgrid_covered = land_reader.covers_positions(longrid, latgrid)[0]
-        longrid = longrid[latgrid_covered]
-        latgrid = latgrid[latgrid_covered]
-        landgrid = o.env.get_environment(['land_binary_mask'],
-                                         lon=longrid,
-                                         lat=latgrid,
-                                         z=0 * longrid,
-                                         time=land_reader.start_time)[0]['land_binary_mask']
-        if landgrid.min() == 1 or np.isnan(landgrid.min()):
-            logger.warning('No ocean pixels nearby, cannot move elements.')
-            if land.min() == 1:
-                raise ValueError('All elements seeded on land')
-            return lon, lat
+        if isinstance(land_reader, ShapeReader):
+            # can do this better
+            is_inside = land_reader.__on_land__(lon, lat)
+            lon[is_inside], lat[is_inside], _ = land_reader.get_nearest_outside(
+                lon[is_inside],
+                lat[is_inside],
+                buffer_distance=land_reader._land_kdtree_buffer_distance,
+            )
 
-        oceangridlons = longrid[landgrid == 0]
-        oceangridlats = latgrid[landgrid == 0]
-        tree = scipy.spatial.cKDTree(
-            np.dstack([oceangridlons, oceangridlats])[0])
-        landpoints = np.dstack([landlons, landlats])
-        _dist, indices = tree.query(landpoints)
-        indices = indices.ravel()
-        lon[land != 0] = oceangridlons[indices]
-        lat[land != 0] = oceangridlats[indices]
+        else:
+            deltalon = 0.01  # grid
+            deltalat = 0.01
+            numbuffer = 10
+            lonmin = lon.min() - deltalon * numbuffer
+            lonmax = lon.max() + deltalon * numbuffer
+            latmin = lat.min() - deltalat * numbuffer
+            latmax = lat.max() + deltalat * numbuffer
+
+            land = o.env.get_environment(['land_binary_mask'],
+                                        lon=lon,
+                                        lat=lat,
+                                        z=0 * lon,
+                                        time=land_reader.start_time)[0]['land_binary_mask']
+            if land.max() == 0:
+                logger.info('All points are in ocean')
+                return lon, lat
+            logger.info('Moving %i out of %i points from land to water' %
+                        (np.sum(land != 0), len(lon)))
+            landlons = lon[land != 0]
+            landlats = lat[land != 0]
+            longrid = np.arange(lonmin, lonmax, deltalon)
+            latgrid = np.arange(latmin, latmax, deltalat)
+            longrid, latgrid = np.meshgrid(longrid, latgrid)
+            longrid = longrid.ravel()
+            latgrid = latgrid.ravel()
+            # Remove grid-points not covered by this reader
+            latgrid_covered = land_reader.covers_positions(longrid, latgrid)[0]
+            longrid = longrid[latgrid_covered]
+            latgrid = latgrid[latgrid_covered]
+            landgrid = o.env.get_environment(['land_binary_mask'],
+                                            lon=longrid,
+                                            lat=latgrid,
+                                            z=0 * longrid,
+                                            time=land_reader.start_time)[0]['land_binary_mask']
+            if landgrid.size == 0:
+                # Need to catch this before trying .min() on it...
+                logger.warning('Land grid has zero size, cannot move elements.')
+                return lon, lat                                        
+            if landgrid.min() == 1 or np.isnan(landgrid.min()):
+                logger.warning('No ocean pixels nearby, cannot move elements.')
+                return lon, lat
+
+            oceangridlons = longrid[landgrid == 0]
+            oceangridlats = latgrid[landgrid == 0]
+            tree = scipy.spatial.cKDTree(
+                np.dstack([oceangridlons, oceangridlats])[0])
+            landpoints = np.dstack([landlons, landlats])
+            _dist, indices = tree.query(landpoints)
+            indices = indices.ravel()
+            lon[land != 0] = oceangridlons[indices]
+            lat[land != 0] = oceangridlats[indices]
 
         return lon, lat
 
@@ -1445,157 +1459,162 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.seed_elements(lonpoints, latpoints, number=number, **kwargs)
 
     @require_mode(mode=Mode.Ready)
-    def seed_from_wkt(self, wkt, number=None, **kwargs):
+    def seed_from_wkt(self, wkts, time, **kwargs):
         """Seeds elements within (multi)polygons from WKT"""
-
-        try:
-            from osgeo import ogr, osr
-        except Exception as e:
-            logger.warning(e)
-            raise ValueError('OGR library is needed to parse WKT')
-
-        if number is None:
-            number = self.get_config('seed:number')
-
-        geom = ogr.CreateGeometryFromWkt(wkt)
-        total_area = 0
-        for i in range(0, geom.GetGeometryCount()):
-            g = geom.GetGeometryRef(i)
-            total_area += g.GetArea()
-
-        logger.info('Total area of all polygons: %s m2' % total_area)
-        num_seeded = 0
-        for i in range(0, geom.GetGeometryCount()):
-            g = geom.GetGeometryRef(i)
-            num_elements = int(number * g.GetArea() / total_area)
-            if i == geom.GetGeometryCount() - 1:
-                # For the last feature we seed the remaining number,
-                # avoiding difference due to rounding:
-                num_elements = number - num_seeded
-            logger.info('\tSeeding %s elements within polygon number %s' %
-                        (num_elements, str(i)))
-            try:
-                g.Transform(coordTrans)
-            except:
-                pass
-            b = g.GetBoundary()
-            if b is not None:
-                points = b.GetPoints()
-                lons = [p[0] for p in points]
-                lats = [p[1] for p in points]
-            else:
-                # Alternative if OGR is not built with GEOS support
-                r = g.GetGeometryRef(0)
-                lons = [r.GetX(j) for j in range(r.GetPointCount())]
-                lats = [r.GetY(j) for j in range(r.GetPointCount())]
-
-            self.seed_within_polygon(lons=lons,
-                                     lats=lats,
-                                     number=num_elements,
-                                     **kwargs)
-            num_seeded += num_elements
+        from shapely import wkt
+        import geopandas as gpd  # Local import as this is not a requirement
+        df = pd.DataFrame({'id': [0], 'geometry': wkts})
+        df['geometry'] = df['geometry'].apply(wkt.loads)
+        gdf = gpd.GeoDataFrame(df, geometry='geometry')
+        if gdf.crs is None:
+            gdf = gdf.set_crs(4326, allow_override=True)
+        self.seed_from_geopandas(gdf, time, **kwargs)
 
     @require_mode(mode=Mode.Ready)
     def seed_from_shapefile(self,
                             shapefile,
-                            number,
-                            layername=None,
-                            featurenum=None,
+                            time,
                             **kwargs):
-        """Seeds elements within contours read from a shapefile"""
+        """Seeds elements within polygons of a shapefile"""
 
-        try:
-            from osgeo import ogr, osr
-        except Exception as e:
-            logger.warning(e)
-            raise ValueError('OGR library is needed to read shapefiles.')
+        import geopandas as gpd  # Local import as this is not a requirement
+        geodataframe = gpd.read_file(shapefile)
+        self.seed_from_geopandas(geodataframe, time, **kwargs)
 
-        if 'timeformat' in kwargs:
-            # Recondstructing time from filename, where 'timeformat'
-            # is forwarded to datetime.strptime()
-            kwargs['time'] = datetime.strptime(os.path.basename(shapefile),
-                                               kwargs['timeformat'])
-            del kwargs['timeformat']
+    @require_mode(mode=Mode.Ready)
+    def seed_from_geopandas(self,
+                            geodataframe,
+                            time,
+                            **kwargs):
+        """Seeds elements within polygons of a GeoPandas DataFrame"""
 
-        num_seeded_before = self.num_elements_scheduled()
+        if 'number' not in kwargs:
+            number = self.get_config('seed:number')
+        else:
+            number = kwargs.pop('number')
 
-        targetSRS = osr.SpatialReference()
-        targetSRS.ImportFromEPSG(4326)
-        try:
-            s = ogr.Open(shapefile)
-        except:
-            s = shapefile
+        g = geodataframe
+        ga = g.to_crs({'proj':'cea'})  # Equal area projection for area calculation
+        g_lonlat = g.to_crs({'proj':'lonlat'})  # Lonlat projection to get lon and lat
+        
+        areas = np.array([p.area for p in ga.geometry.explode(index_parts=False)])
+        logger.info(f'Seeding {number} elements within {len(areas)} polygons')
 
-        for layer in s:
-            if layername is not None and layer.GetName() != layername:
-                logger.info('Skipping layer: ' + layer.GetName())
-                continue
-            else:
-                logger.info('Seeding for layer: %s (%s features)' %
-                            (layer.GetDescription(), layer.GetFeatureCount()))
+        total_area = np.sum(areas)
+        number_per_polygon = np.array([round(a/total_area*number) for a in areas])
+        number_per_polygon[number_per_polygon.argmax()] += int(number - sum(number_per_polygon))
+        
+        for e, (n, polygon) in enumerate(zip(number_per_polygon, g_lonlat.geometry.explode(index_parts=False))):
+            logger.info(f'Seeding {n} elements within polygon number {e+1} of area {areas[e]/1e6} km2')
+            lons, lats = polygon.exterior.coords.xy
+            self.seed_within_polygon(lons=lons,
+                                     lats=lats,
+                                     number=n,
+                                     time=time,
+                                     **kwargs)
 
-            coordTrans = osr.CoordinateTransformation(layer.GetSpatialRef(),
-                                                      targetSRS)
+    # @require_mode(mode=Mode.Ready)
+    # def seed_from_shapefile_old(self,
+    #                         shapefile,
+    #                         number,
+    #                         layername=None,
+    #                         featurenum=None,
+    #                         **kwargs):
+    #     """Seeds elements within contours read from a shapefile
+        
+    #         Obsolete, as new method based on geopandas is simpler"""
 
-            if featurenum is None:
-                featurenum = range(1, layer.GetFeatureCount() + 1)
-            else:
-                featurenum = np.atleast_1d(featurenum)
-            if max(featurenum) > layer.GetFeatureCount():
-                raise ValueError('Only %s features in layer.' %
-                                 layer.GetFeatureCount())
+    #     try:
+    #         from osgeo import ogr, osr
+    #     except Exception as e:
+    #         logger.warning(e)
+    #         raise ValueError('OGR library is needed to read shapefiles.')
 
-            # Loop first through all features to determine total area
-            layer.ResetReading()
-            area_srs = osr.SpatialReference()
-            area_srs.ImportFromEPSG(3857)
-            areaTransform = osr.CoordinateTransformation(
-                layer.GetSpatialRef(), area_srs)
+    #     if 'timeformat' in kwargs:
+    #         # Recondstructing time from filename, where 'timeformat'
+    #         # is forwarded to datetime.strptime()
+    #         kwargs['time'] = datetime.strptime(os.path.basename(shapefile),
+    #                                            kwargs['timeformat'])
+    #         del kwargs['timeformat']
 
-            areas = np.zeros(len(featurenum))
-            for i, f in enumerate(featurenum):
-                feature = layer.GetFeature(f - 1)  # Note 1-indexing, not 0
-                if feature is not None:
-                    gom = feature.GetGeometryRef().Clone()
-                    gom.Transform(areaTransform)
-                    areas[i] = gom.GetArea()
+    #     num_seeded_before = self.num_elements_scheduled()
 
-            total_area = np.sum(areas)
-            layer.ResetReading()  # Rewind to first layer
-            logger.info('Total area of all polygons: %s m2' % total_area)
-            # Find number of points per polygon
-            numbers = np.round(number * areas / total_area).astype(int)
-            numbers[numbers.argmax()] += int(number - sum(numbers))
+    #     targetSRS = osr.SpatialReference()
+    #     targetSRS.ImportFromEPSG(4326)
+    #     try:
+    #         s = ogr.Open(shapefile)
+    #     except:
+    #         s = shapefile
 
-            for i, f in enumerate(featurenum):
-                feature = layer.GetFeature(f - 1)
-                if feature is None:
-                    continue
-                num_elements = numbers[i]
-                geom = feature.GetGeometryRef()
-                logger.info('\tSeeding %s elements within polygon number %s' %
-                            (num_elements, featurenum[i]))
-                try:
-                    geom.Transform(coordTrans)
-                except Exception as e:
-                    logger.warning('Could not transform coordinates:')
-                    logger.warning(e)
-                    pass
-                #b = geom.GetBoundary()
-                #if b is not None:
-                #    points = b.GetPoints()
-                #    lons = [p[0] for p in points]
-                #    lats = [p[1] for p in points]
-                #else:
-                # Alternative if OGR is not built with GEOS support
-                r = geom.GetGeometryRef(0)
-                lons = [r.GetY(j) for j in range(r.GetPointCount())]
-                lats = [r.GetX(j) for j in range(r.GetPointCount())]
+    #     for layer in s:
+    #         if layername is not None and layer.GetName() != layername:
+    #             logger.info('Skipping layer: ' + layer.GetName())
+    #             continue
+    #         else:
+    #             logger.info('Seeding for layer: %s (%s features)' %
+    #                         (layer.GetDescription(), layer.GetFeatureCount()))
 
-                self.seed_within_polygon(lons=lons,
-                                         lats=lats,
-                                         number=num_elements,
-                                         **kwargs)
+    #         coordTrans = osr.CoordinateTransformation(layer.GetSpatialRef(),
+    #                                                   targetSRS)
+
+    #         if featurenum is None:
+    #             featurenum = range(1, layer.GetFeatureCount() + 1)
+    #         else:
+    #             featurenum = np.atleast_1d(featurenum)
+    #         if max(featurenum) > layer.GetFeatureCount():
+    #             raise ValueError('Only %s features in layer.' %
+    #                              layer.GetFeatureCount())
+
+    #         # Loop first through all features to determine total area
+    #         layer.ResetReading()
+    #         area_srs = osr.SpatialReference()
+    #         area_srs.ImportFromEPSG(3857)
+    #         areaTransform = osr.CoordinateTransformation(
+    #             layer.GetSpatialRef(), area_srs)
+
+    #         areas = np.zeros(len(featurenum))
+    #         for i, f in enumerate(featurenum):
+    #             feature = layer.GetFeature(f - 1)  # Note 1-indexing, not 0
+    #             if feature is not None:
+    #                 gom = feature.GetGeometryRef().Clone()
+    #                 gom.Transform(areaTransform)
+    #                 areas[i] = gom.GetArea()
+
+    #         total_area = np.sum(areas)
+    #         layer.ResetReading()  # Rewind to first layer
+    #         logger.info('Total area of all polygons: %s m2' % total_area)
+    #         # Find number of points per polygon
+    #         numbers = np.round(number * areas / total_area).astype(int)
+    #         numbers[numbers.argmax()] += int(number - sum(numbers))
+
+    #         for i, f in enumerate(featurenum):
+    #             feature = layer.GetFeature(f - 1)
+    #             if feature is None:
+    #                 continue
+    #             num_elements = numbers[i]
+    #             geom = feature.GetGeometryRef()
+    #             logger.info(f'\tSeeding {num_elements} elements within polygon number {featurenum[i]} of area {areas[i]} m3')
+    #             try:
+    #                 geom.Transform(coordTrans)
+    #             except Exception as e:
+    #                 logger.warning('Could not transform coordinates:')
+    #                 logger.warning(e)
+    #                 pass
+    #             #b = geom.GetBoundary()
+    #             #if b is not None:
+    #             #    points = b.GetPoints()
+    #             #    lons = [p[0] for p in points]
+    #             #    lats = [p[1] for p in points]
+    #             #else:
+    #             # Alternative if OGR is not built with GEOS support
+    #             r = geom.GetGeometryRef(0)
+    #             lons = [r.GetY(j) for j in range(r.GetPointCount())]
+    #             lats = [r.GetX(j) for j in range(r.GetPointCount())]
+
+    #             self.seed_within_polygon(lons=lons,
+    #                                      lats=lats,
+    #                                      number=num_elements,
+    #                                      **kwargs)
 
     @require_mode(mode=Mode.Ready)
     def seed_letters(self, text, lon, lat, time, number, scale=1.2):

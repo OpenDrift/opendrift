@@ -3,15 +3,16 @@ channels:
   - conda-forge
 dependencies:
   - matplotlib>=3.5
-  - numpy<2.0
-  - scipy>=1.6
-  - netcdf4<=1.6.1
+  - numpy>2.2
+  - scipy>=1.14
+  - netcdf4>=1.7.2
   - ffmpeg
   - pyproj>=2.3
   - libgdal>=3.1
   - gdal>=3.1
   - xarray
   - dask
+  - geopandas
   - cfgrib
   - cf_xarray
   - pygrib
@@ -34,5 +35,6 @@ dependencies:
   - copernicusmarine>=2.0
   - bottleneck
   - pip
+  - git
   - pip:
     - git+http://github.com/OpenDrift/trajan.git

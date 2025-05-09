@@ -48,20 +48,20 @@ commands:
 
       - run:
           name: Install requirements
-          no_output_timeout: 30m
+          no_output_timeout: 60m
           command: |
             if [ ! -e /opt/conda/envs/opendrift ]; then
               if [ -v PYTHON_VERSION ]; then
                 echo "Pinning python: ${PYTHON_VERSION}."
                 # pin python
-                mamba create -c conda-forge -n opendrift -q -y "python=${PYTHON_VERSION}"
+                mamba create -c conda-forge -n opendrift -y "python=${PYTHON_VERSION}"
 
                 echo "python ${PYTHON_VERSION}.*" > /opt/conda/envs/opendrift/conda-meta/pinned
                 cat /opt/conda/envs/opendrift/conda-meta/pinned
 
-                mamba env update -n opendrift -q -f environment.yml
+                mamba env update -n opendrift -f environment.yml
               else
-                mamba env create -q --file environment.yml
+                mamba env create --file environment.yml
               fi
 
               source activate opendrift
@@ -116,7 +116,7 @@ jobs:
     docker:
       - image: condaforge/miniforge3
     environment:
-      - PYTHON_VERSION=3.11
+      - PYTHON_VERSION=3.13
 
     steps:
       - checkout
@@ -144,7 +144,7 @@ jobs:
     docker:
       - image: condaforge/miniforge3
     environment:
-      - PYTHON_VERSION=3.11
+      - PYTHON_VERSION=3.13
 
     steps:
       - checkout
@@ -166,6 +166,12 @@ jobs:
               source activate opendrift
               twine upload --verbose --skip-existing -u __token__ -p ${PYPI_TOKEN} dist/*
             fi
+
+  python_313:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.13
 
   python_312:
     <<: *test-template
@@ -197,7 +203,7 @@ jobs:
       - image: condaforge/miniforge3
     parallelism: 20
     environment:
-      - PYTHON_VERSION=3.11  # 3.12 still not working due to locked netCDF
+      - PYTHON_VERSION=3.13
     steps:
       - checkout
       - run:
@@ -294,7 +300,7 @@ jobs:
     docker:
       - image: condaforge/miniforge3
     environment:
-      - PYTHON_VERSION=3.11  # 3.12 still not working due to locked netCDF
+      - PYTHON_VERSION=3.13
     steps:
       - checkout
 
@@ -418,7 +424,8 @@ workflows:
 
   test-and-package:
     jobs:
-      - python_312 # disabled because of missing netcdf dependency
+      - python_313
+      - python_312
       - python_311
       - python_310
       # - python_39

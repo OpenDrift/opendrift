@@ -12,11 +12,12 @@ authors = [
   { name = "Gaute Hope", email = "gauteh@met.no" }]
 dependencies = [
   "matplotlib>=3.5",
-  "numpy<=1.26.4",
+  "numpy>=2.2",
   "scipy>=1.9",
-  "netCDF4>=1.6",
+  "netCDF4>=1.7.2",
   "pyproj>=2.3",
   "xarray>=2022.6.0",
+  "geopandas>=0.14",
   "cmocean>=2.0",
   "geojson>=2.5",
   "nc-time-axis>=1.4",
