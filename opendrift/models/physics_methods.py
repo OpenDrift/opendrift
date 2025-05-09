@@ -976,6 +976,8 @@ class PhysicsMethods:
     def sea_surface_height(self):
         '''Sea surface height (positive/negative) for presently active elements'''
 
+        if 'sea_surface_height' not in self.required_variables:
+            return 0
         if hasattr(self, 'environment') and \
                 hasattr(self.environment, 'sea_surface_height'):
             if len(self.environment.sea_surface_height) == \
