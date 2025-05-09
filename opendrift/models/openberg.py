@@ -27,7 +27,7 @@ of icebergs in the Barents Sea from 1987 to 2005, J. Geophys. Res., 115, C12062,
 import logging; logger = logging.getLogger(__name__)
 from opendrift.elements import LagrangianArray
 from opendrift.models.basemodel import OpenDriftSimulation
-from opendrift.config import CONFIG_LEVEL_BASIC
+from opendrift.config import CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ESSENTIAL
 from opendrift.models.physics_methods import PhysicsMethods
 from scipy.integrate import solve_ivp
 import numpy as np
@@ -50,17 +50,25 @@ class IcebergObj(LagrangianArray):
 
     variables = LagrangianArray.add_variables([
         ('sail', {'dtype': np.float32,	           # Sail of iceberg (part above waterline)
-                               'units': 'm',
-                               'default': 10}),
+                  'units': 'm',
+                  'default': 10,
+                  'description': 'Sail of iceberg (part above waterline)',
+                  'level': CONFIG_LEVEL_ESSENTIAL}),
         ('draft', {'dtype': np.float32,	           # Draft of iceberg (part below waterline)
-                               'units': 'm',
-                               'default': 90}),
+                   'units': 'm',
+                   'default': 90,
+                   'description': 'Draft of iceberg (part below waterline)',
+                   'level': CONFIG_LEVEL_ESSENTIAL}),
         ('length', {'dtype': np.float32,	       # length of iceberg 
-                               'units': 'm',
-                               'default': 100}),
+                    'units': 'm',
+                    'default': 100,
+                    'description': 'Length of iceberg',
+                    'level': CONFIG_LEVEL_ESSENTIAL}),
         ('width', {'dtype': np.float32,		       # width of iceberg 
-                               'units': 'm',
-                               'default': 30}),
+                   'units': 'm',
+                   'default': 30,
+                   'description': 'Width of iceberg)',
+                   'level': CONFIG_LEVEL_ESSENTIAL}),
         ('weight_coeff', {'dtype': np.float32,     # Relative to the shape of iceberg (e.g. 1 for tabular; 0.3 for pinnacle: It affects the mass only !)
                               'units': '1',
                               'default': 1}),
