@@ -1697,12 +1697,13 @@ class ChemicalDrift(OceanDrift):
                 W =   (self.elements.specie == self.num_lmm) \
                     + (self.elements.specie == self.num_humcol)
 
-                TW=self.environment.sea_water_temperature[W]
-                TW[TW==0]=np.median(TW)
+                if np.any(W):
+                    TW=self.environment.sea_water_temperature[W]
+                    TW[TW==0]=np.median(TW)
 
-                k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
+                    k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
 
-                degraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.total_seconds()))
+                    degraded_now[W] = self.elements.mass[W] * (1-np.exp(-k_W_fin * self.time_step.total_seconds()))
 
                 # Degradation in the sediments
 
@@ -1713,12 +1714,13 @@ class ChemicalDrift(OceanDrift):
                 S =   (self.elements.specie == self.num_srev) \
                     + (self.elements.specie == self.num_ssrev)
 
-                TS=self.environment.sea_water_temperature[S]
-                TS[TS==0]=np.median(TS)
+                if np.any(S):
+                    TS=self.environment.sea_water_temperature[S]
+                    TS[TS==0]=np.median(TS)
 
-                k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
+                    k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
 
-                degraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.total_seconds()))
+                    degraded_now[S] = self.elements.mass[S] * (1-np.exp(-k_S_fin * self.time_step.total_seconds()))
 
             self.elements.mass_degraded_water[W] = self.elements.mass_degraded_water[W] + degraded_now[W]
             self.elements.mass_degraded_sediment[S] = self.elements.mass_degraded_sediment[S] + degraded_now[S]
