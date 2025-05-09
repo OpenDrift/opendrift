@@ -49,22 +49,22 @@ class IcebergObj(LagrangianArray):
     """ Extending Lagrangian3DArray with relevant properties for an Iceberg """
 
     variables = LagrangianArray.add_variables([
-        ('sail', {'dtype': np.float32,	           # Sail of iceberg (part above waterline)
+        ('sail', {'dtype': np.float32,
                   'units': 'm',
                   'default': 10,
                   'description': 'Sail of iceberg (part above waterline)',
                   'level': CONFIG_LEVEL_ESSENTIAL}),
-        ('draft', {'dtype': np.float32,	           # Draft of iceberg (part below waterline)
+        ('draft', {'dtype': np.float32,
                    'units': 'm',
                    'default': 90,
                    'description': 'Draft of iceberg (part below waterline)',
                    'level': CONFIG_LEVEL_ESSENTIAL}),
-        ('length', {'dtype': np.float32,	       # length of iceberg 
+        ('length', {'dtype': np.float32,
                     'units': 'm',
                     'default': 100,
                     'description': 'Length of iceberg',
                     'level': CONFIG_LEVEL_ESSENTIAL}),
-        ('width', {'dtype': np.float32,		       # width of iceberg 
+        ('width', {'dtype': np.float32,
                    'units': 'm',
                    'default': 30,
                    'description': 'Width of iceberg)',
@@ -278,8 +278,8 @@ class OpenBerg(OpenDriftSimulation):
         "sea_floor_depth_below_sea_level": {"fallback": 10000},
         "sea_surface_x_slope": {"fallback": 0},
         "sea_surface_y_slope": {"fallback": 0},
-        "x_wind": {"fallback": 0, "important": False},
-        "y_wind": {"fallback": 0, "important": False},
+        "x_wind": {"fallback": None, "important": True},
+        "y_wind": {"fallback": None, "important": True},
         "sea_surface_wave_significant_height": {"fallback": 0},
         "sea_surface_wave_from_direction": {"fallback": 0},
         "sea_surface_wave_stokes_drift_x_velocity": {"fallback": 0},
