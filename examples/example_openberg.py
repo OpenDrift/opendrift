@@ -17,11 +17,10 @@ o.add_readers_from_list([
         'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
 
 
-o.seed_elements(lon= -56,lat= 72,time=datetime.now(),
+o.seed_elements(lon=-56, lat=72, time=datetime.now(),
                 number=100, radius=500,
                 sail=10,draft=50,length=90,width=40)
 
 o.run(duration=timedelta(days=3))
 o.plot(fast=True)
 o.plot_property('draft')
-

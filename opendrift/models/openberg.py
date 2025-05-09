@@ -25,7 +25,8 @@ of icebergs in the Barents Sea from 1987 to 2005, J. Geophys. Res., 115, C12062,
 """
 
 import logging; logger = logging.getLogger(__name__)
-from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
+from opendrift.elements import LagrangianArray
+from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.config import CONFIG_LEVEL_BASIC
 from opendrift.models.physics_methods import PhysicsMethods
 from scipy.integrate import solve_ivp
@@ -44,10 +45,10 @@ wave_drag_coef = 0.3 # Wave drag coefficient
 
 
 
-class IcebergObj(Lagrangian3DArray):
+class IcebergObj(LagrangianArray):
     """ Extending Lagrangian3DArray with relevant properties for an Iceberg """
 
-    variables = Lagrangian3DArray.add_variables([
+    variables = LagrangianArray.add_variables([
         ('sail', {'dtype': np.float32,	           # Sail of iceberg (part above waterline)
                                'units': 'm',
                                'default': 10}),
@@ -259,7 +260,7 @@ def melbas(iceb_draft, iceb_sail, iceb_length, salnib, tempib, x_water_vel, y_wa
     return new_iceb_draft, iceb_sail
 
 
-class OpenBerg(OceanDrift):
+class OpenBerg(OpenDriftSimulation):
 
     ElementType = IcebergObj
 
@@ -415,11 +416,11 @@ class OpenBerg(OceanDrift):
         
                 
         if self.get_config('drift:vertical_profile') is False:
-            logger.info("Surface Currents ...")
+            logger.debug("Advection with surface currents")
             water_vel = np.array([self.environment.x_sea_water_velocity + (int(stokes_drift) * self.environment.sea_surface_wave_stokes_drift_x_velocity),
                                   self.environment.y_sea_water_velocity + (int(stokes_drift) * self.environment.sea_surface_wave_stokes_drift_y_velocity)])
         else:
-            logger.info("Depth Integrated Currents ...")
+            logger.debug("Advection with depth integrated currents")
             uprof = self.get_profile_masked("x_sea_water_velocity")
             vprof = self.get_profile_masked("y_sea_water_velocity")
             z = self.environment_profiles["z"]
