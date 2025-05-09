@@ -1214,10 +1214,10 @@ class ChemicalDrift(OceanDrift):
                 # filtering out zero values from temperature and salinity
                 # TODO: Find out if problem is in the reader or in the data
                 temperature=self.environment.sea_water_temperature
-                temperature[temperature==0]=np.median(temperature)
+                #temperature[temperature==0]=np.median(temperature)
 
                 salinity=self.environment.sea_water_salinity
-                salinity[salinity==0]=np.median(salinity)
+                #salinity[salinity==0]=np.median(salinity)
 
                 KOWTref    = self.get_config('chemical:transformations:TrefKOW')
                 DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
@@ -1303,10 +1303,10 @@ class ChemicalDrift(OceanDrift):
                 # filtering out zero values from temperature and salinity
                 # TODO: Find out if problem is in the reader or in the data
                 temperature=self.environment.sea_water_temperature
-                temperature[temperature==0]=np.median(temperature)
+                #temperature[temperature==0]=np.median(temperature)
 
                 salinity=self.environment.sea_water_salinity
-                salinity[salinity==0]=np.median(salinity)
+                #salinity[salinity==0]=np.median(salinity)
 
                 KOWTref    = self.get_config('chemical:transformations:TrefKOW')
                 DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
@@ -1699,7 +1699,7 @@ class ChemicalDrift(OceanDrift):
 
                 if np.any(W):
                     TW=self.environment.sea_water_temperature[W]
-                    TW[TW==0]=np.median(TW)
+                    #TW[TW==0]=np.median(TW)
 
                     k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
 
@@ -1716,7 +1716,7 @@ class ChemicalDrift(OceanDrift):
 
                 if np.any(S):
                     TS=self.environment.sea_water_temperature[S]
-                    TS[TS==0]=np.median(TS)
+                    #TS[TS==0]=np.median(TS)
 
                     k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
 
@@ -1775,7 +1775,7 @@ class ChemicalDrift(OceanDrift):
             mixedlayerdepth = mixedlayerdepth[W]
 
             T=self.environment.sea_water_temperature[W]
-            T[T==0]=np.median(T)                            # temporary fix for missing values
+            #T[T==0]=np.median(T)                            # temporary fix for missing values
 
             S=self.environment.sea_water_salinity[W]
 
