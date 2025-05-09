@@ -1947,7 +1947,7 @@ class ChemicalDrift(OceanDrift):
                                               landmask_shapefile=None,
                                               origin_marker=None,
                                               elements_density=False,
-active_status=False,
+                                              active_status=False,
                                               weight=None):
         '''Write netCDF file with map of Chemical species densities and concentrations
         Arguments:
