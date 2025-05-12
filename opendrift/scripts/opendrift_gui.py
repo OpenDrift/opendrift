@@ -787,8 +787,8 @@ class OpenDriftGUI(tk.Tk):
                     nothing
             self.o.set_config(se, val)
 
-        with files('opendrift.scripts').joinpath('data_sources.txt') as f:
-            self.o.add_readers_from_file(f)
+        forcing_file = str(files('opendrift.scripts').joinpath('data_sources.txt'))
+        self.o.add_readers_from_file(forcing_file)
 
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
                          time=start_time)#, #cone=cone,
