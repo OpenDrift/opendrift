@@ -31,7 +31,6 @@ from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
-from opendrift.models.openberg_old import OpenBergOld
 from opendrift.models.larvalfish import LarvalFish
 
 import opendrift
@@ -148,31 +147,6 @@ class TestModels(unittest.TestCase):
                             o.elements.lon,
                           [5.010873, 5.016866, 5.009735]))
         self.assertAlmostEqual(o.elements.lat[0], o.elements.lat[2], 3)
-
-    def test_openberg(self):
-        """Check if weighting array is set correctly
-        and if model returns expected positions"""
-        o = OpenBergOld()
-        o.set_config('drift:current_uncertainty', 0)
-        o.set_config('drift:wind_uncertainty', 0)
-
-        reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
-                '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-
-        reader_landmask = reader_global_landmask.Reader()
-
-        o.add_reader([reader_current,reader_landmask])
-        o.seed_elements(4.,62.,time=reader_current.start_time)
-        o.run(steps=1)
-
-        arr=[0.16072658,0.16466097,0.17384121,0.17325179,0.1715925,0.15592695]
-
-        for indx in range(len(arr)):
-            self.assertAlmostEqual(o.uw_weighting[indx],arr[indx],7)
-
-        self.assertAlmostEqual(o.result.lon[0][1].values, 3.991, 3)
-        self.assertAlmostEqual(o.result.lat[0][1].values, 62.011, 3)
-
 
 
     def test_larvalfish(self):

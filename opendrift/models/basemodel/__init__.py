@@ -713,17 +713,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if 'sea_floor_depth_below_sea_level' not in self.env.priority_list:
             return
 
-        if not hasattr(self, 'environment'):
-            logger.warning('Seafloor check not being run because environment is missing. '
-                           'This will happen the first time the function is run but if it happens '
-                           'subsequently there is probably a problem.')
-            return
-
-        if not hasattr(self.environment, 'sea_surface_height'):
-            logger.warning('Seafloor check not being run because sea_surface_height is missing. ')
-            return
-
-        # the shape of these is different than the original arrays
+        # The shape of these is different than the original arrays
         # because it is for active drifters
         sea_floor_depth = self.sea_floor_depth()
         sea_surface_height = self.sea_surface_height()

@@ -1214,10 +1214,10 @@ class ChemicalDrift(OceanDrift):
                 # filtering out zero values from temperature and salinity
                 # TODO: Find out if problem is in the reader or in the data
                 temperature=self.environment.sea_water_temperature
-                temperature[temperature==0]=np.median(temperature)
+                #temperature[temperature==0]=np.median(temperature)
 
                 salinity=self.environment.sea_water_salinity
-                salinity[salinity==0]=np.median(salinity)
+                #salinity[salinity==0]=np.median(salinity)
 
                 KOWTref    = self.get_config('chemical:transformations:TrefKOW')
                 DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
@@ -1303,10 +1303,10 @@ class ChemicalDrift(OceanDrift):
                 # filtering out zero values from temperature and salinity
                 # TODO: Find out if problem is in the reader or in the data
                 temperature=self.environment.sea_water_temperature
-                temperature[temperature==0]=np.median(temperature)
+                #temperature[temperature==0]=np.median(temperature)
 
                 salinity=self.environment.sea_water_salinity
-                salinity[salinity==0]=np.median(salinity)
+                #salinity[salinity==0]=np.median(salinity)
 
                 KOWTref    = self.get_config('chemical:transformations:TrefKOW')
                 DH_KOC_Sed = self.get_config('chemical:transformations:DeltaH_KOC_Sed')
@@ -1699,7 +1699,7 @@ class ChemicalDrift(OceanDrift):
 
                 if np.any(W):
                     TW=self.environment.sea_water_temperature[W]
-                    TW[TW==0]=np.median(TW)
+                    #TW[TW==0]=np.median(TW)
 
                     k_W_fin = k_W_tot * self.tempcorr("Arrhenius",DH_kWt,TW,Tref_kWt)
 
@@ -1716,7 +1716,7 @@ class ChemicalDrift(OceanDrift):
 
                 if np.any(S):
                     TS=self.environment.sea_water_temperature[S]
-                    TS[TS==0]=np.median(TS)
+                    #TS[TS==0]=np.median(TS)
 
                     k_S_fin = k_S_tot * self.tempcorr("Arrhenius",DH_kSt,TS,Tref_kSt)
 
@@ -1775,7 +1775,7 @@ class ChemicalDrift(OceanDrift):
             mixedlayerdepth = mixedlayerdepth[W]
 
             T=self.environment.sea_water_temperature[W]
-            T[T==0]=np.median(T)                            # temporary fix for missing values
+            #T[T==0]=np.median(T)                            # temporary fix for missing values
 
             S=self.environment.sea_water_salinity[W]
 
@@ -1936,6 +1936,7 @@ class ChemicalDrift(OceanDrift):
 
 
     def write_netcdf_chemical_density_map(self, filename, pixelsize_m='auto', zlevels=None,
+                                              lat_resol=None, lon_resol=None,
                                               deltat=None,
                                               density_proj=None,
                                               llcrnrlon=None, llcrnrlat=None,
@@ -1946,10 +1947,65 @@ class ChemicalDrift(OceanDrift):
                                               smoothing_cells=0,
                                               reader_sea_depth=None,
                                               landmask_shapefile=None,
-                                              origin_marker=None):
-        '''Write netCDF file with map of Chemical species densities and concentrations'''
+                                              origin_marker=None,
+                                              elements_density=False,
+                                              active_status=False,
+                                              weight=None):
+        '''Write netCDF file with map of Chemical species densities and concentrations
+        Arguments:
+            pixelsize_m:           float32, lenght of gridcells in m (default mode)
+            lat_resol:             float32, latitude resolution of gricells (in degrees using EPSG 4326)
+            lon_resol:             float32, longitude resolution of gricells (in degrees using EPSG 4326)
+            zlevels:               list of float32, depth levels at which concentration will be calculated
+                           Values must be negative and ordered from the lowest depth (e.g. [-50., -10., -5.])
+                           In the .nc file "depth" value will indicate the start of the vertical slice
+                           i.e. "depth = 0" indicates slice from 0 to 5 m, and "depth = 50" indicates
+                           slice from 50m to bathimietry 
+            density_proj:          None: add default projection with equal-area property (proj=moll +ellps=WGS84 +lon_0=0.0')
+                                   <proj4_string>: <longlat +datum=WGS84 +no_defs> for EPSG 4326
+                                   int, 4326 to indicate use of EPSG 4326
+            llcrnrlon:             float32, min longitude of grid (in degrees using EPSG 4326)
+            llcrnrlat:             float32, min latitude of grid (in degrees using EPSG 4326)
+            urcrnrlon:             float32, max longitude of grid (in degrees using EPSG 4326)
+            urcrnrlat:             float32, max latitude of grid (in degrees using EPSG 4326)
+            mass_unit:             string, mass unit of output concentration (ug/mg/g/kg)
+            time_avg_conc:         boolean, calculate concentration averaged each deltat
+            horizontal_smoothing:  boolean, smooth concentration horizontally
+            smoothing_cells:       int, number of cells for horizontal smoothing,
+            reader_sea_depth:      string, path of bathimethy .nc file,
+            landmask_shapefile:    string, path of bathimethylandmask .shp file
+            elements_density:      boolean, add number of elements present in each grid cell to output
+            origin_marker:         int, only elements with this value of "origin_marker" will be considered
+            active_status:         boolean, only active elements will be considered
+            weight:                string, elements property to be extracted to produce maps
+        '''
 
         from netCDF4 import Dataset, date2num #, stringtochar
+        import opendrift
+        from pyproj import CRS, Proj, Transformer
+        import pandas as pd
+
+
+        def is_valid_proj4(density_proj):
+            try:
+                CRS.from_string(density_proj)  # Try to create a CRS object
+                return density_proj
+            except:
+                try:
+                    density_proj = (CRS.from_epsg(density_proj)).to_proj4() # Try to create a CRS object from EPSG number
+                    return density_proj
+                except:
+                    raise ValueError(f"Invalid density_proj: {density_proj}")
+
+        if sum(x is None for x in [lat_resol, lon_resol]) == 1:
+            raise ValueError("Both lat/lon_resol must be specified")
+        elif sum(x is None for x in [lat_resol, lon_resol]) == 0:
+            if pixelsize_m is not None:
+                raise ValueError("If lat/lon_resol are specified pixelsize_m must be None")
+
+        if self.mode != opendrift.models.basemodel.Mode.Config:
+            self.mode = opendrift.models.basemodel.Mode.Config
+            logger.debug("Changed self.mode to Config")
 
         if landmask_shapefile is not None:
             if 'shape' in self.env.readers.keys():
@@ -1966,11 +2022,76 @@ class ChemicalDrift(OceanDrift):
 
         if reader_sea_depth is not None:
             from opendrift.readers import reader_netCDF_CF_generic
+            import xarray as xr
+
+            reader_sea_depth_res = xr.open_dataset(reader_sea_depth)
+            reader_sea_depth_res = (reader_sea_depth_res[list(reader_sea_depth_res.data_vars)[0]])
+
+            lat_names = ["latitude", "lat", "y"]
+            lat_name = next((name for name in lat_names if name in reader_sea_depth_res.coords), None)
+            lon_names = ["longitude","lon", "x", "long"]
+            lon_name = next((name for name in lon_names if name in reader_sea_depth_res.coords), None)
+            
+            if any(x is None for x in [lat_name, lon_name]):
+                raise ValueError("Latitude/Longitude coordinate names not found in bathimetry")
+
+            # Check if corners are covered by bathimetry
+            reader_sea_depth_lat_values = reader_sea_depth_res.coords[lat_name].values
+            reader_sea_depth_lon_values = reader_sea_depth_res.coords[lon_name].values
+
+            reader_sea_depth_lon_min = min(reader_sea_depth_lon_values)
+            reader_sea_depth_lat_min = min(reader_sea_depth_lat_values)
+            reader_sea_depth_lon_max = max(reader_sea_depth_lon_values)
+            reader_sea_depth_lat_max = max(reader_sea_depth_lat_values)
+
+            if ((llcrnrlat < reader_sea_depth_lat_min) or (urcrnrlat > reader_sea_depth_lat_max)\
+            or (llcrnrlon < reader_sea_depth_lon_min) or  (urcrnrlon > reader_sea_depth_lon_max)):
+                if llcrnrlat < reader_sea_depth_lat_min:
+                    logger.warning(f"Changed llcrnrlat from {llcrnrlat} to {str(reader_sea_depth_lat_values[1])[:8]}")
+                    llcrnrlat = reader_sea_depth_lat_values[1]
+                if urcrnrlat > reader_sea_depth_lat_max:
+                    logger.warning(f"Changed urcrnrlat from {urcrnrlat} to {str(reader_sea_depth_lat_values[-2])[:8]}")
+                    urcrnrlat = reader_sea_depth_lat_values[-2]
+                if llcrnrlon < reader_sea_depth_lon_min:
+                    logger.warning(f"Changed llcrnrlon from {llcrnrlon} to {str(reader_sea_depth_lon_values[1])[:8]}")
+                    llcrnrlon = reader_sea_depth_lon_values[1]
+                if urcrnrlon > reader_sea_depth_lon_max:
+                    logger.warning(f"Changed urcrnrlon from {urcrnrlon} to {str(reader_sea_depth_lon_values[-2])[:8]}")
+                    urcrnrlon = reader_sea_depth_lon_values[-2]
+            else:
+                pass
+
+            # Find resolution of bathimetry's selected section
+            reader_sea_depth_res=reader_sea_depth_res.where(
+                                            (reader_sea_depth_res[lon_name] > llcrnrlon) &
+                                            (reader_sea_depth_res[lon_name] < urcrnrlon) &
+                                            (reader_sea_depth_res[lat_name] > llcrnrlat) & 
+                                            (reader_sea_depth_res[lat_name] < urcrnrlat),
+                                            drop=True)
+            # Update lat/lon values of final selection
+            reader_sea_depth_lat_values = reader_sea_depth_res.coords[lat_name].values
+            reader_sea_depth_lon_values = reader_sea_depth_res.coords[lon_name].values
+
+            num_x = None
+            num_y = None
+
+            num_x = reader_sea_depth_lon_values.size
+            if num_x == 0:
+                raise ValueError("No longitude coordinate found in bathimetry")
+            num_y = reader_sea_depth_lat_values.size
+            if num_y == 0:
+                raise ValueError("No latitude coordinate found in bathimetry")
+
+            del reader_sea_depth_res
+            # Load bathimetry as reader for interpolation
             reader_sea_depth = reader_netCDF_CF_generic.Reader(reader_sea_depth)
         else:
-            print('A reader for ''sea_floor_depth_below_sea_level'' must be specified')
-            import sys
-            sys.exit()
+            raise ValueError('A reader for ''sea_floor_depth_below_sea_level'' must be specified')
+
+
+        if self.mode != opendrift.models.basemodel.Mode.Result:
+            self.mode = opendrift.models.basemodel.Mode.Result
+            logger.debug("Changed self.mode to Result")
 
         # Temporary workaround if self.nspecies and self.name_species are not defined
         # TODO Make sure that these are saved when the simulation data is saved to the ncdf file
@@ -1986,18 +2107,24 @@ class ChemicalDrift(OceanDrift):
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
         # Default bathymetry resolution 500x500. Can be increased (carefully) if high-res data is available and needed
-        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,500), np.linspace(llcrnrlat,urcrnrlat,500))
+        bathimetry_res = 500
+        if num_x > 500 and num_y > 500:
+            bathimetry_res = min(num_x, num_y)-1
+            logger.warning(f"Changed bathymetry resolution to {bathimetry_res}")
+
+        grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,bathimetry_res), np.linspace(llcrnrlat,urcrnrlat,bathimetry_res))
+        # grid=np.meshgrid(np.linspace(llcrnrlon,urcrnrlon,500), np.linspace(llcrnrlat,urcrnrlat,500))
         self.conc_lon=grid[0]
         self.conc_lat=grid[1]
-
         self.conc_topo=reader_sea_depth.get_variables_interpolated_xy(['sea_floor_depth_below_sea_level'],
                 x = self.conc_lon.flatten(),
                 y = self.conc_lat.flatten(),
                 time = reader_sea_depth.times[0] if reader_sea_depth.times is not None else None
                 )[0]['sea_floor_depth_below_sea_level'].reshape(self.conc_lon.shape)
 
+
         if pixelsize_m == 'auto':
-            lon = self.result.lon
+            # lon = self.result.lon
             lat = self.result.lat
             latspan = lat.max()-lat.min()
             pixelsize_m=30
@@ -2016,66 +2143,100 @@ class ChemicalDrift(OceanDrift):
 
 
         if density_proj is None: # add default projection with equal-area property
+            density_proj_str = ('+proj=moll +ellps=WGS84 +lon_0=0.0')
             density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
+        else:
+            density_proj_str = density_proj
+            density_proj = pyproj.Proj(is_valid_proj4(density_proj))
 
+        if sum(x is None for x in [lat_resol, lon_resol]) == 0:
+            if density_proj != pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0'):
+                if density_proj != pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"):
+                    # lat/lon_resol are calculated at the centre of the grid
+                    # Unexpected behaviour may arise with large grids
+                    source_proj = Proj("+proj=longlat +datum=WGS84 +no_defs")
+                    transformer = Transformer.from_proj(source_proj, density_proj)
+                    dummy_lon, dummy_lat = (llcrnrlon + urcrnrlon)/2, (llcrnrlat + urcrnrlat)/2
+                    x1, y1 = transformer.transform(dummy_lon, dummy_lat)
+                    x2, y2 = transformer.transform(dummy_lon + lon_resol, dummy_lat + lat_resol)
+                    lon_resol = abs(x2 - x1)
+                    lat_resol = abs(y2 - y1)
+                    logger.info(f'Changed lon_resol, lat_resol to reference system: {density_proj}')
 
 
         if mass_unit==None:
             mass_unit='microgram'  # default unit for chemicals
 
-        z = self.result.z
-
+        z = (self.result.z.T).values
+        # Move elements above sea level below the surface (-1 mm)
+        if (z >= 0).any():
+            z_positive = np.ma.masked_invalid(z[z >= 0]).count()
+            z[z >= 0] = -0.0001
+            logger.warning(f'{z_positive} elements were above surface level and were moved to z = -0.0001')
         if not zlevels==None:
             zlevels = np.sort(zlevels)
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
         else:
             z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
-        logger.info('vertical grid boundaries: {}'.format(  [str(item) for item in z_array] ) )
+        logger.info('vertical grid boundaries: {}'.format([str(item) for item in z_array]))
 
-        #
-        # H is array containing number of elements within each box defined by lon_array, lat_array and z_array
+        # H is array containing the mass of chemical within each box defined by lon_array, lat_array and z_array
+        # H_count is array containing the number of elements within each box defined by lon_array, lat_array and z_array
+        if weight is None:
+            weight = 'mass'
+        H, lon_array, lat_array, H_count = \
+            self.get_chemical_density_array(pixelsize_m = pixelsize_m,
+                                           z_array = z_array,
+                                           lat_resol = lat_resol,
+                                           lon_resol = lon_resol,
+                                           density_proj=density_proj,
+                                           llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
+                                           urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat,
+                                           weight=weight, origin_marker=origin_marker,
+                                           active_status = active_status,
+                                           elements_density = elements_density)
 
-        H, lon_array, lat_array = \
-            self.get_chemical_density_array(pixelsize_m, z_array,
-                                                density_proj=density_proj,
-                                                llcrnrlon=llcrnrlon, llcrnrlat=llcrnrlat,
-                                                urcrnrlon=urcrnrlon, urcrnrlat=urcrnrlat,
-                                                weight='mass',origin_marker=origin_marker)
 
-        # calculating center point for eacxh pixel
+        # calculating center point for each pixel
         lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
-
         landmask = np.zeros_like(H[0,0,0,:,:])
-
         if landmask_shapefile is not None:
-            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array).reshape(landmask.shape)
+            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
         else:
-            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array).reshape(landmask.shape)
+            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
+
+        if landmask.shape !=  lon_array.shape:
+            landmask = landmask.reshape(lon_array.shape)
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
             logger.debug('H.shape: ' + str(H.shape))
-            Hsm = np.zeros_like(H)
-            for zi in range(len(z_array)-1):
-                for sp in range(self.nspecies):
-                    for ti in range(H.shape[0]):
-                        Hsm[ti,sp,zi,:,:] = self.horizontal_smooth(H[ti,sp,zi,:,:],n=smoothing_cells)
+
+            Hsm = np.array([
+                            [[self.horizontal_smooth(H[ti, sp, zi, :, :], n=smoothing_cells) 
+                              for zi in range(len(z_array) - 1)]
+                             for sp in range(self.nspecies)]
+                            for ti in range(H.shape[0])
+                        ])
 
         # Compute mean depth and volume in each pixel grid cell
-        pixel_mean_depth  =  self.get_pixel_mean_depth(lon_array, lat_array)
-
+        pixel_mean_depth, pixel_area  =  self.get_pixel_mean_depth(lon_array, lat_array,
+                                                      density_proj_str,
+                                                      lat_resol, lon_resol)
 
         pixel_volume = np.zeros_like(H[0,0,:,:,:])
+
         for zi,zz in enumerate(z_array[:-1]):
             topotmp = -pixel_mean_depth.copy()
             topotmp[np.where(topotmp < zz)] = zz
             topotmp = z_array[zi+1] - topotmp
             topotmp[np.where(topotmp < .1)] = 0.
-
-            pixel_volume[zi,:,:] = topotmp * pixelsize_m**2
-
+            if density_proj_str == ('+proj=moll +ellps=WGS84 +lon_0=0.0'):
+                pixel_volume[zi,:,:] = topotmp * pixelsize_m**2
+            else:
+                pixel_volume[zi,:,:] = topotmp * pixel_area
 
         pixel_volume[np.where(pixel_volume==0.)] = np.nan
 
@@ -2083,28 +2244,28 @@ class ChemicalDrift(OceanDrift):
         sed_L       = self.get_config('chemical:sediment:mixing_depth')
         sed_dens    = self.get_config('chemical:sediment:density')
         sed_poro    = self.get_config('chemical:sediment:porosity')
-        pixel_sed_mass = (pixelsize_m**2 *sed_L)*(1-sed_poro)*sed_dens      # mass in kg
+        if density_proj_str == ('+proj=moll +ellps=WGS84 +lon_0=0.0'):
+            pixel_sed_mass = (pixelsize_m**2 *sed_L)*(1-sed_poro)*sed_dens      # mass in kg dry weight
+        else:
+            pixel_sed_mass = (pixel_area *sed_L)*(1-sed_poro)*sed_dens
+            pixel_sed_mass = np.tile(pixel_sed_mass, (len(z_array[:-1]), 1, 1))
 
-        # TODO this should be multiplied for the fraction og grid cell are that is not on land
+        # TODO this should be multiplied for the fraction of grid cell are that is not on land
 
-        #conc = np.zeros_like(H)
-        #if horizontal_smoothing:
-        #    conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
             for sp in range(self.nspecies):
                 if not self.name_species[sp].lower().startswith('sed'):
-                    #print('divide by volume')
+                    #print('divide by water volume')
                     H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume
                     if horizontal_smoothing:
                         Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume
                 elif self.name_species[sp].lower().startswith('sed'):
-                    #print('divide by mass')
-                    #print(pixel_sed_mass)
+                    #print('divide by sediment mass')
                     H[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_sed_mass
                     if horizontal_smoothing:
                         Hsm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_sed_mass
 
-        times = self.result.time.data
+        times = pd.to_datetime(self.result.time).to_pydatetime()
 
         if time_avg_conc:
             conctmp = H[:-1,:,:,:,:]
@@ -2113,59 +2274,92 @@ class ChemicalDrift(OceanDrift):
             if deltat==None:
                 ndt = 1
             else:
-                ndt = int( deltat / (mdt.astype('timedelta64[s]').astype('int')/3600.) )
+                ndt = int( deltat / (mdt.total_seconds()/3600.) )
             times2 = times[::ndt]
             times2 = times2[1:]
             odt = int(cshape[0]/ndt)
             logger.debug ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
             logger.debug ('odt '+ str(odt))   # number of average slices
 
-            Landmask=np.zeros_like(H[0:odt,:,:,:,:])
-            for zi in range(len(z_array)-1):
-                for sp in range(self.nspecies):
-                    for ti in range(odt):
-                        Landmask[ti,sp,zi,:,:] = landmask
+            try:
+                mean_conc = np.mean(conctmp.reshape(odt, ndt, *cshape[1:]), axis=1)
+            except: # If (times) is not a perfect multiple of deltat
+                mean_conc = np.zeros([odt,cshape[1],cshape[2],cshape[3],cshape[4]])
+                for ii in range(odt):
+                    meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
+                    mean_conc[ii,:,:,:,:] = meantmp
+
+            if elements_density is True:
+                denstmp = H_count[:-1,:,:,:,:]
+                dshape = denstmp.shape
+                try:
+                    mean_dens = np.sum(denstmp.reshape(odt, ndt, *dshape[1:]), axis=1)
+                except:
+                    mean_dens = np.zeros([odt,dshape[1],dshape[2],dshape[3],dshape[4]])
+                    for ii in range(odt):
+                        meantmp  = np.mean(denstmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
+                        mean_dens[ii,:,:,:,:] = meantmp
+
+            if horizontal_smoothing is True:
+                Hsmtmp = Hsm[:-1,:,:,:,:]
+                Hsmshape = Hsmtmp.shape
+                try:
+                    mean_Hsm = np.mean(Hsmtmp.reshape(odt, ndt, *Hsmshape[1:]), axis=1)
+                except:
+                    mean_Hsm = np.zeros([odt,Hsmshape[1],Hsmshape[2],Hsmshape[3],Hsmshape[4]])
+                    for ii in range(odt):
+                        meantmp  = np.mean(Hsmtmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
+                        Hsmtmp[ii,:,:,:,:] = meantmp
 
 
-            # This may probably be written more efficiently!
-            mean_conc = np.zeros( [odt,cshape[1],cshape[2],cshape[3],cshape[4]] )
-            for ii in range(odt):
-                meantmp  = np.mean(conctmp[(ii*ndt):(ii+1)*ndt,:,:,:,:],axis=0)
-                mean_conc[ii,:,:,:,:] = meantmp
-
+        # Save outputs to netCDF Dataset
         nc = Dataset(filename, 'w')
         nc.createDimension('x', lon_array.shape[0])
         nc.createDimension('y', lon_array.shape[1])
         nc.createDimension('depth', len(z_array)-1)
         nc.createDimension('specie', self.nspecies)
-        nc.createDimension('time', H.shape[0])
-
         timestr = 'seconds since 1970-01-01 00:00:00'
-        nc.createVariable('time', 'f8', ('time',))
-        nc.variables['time'][:] = times.astype('datetime64[s]').astype(int)
-        nc.variables['time'].units = timestr
-        nc.variables['time'].standard_name = 'time'
-
-        if time_avg_conc:
+        if time_avg_conc is False:
+            nc.createDimension('time', H.shape[0])
+            nc.createVariable('time', 'f8', ('time',))
+            nc.variables['time'][:] = date2num(times, timestr)
+            nc.variables['time'].units = timestr
+            nc.variables['time'].standard_name = 'time'
+        else:
             nc.createDimension('avg_time', odt)
             nc.createVariable('avg_time', 'f8', ('avg_time',))
-            nc.variables['avg_time'][:] = times2.astype('datetime64[s]').astype(int) # np.arange(mean_conc.shape[0])
+            nc.variables['avg_time'][:] = date2num(times2, timestr)
             nc.variables['avg_time'].units = timestr
+
 
         # Projection
         nc.createVariable('projection', 'i8')
         nc.variables['projection'].proj4 = density_proj.definition_string()
 
-        # Cell size
-        nc.createVariable('cell_size','f8')
-        nc.variables['cell_size'][:] = pixelsize_m
-        nc.variables['cell_size'].long_name = 'Length of cell'
-        nc.variables['cell_size'].unit = 'm'
 
-        nc.createVariable('smoothing_cells','i8')
-        nc.variables['smoothing_cells'][:] = smoothing_cells
-        nc.variables['smoothing_cells'].long_name = 'Number of cells in each direction for horizontal smoothing'
-        nc.variables['smoothing_cells'].units = '1'
+        # Cell size
+        if pixelsize_m is not None:
+            nc.createVariable('cell_size','f8')
+            nc.variables['cell_size'][:] = pixelsize_m
+            nc.variables['cell_size'].long_name = 'Length of cell'
+            nc.variables['cell_size'].unit = 'm'
+        else:
+            nc.createVariable('lat_resol','f8')
+            nc.variables['lat_resol'][:] = lat_resol
+            nc.variables['lat_resol'].long_name = 'Latitude resolution'
+            nc.variables['lat_resol'].unit = 'degrees_north'
+            nc.createVariable('lon_resol','f8')
+            nc.variables['lon_resol'][:] = lon_resol
+            nc.variables['lon_resol'].long_name = 'Longitude resolution'
+            nc.variables['lon_resol'].unit = 'degrees_east'
+
+        if horizontal_smoothing:
+            # Horizontal smoothing cells
+            nc.createVariable('smoothing_cells','i8')
+            nc.variables['smoothing_cells'][:] = smoothing_cells
+            nc.variables['smoothing_cells'].long_name = 'Number of cells in each direction for horizontal smoothing'
+            nc.variables['smoothing_cells'].units = '1'
+
 
         # Coordinates
         nc.createVariable('lon', 'f8', ('y','x'))
@@ -2184,69 +2378,88 @@ class ChemicalDrift(OceanDrift):
         nc.variables['specie'][:] = np.arange(self.nspecies)
         nc.variables['specie'].long_name = ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
 
-
+        # Create final landmask
+        if time_avg_conc is False:
+            Landmask = np.tile(landmask, (len(times), self.nspecies, len(z_array)-1, 1, 1))
+        else:
+            Landmask = np.tile(landmask, (odt, self.nspecies, len(z_array)-1, 1, 1))
+        Landmask = np.swapaxes(Landmask, 3, 4)
+        landmask_depth = np.tile(landmask[np.newaxis, :, :], (len(z_array)-1, 1, 1))
+        landmask_depth = np.swapaxes(landmask_depth, 1, 2)
 
         # Density
-        #nc.createVariable('density', 'i4',
-        #                  ('time','specie','depth','y', 'x'),fill_value=99999)
-        #H = np.swapaxes(H, 3, 4).astype('i4')
-        ##H = np.ma.masked_where(H==0, H)
-        #nc.variables['density'][:] = H
-        #nc.variables['density'].long_name = 'Number of elements in grid cell'
-        #nc.variables['density'].grid_mapping = 'projection'
-        #nc.variables['density'].units = '1'
-
-
-        #if horizontal_smoothing:
-        #    nc.createVariable('density_smooth', 'f8',
-        #                      ('time','specie','depth','y', 'x'),fill_value=1.e36)
-        #    Hsm = np.swapaxes(Hsm, 3, 4).astype('f8')
-        #    #Hsm = np.ma.masked_where(Hsm==0, Hsm)
-        #    nc.variables['density_smooth'][:] = Hsm
-        #    nc.variables['density_smooth'].long_name = 'Horizontally smoothed number of elements in grid cell'
-        #    nc.variables['density_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
-
+        if elements_density is True:
+            if time_avg_conc is False:
+                nc.createVariable('density', 'i4',
+                                  ('time','specie','depth','y', 'x'),fill_value=99999)
+                H_count = np.swapaxes(H_count, 3, 4)
+                H_count = np.nan_to_num(H_count, nan=0, posinf=0, neginf=0).astype('i4')
+                H_count = np.ma.masked_where(Landmask==1, H_count)
+                nc.variables['density'][:] = H_count
+                nc.variables['density'].long_name = 'Number of elements in grid cell'
+                nc.variables['density'].grid_mapping = density_proj_str
+                nc.variables['density'].units = '1'
+            else:
+                nc.createVariable('density_avg', 'i4',
+                                  ('avg_time','specie','depth','y', 'x'),fill_value=99999)
+                mean_dens = np.swapaxes(mean_dens, 3, 4)
+                mean_dens = np.nan_to_num(mean_dens, nan=0, posinf=0, neginf=0).astype('i4')
+                mean_dens = np.ma.masked_where(Landmask==1, mean_dens)
+                nc.variables['density_avg'][:] = mean_dens
+                nc.variables['density_avg'].long_name = "Number of elements in grid cell at avg_time"
+                nc.variables['density_avg'].grid_mapping = density_proj_str
+                nc.variables['density_avg'].units = '1'
 
 
         # Chemical concentration
-        if 0:
+        if time_avg_conc is False:
             nc.createVariable('concentration', 'f8',
                           ('time','specie','depth','y', 'x'),fill_value=1.e36)
+            H = np.swapaxes(H, 3, 4)
             H = np.ma.masked_where(Landmask==1,H)
-            H = np.swapaxes(H, 3, 4) #.astype('i4')
             nc.variables['concentration'][:] = H
-            nc.variables['concentration'].long_name = self.get_config('chemical:compound') +' concentration ' + '\n' + 'specie '+ \
+            nc.variables['concentration'].long_name = self.get_config('chemical:compound') +' concentration of ' + weight + '\n' + 'specie '+ \
                                                             ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
-            nc.variables['concentration'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
+            nc.variables['concentration'].grid_mapping = density_proj_str
+            nc.variables['concentration'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg d.w.)'
+        else:
+        # Chemical concentration, time averaged
+            nc.createVariable('concentration_avg', 'f8',
+                              ('avg_time','specie','depth','y', 'x'),fill_value=+1.e36)
+            mean_conc = np.swapaxes(mean_conc, 3, 4)
+            mean_conc = np.ma.masked_where(Landmask==1, mean_conc)
+            nc.variables['concentration_avg'][:] = mean_conc
+            nc.variables['concentration_avg'].long_name = self.get_config('chemical:compound') + ' time averaged concentration of ' + weight + '\n' + 'specie '+ \
+                                                            ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
+            nc.variables['concentration_avg'].grid_mapping = density_proj_str
+            nc.variables['concentration_avg'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
 
 
         # Chemical concentration, horizontally smoothed
-        if horizontal_smoothing:
-            nc.createVariable('concentration_smooth', 'f8',
-                              ('time','specie','depth','y', 'x'),fill_value=1.e36)
-            Hsm = np.ma.masked_where(Landmask==1, Hsm)
-            Hsm = np.swapaxes(Hsm, 3, 4) #.astype('i4')
-            nc.variables['concentration_smooth'][:] = Hsm
-            nc.variables['concentration_smooth'].long_name = self.get_config('chemical:compound') +' horizontally smoothed concentration '  + '\n' + 'specie '+ \
-                                                            ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
-            nc.variables['concentration_smooth'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_smooth'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
-            nc.variables['concentration_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
-
-
-        # Chemical concentration, time averaged
-        if time_avg_conc:
-            nc.createVariable('concentration_avg', 'f8',
-                              ('avg_time','specie','depth','y', 'x'),fill_value=+1.e36)
-            mean_conc = np.ma.masked_where(Landmask[0:odt,:,:,:,:]==1, mean_conc)
-            conc2 = np.swapaxes(mean_conc, 3, 4) #.astype('i4')
-            #conc2 = np.ma.masked_where(landmask==1, conc2)
-            nc.variables['concentration_avg'][:] = conc2
-            nc.variables['concentration_avg'].long_name = self.get_config('chemical:compound') + ' time averaged concentration ' + '\n' + 'specie '+ \
-                                                            ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
-            nc.variables['concentration_avg'].grid_mapping = 'projection_lonlat'
-            nc.variables['concentration_avg'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
+        if horizontal_smoothing is True:
+            if time_avg_conc is False:
+                nc.createVariable('concentration_smooth', 'f8',
+                                  ('time','specie','depth','y', 'x'),fill_value=1.e36)
+                Hsm = np.swapaxes(Hsm, 3, 4)
+                Hsm = np.ma.masked_where(Landmask==1, Hsm)
+                nc.variables['concentration_smooth'][:] = Hsm
+                nc.variables['concentration_smooth'].long_name = self.get_config('chemical:compound') +' horizontally smoothed concentration of ' + weight + '\n' + 'specie '+ \
+                                                                ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
+                nc.variables['concentration_smooth'].grid_mapping = density_proj_str
+                nc.variables['concentration_smooth'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
+                nc.variables['concentration_smooth'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
+            else:
+            # Chemical concentration, horizontally smoothed, time averaged
+                nc.createVariable('concentration_smooth_avg', 'f8',
+                                  ('avg_time','specie','depth','y', 'x'),fill_value=+1.e36)
+                mean_Hsm = np.swapaxes(mean_Hsm, 3, 4)
+                mean_Hsm = np.ma.masked_where(Landmask==1, mean_Hsm)
+                nc.variables['concentration_smooth_avg'][:] = mean_Hsm
+                nc.variables['concentration_smooth_avg'].long_name = self.get_config('chemical:compound') +' horizontally smoothed time averaged concentration of ' + weight + '\n' + 'specie '+ \
+                                                                ' '.join(['{}:{}'.format(isp,sp) for isp,sp in enumerate(self.name_species)])
+                nc.variables['concentration_smooth_avg'].grid_mapping = density_proj_str
+                nc.variables['concentration_smooth_avg'].units = mass_unit+'/m3'+' (sed '+mass_unit+'/Kg)'
+                nc.variables['concentration_smooth_avg'].comment = 'Smoothed over '+str(smoothing_cells)+' grid points in all horizontal directions'
 
 
         # Volume of boxes
@@ -2254,9 +2467,13 @@ class ChemicalDrift(OceanDrift):
                           ('depth','y', 'x'),fill_value=0)
         pixel_volume = np.swapaxes(pixel_volume, 1, 2) #.astype('i4')
         pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
+        # pixel_volume = np.ma.masked_where(landmask_depth==1, pixel_volume)
         nc.variables['volume'][:] = pixel_volume
-        nc.variables['volume'].long_name = 'Volume of grid cell (' + str(pixelsize_m)+'x'+str(pixelsize_m)+'m)'
-        nc.variables['volume'].grid_mapping = 'projection_lonlat'
+        if pixelsize_m is not None:
+            nc.variables['volume'].long_name = f'Volume of grid cell ({str(pixelsize_m)} x {str(pixelsize_m)} m)'
+        else:
+            nc.variables['volume'].long_name = f'Volume of grid cell (lat_resol: {lat_resol} degrees, lon_resol: {lon_resol} degrees)'
+        nc.variables['volume'].grid_mapping = density_proj_str
         nc.variables['volume'].units = 'm3'
 
 
@@ -2265,61 +2482,109 @@ class ChemicalDrift(OceanDrift):
         pixel_mean_depth = np.ma.masked_where(landmask==1, pixel_mean_depth)
         nc.variables['topo'][:] = pixel_mean_depth.T
         nc.variables['topo'].long_name = 'Depth of grid point'
-        nc.variables['topo'].grid_mapping = 'projection_lonlat'
+        nc.variables['topo'].grid_mapping = density_proj_str
         nc.variables['topo'].units = 'm'
+
+
+        # Gridcell area
+        if pixelsize_m is None:
+            nc.createVariable('area', 'f8', ('y', 'x'),fill_value=0)
+            pixel_area = np.ma.masked_where(landmask==1, pixel_area)
+            nc.variables['area'][:] = pixel_area.T
+            nc.variables['area'].long_name = 'Area of grid point'
+            nc.variables['area'].grid_mapping = density_proj_str
+            nc.variables['area'].units = 'm2'
+
 
         # Binary mask
         nc.createVariable('land', 'i4', ('y', 'x'),fill_value=-1)
         #landmask = np.ma.masked_where(landmask==0, landmask)
         nc.variables['land'][:] = np.swapaxes(landmask,0,1).astype('i4')
         nc.variables['land'].long_name = 'Binary land mask'
-        nc.variables['land'].grid_mapping = 'projection_lonlat'
+        nc.variables['land'].grid_mapping = density_proj_str
         nc.variables['land'].units = 'm'
 
         nc.close()
         logger.info('Wrote to '+filename)
-
-
-
+        
 
     def get_chemical_density_array(self, pixelsize_m, z_array,
-                                       density_proj=None, llcrnrlon=None,llcrnrlat=None,
-                                       urcrnrlon=None,urcrnrlat=None,
-                                       weight=None, origin_marker=None):
+                                   lat_resol=None, lon_resol=None,
+                                   density_proj=None, llcrnrlon=None,llcrnrlat=None,
+                                   urcrnrlon=None,urcrnrlat=None,
+                                   weight=None, origin_marker=None,
+                                   active_status = False,
+                                   elements_density = False):
         '''
         compute a particle concentration map from particle positions
         Use user defined projection (density_proj=<proj4_string>)
         or create a lon/lat grid (density_proj=None)
+            Arguments are described at write_netcdf_chemical_density_map
         '''
-        lon = self.result.lon
-        lat = self.result.lat
-        times = self.result.time.data
 
-        # Redundant ??
-        if density_proj is None: # add default projection with equal-area property
-            density_proj = pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0')
+        from pyproj import Proj, Transformer
 
+        lon = (self.result.lon.T).values
+        lat = (self.result.lat.T).values
+        # Create masks for valid ranges
+        valid_lon_mask = (lon >= -180) & (lon <= 180)
+        valid_lat_mask = (lat >= -90) & (lat <= 90)
+        # Combine masks
+        valid_mask = valid_lon_mask & valid_lat_mask
+        del valid_lon_mask, valid_lat_mask
+        # Apply mask: set invalid values to np.nan
+        lon = np.where(valid_mask, lon, np.nan)
+        lat = np.where(valid_mask, lat, np.nan)
+        del valid_mask
+        
+        times = (self.result.time).values
+        times = np.repeat(np.expand_dims(times, axis=0), lon.shape[1], axis=0).T
 
-        # create a grid in the specified projection
-        x,y = density_proj(lon, lat)
+        # Create a grid in the specified projection     
         if llcrnrlon is not None:
             llcrnrx,llcrnry = density_proj(llcrnrlon,llcrnrlat)
             urcrnrx,urcrnry = density_proj(urcrnrlon,urcrnrlat)
         else:
-            llcrnrx,llcrnry = x.min()-pixelsize_m, y.min()-pixelsize_m
-            urcrnrx,urcrnry = x.max()+pixelsize_m, y.max()+pixelsize_m
+            x,y = density_proj(lon, lat)
+            if density_proj == pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0'):
+                llcrnrx,llcrnry = x.min()-pixelsize_m, y.min()-pixelsize_m
+                urcrnrx,urcrnry = x.max()+pixelsize_m, y.max()+pixelsize_m
+                del x,y
+            else:
+                llcrnrx,llcrnry = x.min()-lon_resol, y.min()-lat_resol
+                urcrnrx,urcrnry = x.max()+lon_resol, y.max()+lat_resol
+                del x,y
 
-        x_array = np.arange(llcrnrx,urcrnrx, pixelsize_m)
-        y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
-        bins=(x_array, y_array)
-        outsidex, outsidey = max(x_array)*1.5, max(y_array)*1.5
-        z = self.result.z.load()
+        if density_proj == pyproj.Proj('+proj=moll +ellps=WGS84 +lon_0=0.0'):
+            if pixelsize_m == None:
+                raise ValueError("If density_proj is '+proj=moll +ellps=WGS84 +lon_0=0.0', pixelsize_m must be specified")
+            else:
+                x_array = np.arange(llcrnrx,urcrnrx, pixelsize_m)
+                y_array = np.arange(llcrnry,urcrnry, pixelsize_m)
+        else:
+            x_array = np.arange(llcrnrx,urcrnrx, lon_resol)
+            y_array = np.arange(llcrnry,urcrnry, lat_resol)
+
+        # Create array for grouping elements along time dimention
+        t_resol = (times[1][0] - times[0][0])/2
+        t_array = np.append(times[:,0] - t_resol, np.array(times[:,0][-1] + t_resol))
+
+        z = (self.result.z.T).values
         if weight is not None:
-            weight_array = self.result.mass.load()
+            weight_array = (self.result[weight].T).values
 
-        specie = self.result.specie.load()
+        specie = (self.result.specie.T).values
         if origin_marker is not None:
-            originmarker = self.result.origin_marker.load()
+            logger.warning(f'only active elements with origin_marker: {origin_marker} were considered for concentration')
+            originmarker = (self.result.origin_marker.T).values
+        if active_status is True:
+            status_categories = self.status_categories
+            if 'active' in status_categories:
+                active_index = status_categories.index('active')
+                logger.warning(f'only active elements were considered for concentration, status: {active_index}')
+            else:
+                raise ValueError("No active elements in simulation")
+            status = (self.result.status.T).values
         Nspecies = self.nspecies
         H = np.zeros((len(times),
                       Nspecies,
@@ -2328,31 +2593,83 @@ class ChemicalDrift(OceanDrift):
                       len(y_array) - 1
                       ))
 
-        for sp in range(Nspecies):
-            for i in range(len(times)):
-                if weight is not None:
-                    weights = weight_array[:,i]
-                    if origin_marker is not None:
-                        weight_array[:,i] = weight_array[:,i] * (originmarker[:,i]==origin_marker)
+        # Mask elements based on oring_marker and status
+        if weight is not None:
+            weights = weight_array
+            if origin_marker is not None:
+                origin_mask = (originmarker == origin_marker)
+                if active_status:
+                    active_status_mask = (status == active_index)
+                    final_mask = active_status_mask & origin_mask
                 else:
-                    weights = None
-                for zi in range(len(z_array)-1):
-                    kktmp = ( (specie[:,i]==sp) & (z[:,i]>z_array[zi]) & (z[:,i]<=z_array[zi+1]) )
-                    H[i,sp,zi,:,:], dummy, dummy = \
-                        np.histogram2d(x[kktmp,i], y[kktmp,i],
-                                   weights=weight_array[kktmp,i], bins=bins)
+                    final_mask = origin_mask
+
+            elif active_status:
+                active_status_mask = (status == active_index)
+                final_mask = active_status_mask
+                
+            if active_status or (origin_marker is not None):
+                weights =  np.ma.masked_where(~final_mask, weights)
+
+            weights = weights.flatten()
+        else:
+            weights = None
+
+        # Flatten arrays for np.hitogramdd
+        times = times.flatten()
+        lat = lat.flatten()
+        lon = lon.flatten()
+
+        # Change lat/lon to density_proj reference system
+        # OpenDrift output is already expressed as EPSG4326 ("+proj=longlat +datum=WGS84 +no_defs")
+        if density_proj != pyproj.Proj("+proj=longlat +datum=WGS84 +no_defs"):
+            source_proj = Proj("+proj=longlat +datum=WGS84 +no_defs")
+            transformer = Transformer.from_proj(source_proj, density_proj)
+            lon, lat = transformer.transform(lon, lat)
+            logger.info(f'Changed lat/lon from "{source_proj}" to "{density_proj}"')
+
+        z = z.flatten()
+        specie = specie.flatten()
+
+        for sp in range(Nspecies):
+            specie_mask = (specie == sp)  # Mask for the current species
+            for zi in range(len(z_array) - 1):
+                depth_mask = (z > z_array[zi]) & (z <= z_array[zi + 1])  # Depth range mask
+                combined_mask = specie_mask & depth_mask  # Apply both masks together
+
+                H[:, sp, zi, :, :], _ = np.histogramdd((times[combined_mask],
+                                                             lon[combined_mask], 
+                                                             lat[combined_mask]), 
+                                                 bins=(t_array, x_array, y_array), 
+                                                 weights=weights[combined_mask])
+
+
+        if elements_density is True:
+            logger.info('Calculating element density')
+            H_count = np.zeros_like(H)
+
+            for sp in range(Nspecies):
+                specie_mask = (specie == sp)  # Mask for the current species
+                for zi in range(len(z_array) - 1):
+                    depth_mask = (z > z_array[zi]) & (z <= z_array[zi + 1])  # Depth range mask
+                    combined_mask = specie_mask & depth_mask  # Apply both masks together
+
+                    H_count[:, sp, zi, :, :], _ = np.histogramdd((times[combined_mask],
+                                                                 lon[combined_mask], 
+                                                                 lat[combined_mask]), 
+                                                     bins=(t_array, x_array, y_array), 
+                                                     weights=None)
+        else:
+            H_count = None
 
         if density_proj is not None:
             Y,X = np.meshgrid(y_array, x_array)
             lon_array, lat_array = density_proj(X,Y,inverse=True)
 
-        return H, lon_array, lat_array
+        return H, lon_array, lat_array, H_count
 
 
-
-
-
-    def get_pixel_mean_depth(self,lons,lats):
+    def get_pixel_mean_depth(self,lons,lats,density_proj_str,lat_resol,lon_resol):
         from scipy import interpolate
         # Ocean model depth and lat/lon
         h_grd = self.conc_topo
@@ -2365,9 +2682,24 @@ class ChemicalDrift(OceanDrift):
 
         # Interpolate topography to new grid
         h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')
-
-        return h
-
+        
+        if density_proj_str != ('+proj=moll +ellps=WGS84 +lon_0=0.0'):
+        # Calculate the area of each grid cell in square meters (m²)
+            Radius = 6.371e6  # Earth's radius in meters
+            # Convert degrees to radians
+            lat_resol_rad = np.radians(lat_resol)
+            lon_resol_rad = np.radians(lon_resol)
+            # Convert latitude centers to radians
+            lat_array_rad = np.radians(lats)
+            # Compute lat edges
+            lat1 = lat_array_rad - (lat_resol_rad / 2)  # Lower latitude boundary
+            lat2 = lat_array_rad + (lat_resol_rad / 2)  # Upper latitude boundary
+            # Calculate area using the spherical formula
+            area = (Radius**2) * lon_resol_rad * (np.sin(lat2) - np.sin(lat1))
+            return h, area
+        else:
+            area = None
+            return h, area
 
 
     def horizontal_smooth(self, a, n=0):
@@ -2375,13 +2707,14 @@ class ChemicalDrift(OceanDrift):
             num_coarse=a
             return num_coarse
 
+        # if np.isnan(a).any() or np.isinf(a).any():
+        #     a = np.nan_to_num(a, nan=0, posinf=0, neginf=0)
 
         xdm=a.shape[1]
         ydm=a.shape[0]
         #msk = self.conc_mask
         b=np.zeros([ydm+2*n,xdm+2*n],dtype=int)
         b[n:-n,n:-n]=a
-
 
         num_coarse = np.zeros([ydm,xdm],dtype=float)
         smo_tmp1=np.zeros([ydm,xdm])
@@ -2392,16 +2725,16 @@ class ChemicalDrift(OceanDrift):
                 smo_tmp = b[n+jsm:ydm+n+jsm, n+ism:xdm+n+ism]
                 smo_tmp1+=smo_tmp
                 # Must preferrably take care of land points
-#                smo_msk = msk[n+jsm:ydm-n+jsm, n+ism:xdm-n+ism]
-#                smo_msk1+=smo_msk
+                # smo_msk = msk[n+jsm:ydm-n+jsm, n+ism:xdm-n+ism]
+                # smo_msk1+=smo_msk
                 nlayers+=1
 
         if n>0:
-#            num_coarse[n:-n,n:-n] = smo_tmp1 / smo_msk1
+            # num_coarse[n:-n,n:-n] = smo_tmp1 / smo_msk1
             num_coarse[:,:] = smo_tmp1 / nlayers
         else:
             num_coarse = smo_tmp1
-#        num_coarse = num_coarse*msk
+        # num_coarse = num_coarse*msk
 
         return num_coarse
 

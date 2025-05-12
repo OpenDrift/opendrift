@@ -240,10 +240,10 @@ class Environment(Timeable, Configurable):
                                  str(has_no_fallback))
 
     def add_readers_from_file(self, filename, timeout=10, lazy=True):
-        fp = open(filename, 'r')
-        sources = fp.readlines()
-        sources = [line.strip() for line in sources if line[0] != '#']
-        self.add_readers_from_list(sources, timeout, lazy=lazy)
+        with open(filename, 'r') as f:
+            sources = f.readlines()
+            sources = [line.strip() for line in sources if line[0] != '#']
+            self.add_readers_from_list(sources, timeout, lazy=lazy)
 
     def add_readers_from_list(self,
                               urls,
