@@ -1492,7 +1492,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         total_area = np.sum(areas)
         number_per_polygon = np.array([round(a/total_area*number) for a in areas])
-        number_per_polygon[number_per_polygon.argmax()] += int(number - sum(number_per_polygon))
+        # If numbers do not sum to total number, we add/remove 1 particles for the first polygons
+        remaining = int(number - sum(number_per_polygon))
+        if abs(remaining) <= len(number_per_polygon):
+            number_per_polygon[0:abs(remaining)] += np.sign(remaining)
+        elif abs(remaining) > len(number_per_polygon):
+            raise ValueError('Should not happen')
         
         for e, (n, polygon) in enumerate(zip(number_per_polygon, g_lonlat.geometry.explode(index_parts=False))):
             logger.info(f'Seeding {n} elements within polygon number {e+1} of area {areas[e]/1e6} km2')
