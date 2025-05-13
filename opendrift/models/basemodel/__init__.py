@@ -1054,7 +1054,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             raise ValueError('Lon and lat must have same lengths')
 
         if len(lon) > 1:
-            number_per_point = kwargs.pop('number_per_point', None)
             if number_per_point is not None:
                 if number is not None:
                     raise ValueError('Both number and number_per_point is provided')
