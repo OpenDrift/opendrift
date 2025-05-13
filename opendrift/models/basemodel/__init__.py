@@ -2759,7 +2759,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 for drnum, dr in enumerate(drifter):
                     drifter_pos[drnum].set_offsets(np.c_[dr['x'][i],
                                                          dr['y'][i]])
-                    drifter_line[drnum].set_data(dr['x'][0:i], dr['y'][0:i])
+                    drifter_line[drnum].set_data(dr['x'][0:i+1], dr['y'][0:i+1])
                     ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
 
