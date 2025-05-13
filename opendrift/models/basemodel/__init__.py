@@ -980,6 +980,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                       time,
                       radius=0,
                       number=None,
+                      number_per_point=None,
                       radius_type='gaussian',
                       **kwargs):
         """Seed elements with given position(s), time and properties.
@@ -996,6 +997,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 If number is None, the number of elements is the
                 length of lon/lat or time if these are arrays. Otherwise
                 the number of elements are obtained from the config-default.
+                If provided, number must be a multiple of the number of points.
+            number_per_point: integer, number of particles to be seeded at each point.
+                This shall not be provided along with number. 
+                Only relevant if lon/lat are arrays.
             time: datenum or list
                 The time at which particles are seeded/released.
                 If time is a list with two elements, elements are seeded
@@ -1049,10 +1054,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             raise ValueError('Lon and lat must have same lengths')
 
         if len(lon) > 1:
-            if number is not None and number != len(lon):
-                raise ValueError(
-                    'Lon and lat have length %s, but number is %s' %
-                    (len(lon), number))
+            number_per_point = kwargs.pop('number_per_point', None)
+            if number_per_point is not None:
+                if number is not None:
+                    raise ValueError('Both number and number_per_point is provided')
+                number = number_per_point * len(lon)
+            if number is not None:
+                if number % len(lon) == 0:
+                    number_per_point = int(number / len(lon))
+                    if number_per_point > 1:
+                        logger.debug(f'Seeding {number_per_point} elements per point')
+                        lon = np.repeat(lon, number_per_point)
+                        lat = np.repeat(lat, number_per_point)
+                else:
+                    raise ValueError(
+                        'Lon and lat have length %s, but number is %s, which is not a multiple' %
+                        (len(lon), number))
             number = len(lon)
         else:
             if number is None:
@@ -1478,12 +1495,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                             **kwargs):
         """Seeds elements within polygons of a GeoPandas DataFrame"""
 
+        g = geodataframe
+
+        geometry_types = g.geom_type.unique()
+        if geometry_types == ['Point']:
+            logger.debug('Geodataframe contains only points, calling seed_elements()')
+            self.seed_elements(lon=g.geometry.x, lat=g.geometry.y, time=time, **kwargs)
+            return
+
+        # Below only Polygon and Multiplolygon is assumed.
+        # TODO:
+        # - handling of linestring
+        # - raise error if mixture of point, linestring and polygons
+
         if 'number' not in kwargs:
             number = self.get_config('seed:number')
         else:
             number = kwargs.pop('number')
 
-        g = geodataframe
         ga = g.to_crs({'proj':'cea'})  # Equal area projection for area calculation
         g_lonlat = g.to_crs({'proj':'lonlat'})  # Lonlat projection to get lon and lat
         
@@ -2759,7 +2788,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 for drnum, dr in enumerate(drifter):
                     drifter_pos[drnum].set_offsets(np.c_[dr['x'][i],
                                                          dr['y'][i]])
-                    drifter_line[drnum].set_data(dr['x'][0:i], dr['y'][0:i])
+                    drifter_line[drnum].set_data(dr['x'][0:i+1], dr['y'][0:i+1])
                     ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
 
