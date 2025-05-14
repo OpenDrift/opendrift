@@ -117,7 +117,15 @@ def import_file(self, filename):
     kwargs = {}
     for var in self.result.data_vars:
         if var in self.ElementType.variables:
-            kwargs[var] = self.result[var][np.arange(num_elements), index_of_last]
+            last_vals_var = xr.apply_ufunc(
+                lambda arr, i: arr[i],
+                self.result[var], index_of_last,
+                input_core_dims=[['time'], []],
+                output_core_dims=[[]],
+                vectorize=True, dask='parallelized',
+                output_dtypes=[self.result[var].dtype]
+            )
+            kwargs[var] = last_vals_var.compute()
     kwargs['ID'] = np.arange(num_elements)
     self.elements = self.ElementType(**kwargs)
     self.elements_deactivated = self.ElementType()
