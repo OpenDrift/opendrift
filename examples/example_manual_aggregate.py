@@ -14,8 +14,8 @@ from opendrift.models.oceandrift import OceanDrift
 #%
 # Create manual aggregate from individual URLs, for NorKyst ocean model initialized at 00 hours every day
 
-start_time = datetime.now().date()-timedelta(days=3)
-end_time = datetime.now().date()-timedelta(days=1)
+start_time = datetime.now().date()-timedelta(days=5)
+end_time = datetime.now().date()-timedelta(days=3)
 ds = open_mfdataset_overlap(
     'https://thredds.met.no/thredds/dodsC/fou-hi/norkyst800m-1h/NorKyst-800m_ZDEPTHS_his.an.%Y%m%d%H.nc',
     time_series=pd.date_range(start_time, end_time, freq='1D'))
