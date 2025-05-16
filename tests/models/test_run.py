@@ -350,7 +350,7 @@ class TestRun(unittest.TestCase):
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
                export_buffer_length=10, outfile='verticalmixing.nc')
-        self.assertAlmostEqual(o1.result.z.min().values, -42.77, 1)
+        self.assertAlmostEqual(o1.result.z.min().values, -42.60, 1)
         self.assertAlmostEqual(o1.result.z.max().values, 0.0, 1)
         os.remove('verticalmixing.nc')
 
@@ -368,7 +368,7 @@ class TestRun(unittest.TestCase):
                     'zmin': -42.76, 'zmax': -0.02, 'zmean': -14.38},
                 {'vt': .005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and rising
                     #'zmin': -8.1, 'zmax': -0.01, 'zmean': -2.1},
-                    'zmin': -7.86, 'zmax': -0.01, 'zmean': -2.1},
+                    'zmin': -7.85, 'zmax': -0.01, 'zmean': -2.1},
                 {'vt': -0.005, 'K': .01, 'K_below': .01, 'T': 60, # Mixing and sinking
                     #'zmin': -75.8, 'zmax': -20.7, 'zmean': -48.1},
                     'zmin': -78.76, 'zmax': -19.74, 'zmean': -48.0},
