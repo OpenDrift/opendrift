@@ -1,6 +1,24 @@
 History
 =======
 
+2025-05-15 / Release v1.14.0
+----------------------------
+* opendrift.open() now creates a lazy version of self.results dataset, for faster import of large files (Manuel Aghito and AI).
+* In ``seed_elements``, number can now be a multiple of the number of positions. New parameter number_per_point is new alternative. seed_from_geopandas now supports GeoDataframes with either only points, or only polygons/multipolygons.
+* Animation now plots drifter trajectory as connected to drifter position indicator.
+* Opening up for netCDF>=1.7.2, but .netrc authentication will not work for thredds until libnetcdf 4.9.3 is out.
+* Enabled Python 3.13 in CircleCI, and (temporarily) increased RMS threshold in map generation tests.
+* Seeding from shapefiles is now based on geojson, as new dependency. Removed some redundancy with new method seed_from_geopandas, which is used by both seed_from_shapefile and seed_from_wkt. Shapefiles for seeding can now contain points or polygons/multipolygons, with lines (linearstring) planned for the future.
+* Several Updates to ChemicalDrift and OpenBerg.
+* Added Git to requrements (environment.yml) - for use when building Docker image.
+* Updates to method to move elements seeded on land to closest point in ocean, based on vector landmask (Achim Randelhoff).
+* Fixed bug that final global attributes were not written to file when number of output timesteps were larger than export_buffer_length.
+* Fixed bug in methods sea_floor_depth and sea_surface_height in physics_methods module.
+* New generic method ``pust_run`` that can be implemented in a module to be run after simulation (counterpart to ``prepare_run()``)
+* SHYFEM reader can now also read variables with two dimensions (Angie-P)
+* Fixed problem with reopening netCDF files after export on Windows.
+* Bugfix in interact_with_seafloor: now taking sea_surface_elevation into account. Reported by Robert Hartmann.
+
 2025-03-19 / Release v1.13.1
 ----------------------------
 * netCDF readers: Making sure chunk size of time dimension is 1, by reopening dataset if necessary. This may have large impact on reader performance. Also Unifying chunks to avoid problems with mfdatasets with varying chunks.
