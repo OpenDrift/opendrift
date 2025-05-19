@@ -15,8 +15,11 @@ def test_get_openoil_list(test_data):
 def test_get_openoil_list_norway(test_data):
     # previous oils
     previous_oils_file = Path(test_data) / 'generated' / 'oil_list_norway.txt'
+
     with open(previous_oils_file, 'r') as fd:
         previous_oils = [o.strip() for o in fd.readlines()]
+
+    assert 'TYRVING 2025' in previous_oils
 
     o = OpenOil(location = 'NORWAY')
 
@@ -33,7 +36,7 @@ def test_get_openoil_list_norway(test_data):
         for ot in removed_oils:
             print(ot)
 
-    if False:  # Change to True when updating list of oils
+    if True:  # Change to True when updating list of oils
         print(f'Writing present list of oiltypes to {previous_oils_file}')
         with open(previous_oils_file, 'w') as f:
             for oil in o.oiltypes:
