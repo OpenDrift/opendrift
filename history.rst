@@ -1,7 +1,11 @@
 History
 =======
 
-2025-05-15 / Release v1.14.1
+2025-05-19 / Release v1.14.2
+----------------------------
+- Adding new oil TYRVING 2025
+
+2025-05-19 / Release v1.14.1
 ----------------------------
 - Relaxing 3rd party package requirements.
 - Added two new config settings of OceanDrift and submodels (``drift:vertical_advection_at_surface`` and ``drift:vertical_mixing_at_surface``) to control whether vertical advection and mixing shall apply to elements at the very surface (z=0). Both are presently default False for OpenOil, but default True for other modules.
