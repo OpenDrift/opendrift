@@ -1345,6 +1345,17 @@
       0.74
     ]
   },
+  "TYRVING 2025": {
+    "temperatures": [
+      5.0,
+      15.0
+    ],
+    "max_water_fraction": [
+      0.79,
+      0.80
+    ]
+  },
+
   "ULA 1999": {
     "temperatures": [
       5.0,
