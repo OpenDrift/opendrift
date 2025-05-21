@@ -474,7 +474,8 @@ class OpenBerg(OpenDriftSimulation):
         hwall = draft - water_depth
         grounded = np.logical_and(hwall >= 0, grounding)
         if any(grounded) and grounding:
-            logger.info(f"Grounding condition : Icebergs grounded = {len(hwall[hwall>0])}, hwall={np.round(hwall[hwall>0],3)} meters")
+            logger.debug(f"Grounding condition : Icebergs grounded = {len(hwall[hwall>0])}, hwall={np.round(hwall[hwall>0],3)} meters")
+            self.elements.moving[grounded] = 0  # Grounded icebergs shall not move, also not with diffusivity
         
         sol = solve_ivp(dynamic, [0, self.time_step.total_seconds()], V0,
                         args=(water_vel, wind_vel, wave_height, wave_direction, Ao, Aa, rho_water,
@@ -537,7 +538,7 @@ class OpenBerg(OpenDriftSimulation):
         W, L = np.min([L, W], axis=0), np.max([L, W], axis=0)
         mask = (W / H) < crit
         if any(mask):
-            logger.info(f"Rolling over : {np.sum(mask)} icebergs ...")
+            logger.debug(f"Rolling over : {np.sum(mask)} icebergs ...")
             nL, nW, nH = (np.max([L[mask], H[mask]], axis=0), np.min([L[mask], H[mask]], axis=0), W[mask])
             L[mask], W[mask], H[mask] = nL, nW, nH
         depthib = H * alpha

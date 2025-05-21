@@ -32,6 +32,7 @@ icebergs = {'lon': 19.8, 'lat': 74.3, 'time': datetime.now(),
 # Simulating drift for 48 hours
 o = OpenBerg()
 o.set_config('drift:vertical_profile', False)
+o.set_config('drift:horizontal_diffusivity', 100)
 o.add_readers_from_list(forcing)
 o.seed_elements(**icebergs)
 o.run(duration=timedelta(days=2))
