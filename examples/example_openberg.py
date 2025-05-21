@@ -30,15 +30,11 @@ icebergs = {'lon': 19.8, 'lat': 74.3, 'time': datetime.now(),
 
 #%%
 # Simulating drift for 48 hours
-outfile = 'icebergs.nc'
-if False:
-    o = OpenBerg()
-    o.set_config('drift:vertical_profile', False)
-    o.add_readers_from_list(forcing)
-    o.seed_elements(**icebergs)
-    o.run(duration=timedelta(days=2), outfile=outfile)
-else:
-    o = opendrift.open(outfile)
+o = OpenBerg()
+o.set_config('drift:vertical_profile', False)
+o.add_readers_from_list(forcing)
+o.seed_elements(**icebergs)
+o.run(duration=timedelta(days=2))
 
 o.animation(color='draft')
 
