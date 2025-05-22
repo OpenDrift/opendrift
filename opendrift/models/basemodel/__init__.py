@@ -3500,12 +3500,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                             linewidth=linewidth,
                             transform=self.crs_lonlat)
                 else:
-                    ax.plot(x,
-                            y,
-                            color=linecolor,
-                            alpha=alpha,
-                            linewidth=linewidth,
-                            transform=self.crs_lonlat)
+                    with np.errstate(invalid="ignore"):
+                        ax.plot(x,
+                                y,
+                                color=linecolor,
+                                alpha=alpha,
+                                linewidth=linewidth,
+                                transform=self.crs_lonlat)
             else:
                 #colorbar = True
                 # Color lines according to given parameter
