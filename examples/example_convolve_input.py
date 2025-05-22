@@ -9,6 +9,7 @@ This may improve accuracy, see: https://doi.org/10.1016/j.rse.2019.01.001
 
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -16,7 +17,7 @@ from opendrift.models.oceandrift import OceanDrift
 lon = 4.9; lat = 60.0
 o = OceanDrift(loglevel=20)
 
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 time = reader_norkyst.start_time
 
 o.add_reader([reader_norkyst])

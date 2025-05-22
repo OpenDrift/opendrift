@@ -6,6 +6,7 @@ Seed demonstration
 
 from datetime import datetime, timedelta
 import numpy as np
+from opendrift import test_data_folder as tdf
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 
@@ -105,14 +106,14 @@ o.animation(fast=True)
 
 print('\n' + '='*70)
 print('Any model/module may provide specialised seeding-functions, such as \n seeding oil within contours read from a GML file:')
-print('o.seed_from_gml(o.test_data_folder() + "radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)')
+print('o.seed_from_gml(tdf + "radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml", num_elements=2000)')
 print('='*70)
 o = OpenOil(loglevel=50)
 o.set_config('environment:fallback:x_wind', 0)
 o.set_config('environment:fallback:y_wind', 0)
 o.set_config('environment:fallback:x_sea_water_velocity', 0)
 o.set_config('environment:fallback:y_sea_water_velocity', 0)
-o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
+o.seed_from_gml(tdf + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml', num_elements=2000)
 o.run(steps=1, time_step=1800, time_step_output=1800)
 o.plot(buffer=.03, fast=True)
 

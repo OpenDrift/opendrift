@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.sealice import SeaLice
 from datetime import timedelta
@@ -9,7 +10,7 @@ from datetime import timedelta
 def test_sealice_larc():
     o = SeaLice(loglevel=30)
     reader_arome = reader_netCDF_CF_generic.Reader(
-        o.test_data_folder() +
+        tdf +
         '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
     o.add_reader([reader_arome])
     reader_light = reader_netCDF_CF_generic.Reader(

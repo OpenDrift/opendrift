@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
 
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 try:
@@ -72,8 +73,7 @@ def test_io_parquet(tmpdir):
         iomodule="parquet",
     )
     norkyst = reader_netCDF_CF_generic.Reader(
-        o.test_data_folder()
-        + "16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc"
+        tdf + "16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc"
     )
     o.add_reader(norkyst)
     o.seed_elements(4.96, 60.1, radius=10, number=10, time=norkyst.start_time)

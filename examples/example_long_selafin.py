@@ -7,11 +7,12 @@ Use Telemac (selafin) output
 from datetime import timedelta, datetime
 from os import sep
 from pyproj import Proj
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_telemac_selafin
 from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=0)
-filename='{}Telemac_3D{}r3d_tide_open_drift.slf'.format(o.test_data_folder(),sep)
+filename='{}Telemac_3D{}r3d_tide_open_drift.slf'.format(tdf,sep)
 #Lambert North
 proj="+proj=lcc +lat_1=49.50000000000001 +lat_0=49.50000000000001 +lon_0=0 \
      +k_0=0.999877341 +x_0=600000 +y_0=200000 +a=6378249.2 +b=6356515 \
