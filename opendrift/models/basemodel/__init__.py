@@ -759,6 +759,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         """Any trajectory model implementation must list needed variables."""
 
     def test_data_folder(self):
+        logger.warning('Method test_data_folder() is deprecated. Use instead opendrift.test_data_folder')
         import opendrift
         return os.path.abspath(
             os.path.join(os.path.dirname(opendrift.__file__), '..', 'tests',
@@ -4601,7 +4602,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def add_halo_readers(self):
         """Adding some Thredds and file readers in prioritised order"""
 
-        self.add_readers_from_file(self.test_data_folder() +
+        self.add_readers_from_file(opendrift.test_data_folder +
                                    '../../opendrift/scripts/data_sources.txt')
 
     def _sphinx_gallery_filename(self, stack_offset=3):

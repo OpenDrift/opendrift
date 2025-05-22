@@ -5,17 +5,18 @@ Multi seed
 """
 
 from datetime import datetime
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
 o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_arome = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst, reader_arome])
@@ -26,7 +27,7 @@ o.set_config('environment:fallback:y_sea_water_velocity', 0)
 
 #%%
 # Seed oil particles within contour detected from satellite
-o.seed_from_gml(o.test_data_folder() + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml',
+o.seed_from_gml(tdf + 'radarsat_oil_satellite_observation/RS2_20151116_002619_0127_SCNB_HH_SGF_433012_9730_12182143_Oil.gml',
                 num_elements=2000, origin_marker=0)
 
 #%%

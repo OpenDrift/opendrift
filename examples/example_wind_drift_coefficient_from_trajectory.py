@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import cmocean
+from opendrift import test_data_folder as tdf
 from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.physics_methods import wind_drift_factor_from_trajectory
 
@@ -23,9 +24,9 @@ from opendrift.models.physics_methods import wind_drift_factor_from_trajectory
 #%%
 # First we simulate a synthetic drifter trajectory
 ot = OceanDrift(loglevel=50)
-ot.add_readers_from_list([ot.test_data_folder() +
+ot.add_readers_from_list([tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc',
-    ot.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
+    tdf + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
 
 #%%
 # Adding some horizontal diffusivity as "noise"
@@ -48,9 +49,9 @@ drifter={'lon': drifter_lons, 'lat': drifter_lats,
         'time': drifter_times, 'linewidth': 2, 'color': 'b', 'label': 'Synthetic drifter'}
 
 o = OceanDrift(loglevel=50)
-o.add_readers_from_list([o.test_data_folder() +
+o.add_readers_from_list([tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc',
-    o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
+    tdf + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
 t = o.env.get_variables_along_trajectory(variables=['x_sea_water_velocity', 'y_sea_water_velocity', 'x_wind', 'y_wind'],
         lons=drifter_lons, lats=drifter_lats, times=drifter_times)
 
@@ -108,9 +109,9 @@ plt.show()
 # The optimized wind_drift_factor corresponds to the maximum skillscore.
 
 o = OceanDrift(loglevel=50)
-o.add_readers_from_list([o.test_data_folder() +
+o.add_readers_from_list([tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc',
-    o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
+    tdf + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
 
 #%%
 # Calulating trajectories for 100 different wind_drift_factors between 0 and 0.05

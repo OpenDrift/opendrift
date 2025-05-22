@@ -2,6 +2,7 @@ import numpy as np
 import pyproj
 from . import *
 from datetime import datetime, timedelta
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
 from opendrift.models.physics_methods import wind_drift_factor_from_trajectory
@@ -11,9 +12,9 @@ from opendrift.readers.basereader.variables import ReaderDomain
 
 def test_get_variables_along_trajectory_and_wind_drift_factor_from_trajectory():
     o = OceanDrift(loglevel=50)
-    o.add_readers_from_list([o.test_data_folder() +
+    o.add_readers_from_list([tdf +
         '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc',
-        o.test_data_folder() +
+        tdf +
         '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc'], lazy=False)
 
     o.env.finalize()
@@ -127,7 +128,7 @@ def test_environment_mapping(test_data):
     np.testing.assert_almost_equal(o.elements.lat, 60.034, 3)
 
     # land_binary_mask mapped from sea_floor_depth_below_sea_level
-    r = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+    r = reader_netCDF_CF_generic.Reader(tdf +
             '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
     assert 'land_binary_mask' not in r.derived_variables  # Disabled by default
     r.activate_environment_mapping('land_binary_mask_from_ocean_depth')

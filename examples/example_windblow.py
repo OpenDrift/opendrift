@@ -4,6 +4,7 @@ Wind blow model
 ==================================
 """
 
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.windblow import WindBlow
 
@@ -13,7 +14,7 @@ o = WindBlow(loglevel=20)  # Set loglevel to 0 for debug information
 # Example of elements blowing with the wind, also over land
 
 #reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_arome = reader_netCDF_CF_generic.Reader(tdf +
     '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
 
 o.add_reader([reader_arome])

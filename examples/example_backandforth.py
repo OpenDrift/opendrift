@@ -12,7 +12,7 @@ from opendrift.models.oceandrift import OceanDrift
 ncfile = 'backandforth.nc'
 
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_norkyst = reader_netCDF_CF_generic.Reader(opendrift.test_data_folder +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 #reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
