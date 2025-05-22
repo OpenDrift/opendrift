@@ -125,8 +125,14 @@ class OceanDrift(OpenDriftSimulation):
             'drift:vertical_advection': {'type': 'bool', 'default': True, 'description':
                 'Advect elements with vertical component of ocean current.',
                 'level': CONFIG_LEVEL_BASIC},
+            'drift:vertical_advection_at_surface': {'type': 'bool', 'default': True, 'description':
+                'If vertical advection is activated, surface elements (z=0) can only be advected (downwards) if this setting it True.',
+                'level': CONFIG_LEVEL_ADVANCED},
             'drift:vertical_mixing': {'type': 'bool', 'default': False, 'level': CONFIG_LEVEL_BASIC,
                 'description': 'Activate vertical mixing scheme with inner loop'},
+            'drift:vertical_mixing_at_surface': {'type': 'bool', 'default': True, 'description':
+                'If vertical mixing is activated, surface elements (z=0) can only be mixed (downwards) if this setting it True.',
+                'level': CONFIG_LEVEL_ADVANCED},
             'vertical_mixing:timestep': {'type': 'float', 'min': 0.1, 'max': 3600, 'default': 60,
                 'level': CONFIG_LEVEL_ADVANCED, 'units': 'seconds', 'description':
                 'Time step used for inner loop of vertical mixing.'},
@@ -299,13 +305,17 @@ class OceanDrift(OpenDriftSimulation):
             logger.debug('Vertical advection deactivated')
             return
 
-        in_ocean = np.where(self.elements.z<0)[0]
-        if len(in_ocean) > 0:
-            w = self.environment.upward_sea_water_velocity[in_ocean]
-            self.elements.z[in_ocean] = np.minimum(0,
-                self.elements.z[in_ocean] + self.elements.moving[in_ocean] * w * self.time_step.total_seconds())
+        if self.get_config('drift:vertical_advection_at_surface') is True:
+            applicable = np.where(self.elements.z<=0)[0]
+            logger.debug('Vertical advection, including elements at surface')
         else:
-            logger.debug('No vertical advection for elements at surface')
+            applicable = np.where(self.elements.z<0)[0]
+            logger.debug('Vertical advection, excluding elements at surface')
+
+        if len(applicable) > 0:
+            w = self.environment.upward_sea_water_velocity[applicable]
+            self.elements.z[applicable] = np.minimum(0,
+                self.elements.z[applicable] + self.elements.moving[applicable] * w * self.time_step.total_seconds())
 
     def vertical_buoyancy(self):
         """Move particles vertically according to their buoyancy"""
@@ -327,11 +337,9 @@ class OceanDrift(OpenDriftSimulation):
 
     def surface_stick(self):
         '''To be overloaded by subclasses, e.g. downward mixing of oil'''
-
-        # keep particle just below the surface
-        surface = np.where(self.elements.z >= 0)
-        if len(surface[0]) > 0:
-            self.elements.z[surface] = -0.01
+        above_surface = np.where(self.elements.z > 0)
+        if len(above_surface[0]) > 0:
+            self.elements.z[above_surface] = 0
 
     def bottom_interaction(self, Zmin=None):
         '''To be overloaded by subclasses, e.g. radionuclides in sediments'''
@@ -521,7 +529,9 @@ class OceanDrift(OpenDriftSimulation):
 
             # Put the particles that belonged to the surface slick
             # (if present) back to the surface
-            self.elements.z[surface] = 0.
+            # TODO: it would be more efficient to not mix these elements in the first place
+            if self.get_config('drift:vertical_mixing_at_surface') is False:
+                self.elements.z[surface] = 0.
 
             # Formation of slick and wave mixing for surfaced particles
             # if implemented for this class

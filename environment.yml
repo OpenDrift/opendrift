@@ -3,9 +3,9 @@ channels:
   - conda-forge
 dependencies:
   - matplotlib>=3.5
-  - numpy>2.2
+  - numpy>1.23
   - scipy>=1.14
-  - netcdf4>=1.7.2
+  - netcdf4
   - ffmpeg
   - pyproj>=2.3
   - libgdal>=3.1

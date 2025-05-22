@@ -58,7 +58,7 @@ class TestStranding(unittest.TestCase):
 
         # Check calculated trajectory lengths and speeds
         total_length, distances, speeds = o.get_trajectory_lengths()
-        self.assertAlmostEqual(total_length.max(), 14981.3, 1)
+        self.assertAlmostEqual(total_length.max(), 14978.7, 1)
         self.assertAlmostEqual(total_length.min(), 1225.2, 1)
         self.assertAlmostEqual(speeds.max(), 0.132, 1)
         self.assertAlmostEqual(distances.max(), 2859.0, 1)

@@ -481,7 +481,9 @@ class OpenOil(OceanDrift):
         })
 
         self._set_config_default('drift:vertical_advection', False)
+        self._set_config_default('drift:vertical_advection_at_surface', False)
         self._set_config_default('drift:vertical_mixing', True)
+        self._set_config_default('drift:vertical_mixing_at_surface', False)
         self._set_config_default('drift:current_uncertainty', 0.05)
         self._set_config_default('drift:wind_uncertainty', 0.5)
         self._set_config_default('drift:max_speed', 1.3)
