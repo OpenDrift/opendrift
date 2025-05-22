@@ -2584,6 +2584,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                                  crs_plot=self.crs_plot,
                                                  crs_lonlat=self.crs_lonlat)
 
+        # Plot contours of seafloor depth
+        if 'contourlines' in kwargs and kwargs['contourlines'] is not None:
+            contourline_variable = kwargs.get('contourline_variable', 'sea_floor_depth_below_sea_level')  # default
+            map_x, map_y, scalar, u_component, v_component = \
+                self.get_map_background(ax, contourline_variable, self.crs_plot, time=self.start_time)
+            if kwargs['contourlines'] is True:
+                CS = ax.contour(map_x, map_y, scalar, colors='gray', transform=self.crs_lonlat)
+            else:
+                CS = ax.contour(map_x, map_y, scalar, levels=kwargs['contourlines'], colors='gray', transform=self.crs_lonlat)
+            plt.clabel(CS)
+
         fig.canvas.draw()
         fig.set_layout_engine('tight')
 
@@ -2603,21 +2614,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # TODO: avoid transposing lon, lat, and avoid returning lon, lat in the first place
         return fig, ax, self.crs_plot, lons.T, lats.T, index_of_first, index_of_last
 
-    # Obsolete, to be removed
-    #def get_lonlats(self):
-    #    if self.result is not None:
-    #        lons = self.result.lon
-    #        lats = self.result.lat
-    #    else:
-    #        #if len(self.result.time) > 0:
-    #        #    lons = np.ma.array(np.reshape(self.elements.lon, (1, -1))).T
-    #        #    lats = np.ma.array(np.reshape(self.elements.lat, (1, -1))).T
-    #        #else:
-    #        lons = np.ma.array(
-    #            np.reshape(self.elements_scheduled.lon, (1, -1))).T
-    #        lats = np.ma.array(
-    #            np.reshape(self.elements_scheduled.lat, (1, -1))).T
-    #    return lons, lats
 
     def animation(self,
                   buffer=.2,
@@ -3356,7 +3352,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
              skip=None,
              scale=None,
              show_scalar=True,
-             contourlines=False,
              drifter=None,
              colorbar=True,
              linewidth=1,
@@ -3690,33 +3685,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 #self.time_step_output)
 
             if show_scalar is True:
-                if contourlines is False:
-                    scalar = np.ma.masked_invalid(scalar)
-                    mappable = ax.pcolormesh(map_x,
-                                             map_y,
-                                             scalar,
-                                             alpha=bgalpha,
-                                             zorder=1,
-                                             vmin=vmin,
-                                             vmax=vmax,
-                                             cmap=cmap,
-                                             transform=self.crs_lonlat)
-                else:
-                    if contourlines is True:
-                        CS = ax.contour(map_x,
-                                        map_y,
-                                        scalar,
-                                        colors='gray',
-                                        transform=self.crs_lonlat)
-                    else:
-                        # contourlines is an array of values
-                        CS = ax.contour(map_x,
-                                        map_y,
-                                        scalar,
-                                        contourlines,
-                                        colors='gray',
-                                        transform=self.crs_lonlat)
-                    plt.clabel(CS, fmt='%g')
+                scalar = np.ma.masked_invalid(scalar)
+                mappable = ax.pcolormesh(map_x,
+                                            map_y,
+                                            scalar,
+                                            alpha=bgalpha,
+                                            zorder=1,
+                                            vmin=vmin,
+                                            vmax=vmax,
+                                            cmap=cmap,
+                                            transform=self.crs_lonlat)
 
         if mappable is not None and colorbar is True:
             cb = fig.colorbar(mappable,
