@@ -24,7 +24,7 @@ sails = np.linspace(5, 50, n)
 drafts = np.linspace(2, 120, n)
 lengths, widths, sails, drafts = np.meshgrid(lengths, widths, sails, drafts)
 
-icebergs = {'lon': 19.8, 'lat': 74.3, 'time': datetime.now(),
+icebergs = {'lon': 18.127, 'lat': 74.776, 'time': datetime.now(),
             'number': lengths.size, 'radius': 500,
             'sail': sails, 'draft': drafts, 'length': lengths, 'width': widths}
 
@@ -35,14 +35,14 @@ o.set_config('drift:vertical_profile', False)
 o.set_config('drift:horizontal_diffusivity', 100)
 o.add_readers_from_list(forcing)
 o.seed_elements(**icebergs)
-o.run(duration=timedelta(days=2))
+o.run(duration=timedelta(hours=48))
 
-o.animation(color='draft')
+o.animation(color='draft', contourlines=np.arange(0, 500, 25))
 
 #%%
 # .. image:: /gallery/animations/example_openberg_0.gif
 
-o.plot()
+o.plot(contourlines=np.arange(0, 500, 25))
 
 #%%
 # Plotting the speed of icebergs

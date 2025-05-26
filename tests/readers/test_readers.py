@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from . import *
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_timeseries
 from opendrift.readers import reader_failing
@@ -28,7 +29,7 @@ def test_map_background():
     """Plotting map of reader coverage with background field"""
     o = OceanDrift(loglevel=50)
     r = reader_netCDF_CF_generic.Reader(
-        o.test_data_folder() +
+        tdf +
         '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
     fname = 'opendrift_test_reader_map_background.png'
     r.plot(variable='x_sea_water_velocity', filename=fname)
@@ -46,7 +47,7 @@ def test_reader_center(test_data):
 def test_timeseries_at_position():
     o = OceanDrift()
     reader_arome = reader_netCDF_CF_generic.Reader(
-        o.test_data_folder() +
+        tdf +
         '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
 
     ts = reader_arome.get_timeseries_at_position(
@@ -62,7 +63,7 @@ def test_timeseries_at_position():
 def test_shift_time():
     o = OceanDrift()
     reader_arome = reader_netCDF_CF_generic.Reader(
-        o.test_data_folder() +
+        tdf +
         '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
     new_time = datetime(2021, 5, 26, 8)
     reader_arome.shift_start_time(new_time)

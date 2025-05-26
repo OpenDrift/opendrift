@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import xarray as xr
 import trajan as ta
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.openoil import OpenOil
 
@@ -24,9 +25,9 @@ from opendrift.models.openoil import OpenOil
 o = OpenOil(loglevel=20)
 
 # Add forcing
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_arome = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 o.add_reader([reader_norkyst, reader_arome])
 

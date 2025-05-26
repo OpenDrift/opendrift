@@ -14,6 +14,7 @@ import matplotlib
 import scipy
 import platform
 import netCDF4
+from opendrift import test_data_folder as tdf
 from opendrift.models.openoil import OpenOil
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_global_landmask
@@ -64,7 +65,7 @@ print('------------------------------------------------')
 print('Test 2: Reading from netCDF file')
 print('  0.10 seconds on reference machine.')
 o = OpenOil(loglevel=50) # Quiet
-reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
+reader_arctic = reader_netCDF_CF_generic.Reader(tdf + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
 x = reader_arctic.x[10:12]
 y = reader_arctic.y[10:12]
 z = np.array([-20, -10])

@@ -5,6 +5,7 @@ No stranding
 """
 
 import numpy as np
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
@@ -14,7 +15,7 @@ o.set_config('drift:max_speed', 3)
 
 # This example works better using hourly input from Thredds than the daily data from test folder
 reader_current = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml')
-#reader_current = reader_ROMS_native.Reader(o.test_data_folder() +
+#reader_current = reader_ROMS_native.Reader(tdf +
 #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
 
 o.add_reader([reader_current])

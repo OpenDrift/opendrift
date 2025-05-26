@@ -6,6 +6,7 @@ Drifter
 
 from datetime import timedelta
 import numpy as np
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -14,9 +15,9 @@ o = OceanDrift(loglevel=20)  # Basic drift model suitable for passive tracers or
 #%%
 # Preparing Readers
 
-reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_current = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-reader_wind = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_wind = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 o.add_reader([reader_current, reader_wind])

@@ -5,6 +5,7 @@ Checkerboard
 """
 
 import numpy as np
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
@@ -13,7 +14,7 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Norkyst
 #reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst])
 

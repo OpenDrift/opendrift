@@ -376,7 +376,7 @@ class OpenDriftGUI(tk.Tk):
         ##########################
         try:
             img = ImageTk.PhotoImage(Image.open(
-                self.o.test_data_folder() +
+                opendrift.test_data_folder +
                                      '../../docs/opendrift_logo.png'))
             panel = tk.Label(self.seed, image=img)
             panel.image = img

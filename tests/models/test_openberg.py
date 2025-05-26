@@ -19,6 +19,7 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+from opendrift import test_data_folder as tdf
 from opendrift.models.openberg import OpenBerg
 from opendrift.readers import reader_netCDF_CF_generic
 
@@ -68,7 +69,7 @@ def test_openberg_constant_forcing():
 
 def test_openberg_norkyst():
     o = OpenBerg()
-    reader_current = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+    reader_current = reader_netCDF_CF_generic.Reader(tdf +
             '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
     o.add_reader(reader_current)
     o.set_config('environment:constant:x_wind', 0)

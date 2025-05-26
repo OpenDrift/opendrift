@@ -8,10 +8,14 @@ Opendrift module
     >>> import opendrift
 
 """
+import os
 import logging; logger = logging.getLogger(__name__)
 import importlib
 import numpy as np
 from .version import __version__
+
+
+test_data_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'tests', 'test_data')) + os.path.sep
 
 # For automated access to available drift classes, e.g. for GUI
 # Hardcoded for now

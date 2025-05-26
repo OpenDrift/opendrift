@@ -34,8 +34,8 @@ o.run(duration=timedelta(hours=24), time_step=1800)
 #%%
 # Plot results with lines and particles colored by depth
 print(o)
-o.plot(linecolor='z', buffer=.1, show_elements=False, fast=False)
-o.animation(color='z', buffer=.1, fast=True)
+o.plot(linecolor='z', buffer=.1, show_elements=False)
+o.animation(color='z', buffer=.1)
 
 #%%
 # .. image:: /gallery/animations/example_depth_0.gif

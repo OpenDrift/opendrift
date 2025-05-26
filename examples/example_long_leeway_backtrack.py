@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import xarray as xr
 import opendrift
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.leeway import Leeway
 
@@ -22,9 +23,9 @@ from opendrift.models.leeway import Leeway
 #
 # We use 24 hours from the NorKyst ocean model (800m pixel size) and Arome atmospheric model (2.5km pixel size)
 o = Leeway(loglevel=10)
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_arome = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 o.add_reader([reader_norkyst, reader_arome])
 

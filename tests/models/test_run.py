@@ -27,6 +27,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_ArtificialOceanEddy
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
@@ -97,7 +98,7 @@ class TestRun(unittest.TestCase):
     def test_modes(self):
         '''Test that methods are not allowed if wrong mode'''
         o = OceanDrift(loglevel=50)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+        norkyst = reader_netCDF_CF_generic.Reader(tdf +
                     '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.set_config('environment:constant:land_binary_mask', 0)
         o.set_config('general:use_auto_landmask', False)
@@ -123,7 +124,7 @@ class TestRun(unittest.TestCase):
     def test_seed_outside_coverage(self):
         """Test seeding"""
         o = OpenOil(loglevel=0)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         landmask = reader_global_landmask.Reader()
         o.add_reader([landmask, norkyst])
         o.set_config('environment:fallback:x_wind', 0)
@@ -160,8 +161,8 @@ class TestRun(unittest.TestCase):
 
     def test_config_constant_fallback(self):
         o = OceanDrift(loglevel=0)
-        reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+        reader_arome = reader_netCDF_CF_generic.Reader(tdf + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         print(reader_norkyst, reader_arome)
         o.add_reader([reader_norkyst, reader_arome])
         o.set_config('environment:fallback:land_binary_mask', 0)
@@ -185,7 +186,7 @@ class TestRun(unittest.TestCase):
         number = 50
         # With Euler
         o = OceanDrift(loglevel=30, seed=0)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.add_reader([norkyst])
         z=-40*np.random.rand(number)
@@ -194,7 +195,7 @@ class TestRun(unittest.TestCase):
         o.run(steps=4*3, time_step=timedelta(minutes=15))
         # With Runge-Kutta
         o2 = OceanDrift(loglevel=30, seed=0)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o2.set_config('environment:fallback:land_binary_mask', 0)
         o2.add_reader([norkyst])
         o2.set_config('drift:advection_scheme', 'runge-kutta')
@@ -204,7 +205,7 @@ class TestRun(unittest.TestCase):
         o2.run(steps=4*3, time_step=timedelta(minutes=15))
         # And finally repeating the initial run to check that indetical
         o3 = OceanDrift(loglevel=30, seed=0)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o3.set_config('environment:fallback:land_binary_mask', 0)
         o3.add_reader([norkyst])
         z=-40*np.random.rand(number)
@@ -269,12 +270,12 @@ class TestRun(unittest.TestCase):
                      'OGR library needed to read shapefiles')
     def test_seed_shapefile(self):
         o = OceanDrift(loglevel=20)
-        g = gpd.read_file(o.test_data_folder() +
+        g = gpd.read_file(tdf +
                                 'shapefile_spawning_areas/Torsk.shp')
         g = g.iloc[[1, 3]]  # Selecting layers number 1 and 3
         o.seed_from_geopandas(g, number=1000, time=datetime.now())
         self.assertEqual(len(o.elements_scheduled), 1000)
-        o.seed_from_shapefile(o.test_data_folder() +
+        o.seed_from_shapefile(tdf +
                                   'shapefile_spawning_areas/Torsk.shp',
                                   number=300, time=datetime.now())
         self.assertEqual(len(o.elements_scheduled), 1300)
@@ -339,7 +340,7 @@ class TestRun(unittest.TestCase):
     def test_vertical_mixing(self):
         # Export to file only at end
         o1 = PelagicEggDrift(loglevel=20)  # Profiles and vertical mixing
-        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+        norkyst = reader_netCDF_CF_generic.Reader(tdf +
           '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o1.add_reader([norkyst])
         o1.set_config('environment:fallback:x_wind', 8)
@@ -408,7 +409,7 @@ class TestRun(unittest.TestCase):
     def test_export_step_interval(self):
         # Export to file only at end
         o1 = OceanDrift(loglevel=20)
-        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+        norkyst = reader_netCDF_CF_generic.Reader(tdf +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         o1.add_reader(norkyst)
         o1.set_config('environment:fallback:land_binary_mask', 0)
@@ -457,7 +458,7 @@ class TestRun(unittest.TestCase):
 
     def test_buffer_length_stranding(self):
         o1 = OceanDrift(loglevel=30)
-        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+        norkyst = reader_netCDF_CF_generic.Reader(tdf +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         landmask = reader_global_landmask.Reader()
         o1.add_reader([landmask])
@@ -486,7 +487,7 @@ class TestRun(unittest.TestCase):
 
     def test_output_time_step(self):
         o1 = OceanDrift(loglevel=30)
-        norkyst = reader_netCDF_CF_generic.Reader(o1.test_data_folder() +
+        norkyst = reader_netCDF_CF_generic.Reader(tdf +
             '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
         landmask = reader_global_landmask.Reader()
         o1.add_reader([landmask, norkyst])
@@ -588,7 +589,7 @@ class TestRun(unittest.TestCase):
         # Check that the element outside reader coverage is
         # not deactivated if fallback value exist
         o = OceanDrift()
-        nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +
+        nordic3d = reader_ROMS_native.Reader(tdf +
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         lon = [12.0, 12.0]
         lat = [70.0, 70.5]
@@ -613,9 +614,9 @@ class TestRun(unittest.TestCase):
 
     def test_seed_seafloor(self):
         o = OpenOil(loglevel=50)
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         # Adding reader as lazy, to test seafloor seeding
-        o.add_readers_from_list([o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'])
+        o.add_readers_from_list([tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc'])
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 0)
         o.set_config('environment:fallback:y_wind', 0)
@@ -634,7 +635,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 0)
         o.set_config('environment:fallback:y_wind', 0)
@@ -655,7 +656,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 0)
         o.set_config('environment:fallback:y_wind', 0)
@@ -673,7 +674,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_below_seafloor(self):
         o = OpenOil(loglevel=20)
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 0)
@@ -693,7 +694,7 @@ class TestRun(unittest.TestCase):
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader([reader_norkyst])
         o.set_config('environment:fallback:land_binary_mask', 0)
         o.set_config('environment:fallback:x_wind', 0)
@@ -720,7 +721,7 @@ class TestRun(unittest.TestCase):
         # (shallower water) and check that it is not penetrating seafloor
         o = OceanDrift(loglevel=50)
         o.set_config('drift:max_speed', 100)
-        reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         reader_norkyst.buffer = 200
         o.add_reader([reader_norkyst],
                      variables='sea_floor_depth_below_sea_level')
@@ -801,7 +802,7 @@ class TestRun(unittest.TestCase):
 
     def test_oil_mixed_to_seafloor(self):
         o = OpenOil(loglevel=30)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
         o.set_config('processes:evaporation', False)
         o.set_config('environment:fallback:x_wind', 25)
@@ -836,7 +837,7 @@ class TestRun(unittest.TestCase):
         # deactivate elements after 3 hours
         o.set_config('drift:max_age_seconds', 3600*3)
         o.set_config('environment:fallback:land_binary_mask', 0)
-        norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+        norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
         o.add_reader(norkyst)
         # seed two elements at 6 hour interval
         o.seed_elements(number=2, lon=4, lat=62,

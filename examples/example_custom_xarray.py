@@ -6,6 +6,7 @@ Customising Xarray Dataset
 
 from datetime import datetime, timedelta
 import xarray as xr
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 
@@ -13,7 +14,7 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 #%%
 # Opening the currents netCDF file with xarray
-ds = xr.open_dataset(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+ds = xr.open_dataset(tdf + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 #%%
 # Creating and adding a landmask DataArray (variable) based on the u-current component
