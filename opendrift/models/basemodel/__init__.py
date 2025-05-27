@@ -236,8 +236,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         self.profiles_depth = None
 
-        self.show_continuous_performance = False
-
         self.origin_marker = None  # Dictionary to store named seeding locations
 
         # List to store GeoJSON dicts of seeding commands
@@ -2082,8 +2080,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 # Release elements
                 self.release_elements()
 
-                if self.num_elements_active(
-                ) == 0 and self.num_elements_scheduled() > 0:
+                # Jump to next timestep if no active elements
+                if self.num_elements_active() == 0 and self.num_elements_scheduled() > 0:
                     logger.info(
                         'No active but %s scheduled elements, skipping timestep %s (%s)'
                         % (self.num_elements_scheduled(),
@@ -2094,10 +2092,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                         self.time = self.time + self.time_step
                     continue
 
-                self.interact_with_seafloor()
-
-                if self.show_continuous_performance is True:
-                    logger.info(self.performance())
                 # Display time to terminal
                 logger.debug('===================================' * 2)
                 logger.info('%s - step %i of %i - %i active elements '
@@ -2141,12 +2135,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                          self.required_profiles,
                                          self.profiles_depth)
 
-                self.store_previous_variables()
-
                 self.calculate_missing_environment_variables()
 
                 if any(missing):
                     self.report_missing_variables()
+
+                self.store_previous_variables()
 
                 self.interact_with_coastline()
 
