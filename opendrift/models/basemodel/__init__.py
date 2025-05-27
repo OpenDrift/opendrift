@@ -2103,29 +2103,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug('%s elements scheduled.' %
                              self.num_elements_scheduled())
                 logger.debug('===================================' * 2)
-                if len(self.elements.lon) > 0:
-                    lonmin = self.elements.lon.min()
-                    lonmax = self.elements.lon.max()
-                    latmin = self.elements.lat.min()
-                    latmax = self.elements.lat.max()
-                    zmin = self.elements.z.min()
-                    zmax = self.elements.z.max()
-                    if latmin == latmax:
-                        logger.debug('\t\tlatitude =  %s' % (latmin))
+                
+                # Display element locations to terminal
+                for n in ['lat', 'lon', 'z']:
+                    d = getattr(self.elements, n)
+                    dmin = d.min();
+                    dmax = d.max()
+                    n = n.replace('lat', 'latitude').replace('lon', 'longitude')
+                    if dmin == dmax:
+                        logger.debug(f'\t\t{n} = {dmin}')
                     else:
-                        logger.debug('\t\t%s <- latitude  -> %s' %
-                                     (latmin, latmax))
-                    if lonmin == lonmax:
-                        logger.debug('\t\tlongitude = %s' % (lonmin))
-                    else:
-                        logger.debug('\t\t%s <- longitude -> %s' %
-                                     (lonmin, lonmax))
-                    if zmin == zmax:
-                        logger.debug('\t\tz = %s' % (zmin))
-                    else:
-                        logger.debug('\t\t%s   <- z ->   %s' % (zmin, zmax))
-                    logger.debug('---------------------------------')
+                        logger.debug(f'\t\t{dmin} <- {n} -> {dmax}')
+                logger.debug('---------------------------------')
 
+                ###############################################
+                # Get environment data for all active elements
+                ###############################################
                 self.environment, self.environment_profiles, missing = \
                     self.env.get_environment(list(self.required_variables),
                                          self.time,
@@ -2137,57 +2130,40 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
                 self.calculate_missing_environment_variables()
 
-                if any(missing):
-                    self.report_missing_variables()
-
-                self.store_previous_variables()
+                self.report_missing_variables(missing)
 
                 self.interact_with_coastline()
 
                 self.interact_with_seafloor()
 
-                self.deactivate_elements(missing, reason='missing_data')
-
                 self.state_to_buffer()  # Append status to history array
-
+                
                 self.increase_age_and_retire()
 
                 self.remove_deactivated_elements()
 
-                # Propagate one timestep forwards
-                self.steps_calculation += 1
-
-                if self.num_elements_active(
-                ) == 0 and self.num_elements_scheduled() == 0:
-                    raise ValueError(
-                        'No more active or scheduled elements, quitting.')
-
                 # Store location, in case elements shall be moved back
                 self.store_present_positions()
-
-                #####################################################
+                
                 if self.num_elements_active() > 0:
+                    ########################################
+                    # Calling module specific update method
+                    ########################################
                     logger.debug('Calling %s.update()' % type(self).__name__)
                     self.timer_start('main loop:updating elements')
                     self.update()
                     self.timer_end('main loop:updating elements')
                 else:
-                    logger.info('No active elements, skipping update() method')
-                #####################################################
+                    if self.num_elements_scheduled() == 0:
+                        raise ValueError('No more active or scheduled elements, quitting.')
+                    else:
+                        logger.info('No active elements, skipping update() method')
 
                 self.horizontal_diffusion()
 
-                if self.num_elements_active(
-                ) == 0 and self.num_elements_scheduled() == 0:
-                    raise ValueError(
-                        'No active or scheduled elements, quitting simulation')
-
-                logger.debug('%s active elements (%s deactivated)' %
-                             (self.num_elements_active(),
-                              self.num_elements_deactivated()))
                 # Updating time
-                if self.time is not None:
-                    self.time = self.time + self.time_step
+                self.time = self.time + self.time_step
+                self.steps_calculation += 1
 
             except Exception as e:
                 message = ('The simulation stopped before requested '
@@ -2218,7 +2194,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.timer_end('total time')
         self.state_to_buffer(final=True)  # Append final status to buffer
 
-        ## Add any other data to the result here.
+        # Module specific post processing.
         self.post_run()
 
         if outfile is not None:
@@ -2390,17 +2366,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.result.coords['time'] = newtime
             logger.debug(f'Reset self.result, size {self.result.sizes}')
 
-    def report_missing_variables(self):
-        """Issue warning if some environment variables missing."""
+    def report_missing_variables(self, missing):
+        """Deactivate elements whose environment variables are missing."""
 
-        missing_variables = []
-        for var in self.required_variables:
-            if np.isnan(getattr(self.environment, var).min()):
-                missing_variables.append(var)
+        if not any(missing):
+            return
+
+        missing_variables = [v for v in self.required_variables
+                             if np.any(np.isnan(getattr(self.environment, v)))]
 
         if len(missing_variables) > 0:
             logger.warning('Missing variables: ' + str(missing_variables))
             self.store_message('Missing variables: ' + str(missing_variables))
+
+        # TODO: missing should probably be updated after calculating derived variables
+        self.deactivate_elements(missing, reason='missing_data')
 
     def index_of_first_and_last(self):
         """Return the indices when elements were seeded and deactivated."""
