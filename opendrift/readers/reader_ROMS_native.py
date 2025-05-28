@@ -139,43 +139,11 @@ class Reader(BaseReader, StructuredReader):
         
         self.name = name or 'roms native'
 
-        # TODO: the below section is to be removed after some period with
-        # testing of new common opener method: open_dataset_opendrift
-        #if isinstance(filename, xr.Dataset):
-        #    self.Dataset = filename
-        #else:
-
-        #    filestr = str(filename)
-
-        #    try:
-        #        # Open file, check that everything is ok
-        #        logger.info('Opening dataset: ' + filestr)
-        #        if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
-        #            logger.info('Opening files with MFDataset')
-        #            def drop_non_essential_vars_pop(ds):
-        #                dropvars = [v for v in ds.variables if v not in
-        #                            list(self.ROMS_variable_mapping.keys()) + gls_param +
-        #                            ['ocean_time', 'time', 'bulk_time', 's_rho',
-        #                             'Cs_r', 'hc', 'angle', 'Vtransform']
-        #                            and v[0:3] not in ['lon', 'lat', 'mas']]
-        #                logger.debug('Dropping variables: %s' % dropvars)
-        #                ds = ds.drop_vars(dropvars)
-        #                return ds
-        #            self.Dataset = xr.open_mfdataset(filename,
-        #                chunks={'ocean_time': 1}, compat='override', decode_times=False,
-        #                preprocess=drop_non_essential_vars_pop,
-        #                data_vars='minimal', coords='minimal')
-        #        else:
-        #            logger.info('Opening file with Dataset')
-        #            self.Dataset = xr.open_dataset(filename, decode_times=False)
-        #    except Exception as e:
-        #       raise ValueError(e)
-
         def drop_non_essential_vars_pop(ds):
             dropvars = [v for v in ds.variables if v not in
                         list(self.ROMS_variable_mapping.keys()) + gls_param +
                         ['ocean_time', 'time', 'bulk_time', 's_rho',
-                         'Cs_r', 'hc', 'angle', 'Vtransform']
+                         'Cs_r', 'Cs_rho', 'hc', 'angle', 'Vtransform']
                         and v[0:3] not in ['lon', 'lat', 'mas']]
             logger.debug('Dropping variables: %s' % dropvars)
             ds = ds.drop_vars(dropvars)
@@ -217,11 +185,20 @@ class Reader(BaseReader, StructuredReader):
                 self.sigma = (np.arange(num_sigma)+.5-num_sigma)/num_sigma
 
             # Read sigma-coordinate transform parameters
-            try:
-                self.Dataset.variables['Cs_r'].set_auto_mask(False)
-            except:
-                pass
-            self.Cs_r = self.Dataset.variables['Cs_r'][:]
+            if 'Cs_r' in self.Dataset.variables:
+                csr = 'Cs_r'  # ROMS
+            elif 'Cs_rho' in self.Dataset.variables:
+                csr = 'Cs_rho'  # CROCO
+            else:
+                csr = None
+
+            if csr is not None:
+                try:
+                    self.Dataset.variables[csr].set_auto_mask(False)
+                except:
+                    pass
+                self.Cs_r = self.Dataset.variables[csr][:]
+
             try:
                 self.hc = self.Dataset.variables['hc'][:]
             except:
