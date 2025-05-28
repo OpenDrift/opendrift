@@ -954,47 +954,6 @@ class PhysicsMethods:
         '''Solar elevation at present time and position of active elements.'''
         return solar_elevation(self.time, self.elements.lon, self.elements.lat)
 
-    def sea_floor_depth(self):
-        '''Sea floor depth (positive) for presently active elements'''
-
-        if hasattr(self, 'environment') and \
-                hasattr(self.environment, 'sea_floor_depth_below_sea_level'):
-            if len(self.environment.sea_floor_depth_below_sea_level) == \
-                    self.num_elements_active():
-                sea_floor_depth = \
-                    self.environment.sea_floor_depth_below_sea_level
-        if 'sea_floor_depth' not in locals():
-            env, env_profiles, missing = \
-                self.env.get_environment(['sea_floor_depth_below_sea_level'],
-                                     time=self.time, lon=self.elements.lon,
-                                     lat=self.elements.lat,
-                                     z=self.elements.z, profiles=None)
-            sea_floor_depth = \
-                env['sea_floor_depth_below_sea_level'].astype('float32')
-        return sea_floor_depth
-
-    def sea_surface_height(self):
-        '''Sea surface height (positive/negative) for presently active elements'''
-
-        if 'sea_surface_height' not in self.required_variables:
-            return 0
-        if hasattr(self, 'environment') and \
-                hasattr(self.environment, 'sea_surface_height'):
-            if len(self.environment.sea_surface_height) == \
-                    self.num_elements_active():
-                sea_surface_height = \
-                    self.environment.sea_surface_height
-        if 'sea_surface_height' not in locals():
-            env, env_profiles, missing = \
-                self.env.get_environment(['sea_surface_height'],
-                                     time=self.time, lon=self.elements.lon,
-                                     lat=self.elements.lat,
-                                     z=self.elements.z, profiles=None)
-            sea_surface_height = \
-                env['sea_surface_height'].astype('float32')
-        return sea_surface_height
-
-
 def wind_drag_coefficient(windspeed):
     '''Large and Pond (1981), J. Phys. Oceanog., 11, 324-336.'''
     Cd = 0.0012*np.ones(len(windspeed))
@@ -1011,7 +970,7 @@ def windspeed_from_stress_polyfit(wind_stress):
     return p(wind_stress)
 
 
-def declination(time):
+def solar_declination(time):
     '''Solar declination in degrees.'''
     try:
         day_of_year = time.timetuple().tm_yday
@@ -1052,7 +1011,7 @@ def hour_angle(time, longitude):
 
 def solar_elevation(time, longitude, latitude):
     '''Solar elevation in degrees.'''
-    d_rad = np.deg2rad(declination(time))
+    d_rad = np.deg2rad(solar_declination(time))
     h = hour_angle(time, longitude)
     solar_elevation = np.rad2deg(np.arcsin(
         np.sin(np.deg2rad(latitude))*np.sin(d_rad) +

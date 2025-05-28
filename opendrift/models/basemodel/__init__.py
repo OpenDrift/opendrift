@@ -621,15 +621,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def interact_with_coastline(self, final=False):
         """Coastline interaction according to configuration setting"""
+
         if self.num_elements_active() == 0:
             return
-        i = self.get_config('general:coastline_action')
-        coastline_approximation_precision = self.get_config('general:coastline_approximation_precision')
-        if not hasattr(self, 'environment') or not hasattr(
-                self.environment, 'land_binary_mask'):
+        if not hasattr(self, 'environment') or not hasattr(self.environment, 'land_binary_mask'):
             return
+
+        i = self.get_config('general:coastline_action')
         if i == 'none':  # Do nothing
             return
+
+        coastline_approximation_precision = self.get_config('general:coastline_approximation_precision')
+
         if final is True:  # Get land_binary_mask for final location
             en, en_prof, missing = \
                 self.env.get_environment(['land_binary_mask'],
@@ -706,15 +709,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def interact_with_seafloor(self):
         """Seafloor interaction according to configuration setting"""
+
         if self.num_elements_active() == 0:
             return
         if 'sea_floor_depth_below_sea_level' not in self.env.priority_list:
             return
 
-        # The shape of these is different than the original arrays
-        # because it is for active drifters
-        sea_floor_depth = self.sea_floor_depth()
-        sea_surface_height = self.sea_surface_height()
+        sea_floor_depth = self.environment.sea_floor_depth_below_sea_level
+        if 'sea_surface_height' in self.required_variables:
+            sea_surface_height = self.environment.sea_surface_height
+        else:
+            sea_surface_height = 0
 
         # Check if any elements are below sea floor
         # But remember that the water column is the sea floor depth + sea surface height
