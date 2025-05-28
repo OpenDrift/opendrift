@@ -621,15 +621,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def interact_with_coastline(self, final=False):
         """Coastline interaction according to configuration setting"""
+
         if self.num_elements_active() == 0:
             return
-        i = self.get_config('general:coastline_action')
-        coastline_approximation_precision = self.get_config('general:coastline_approximation_precision')
-        if not hasattr(self, 'environment') or not hasattr(
-                self.environment, 'land_binary_mask'):
+        if not hasattr(self, 'environment') or not hasattr(self.environment, 'land_binary_mask'):
             return
+
+        i = self.get_config('general:coastline_action')
         if i == 'none':  # Do nothing
             return
+
+        coastline_approximation_precision = self.get_config('general:coastline_approximation_precision')
+
         if final is True:  # Get land_binary_mask for final location
             en, en_prof, missing = \
                 self.env.get_environment(['land_binary_mask'],
@@ -706,15 +709,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def interact_with_seafloor(self):
         """Seafloor interaction according to configuration setting"""
+
         if self.num_elements_active() == 0:
             return
         if 'sea_floor_depth_below_sea_level' not in self.env.priority_list:
             return
 
-        # The shape of these is different than the original arrays
-        # because it is for active drifters
-        sea_floor_depth = self.sea_floor_depth()
-        sea_surface_height = self.sea_surface_height()
+        sea_floor_depth = self.environment.sea_floor_depth_below_sea_level
+        if 'sea_surface_height' in self.required_variables:
+            sea_surface_height = self.environment.sea_surface_height
+        else:
+            sea_surface_height = 0
 
         # Check if any elements are below sea floor
         # But remember that the water column is the sea floor depth + sea surface height
@@ -2756,9 +2761,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
             if drifter is not None:
                 for drnum, dr in enumerate(drifter):
-                    drifter_pos[drnum].set_offsets(np.c_[dr['x'][i],
-                                                         dr['y'][i]])
-                    drifter_line[drnum].set_data(dr['x'][0:i+1], dr['y'][0:i+1])
+                    drifter_pos[drnum].set_offsets(np.c_[dr['lon'][i],
+                                                         dr['lat'][i]])
+                    drifter_line[drnum].set_data(dr['lon'][0:i+1], dr['lat'][0:i+1])
                     ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
 
@@ -2982,12 +2987,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 sts = (self.result.time - self.result.time[0]) / np.timedelta64(1, 's')
                 dr_times = np.array(dr['time'], dtype=self.result.time.dtype)
                 dts = (dr_times-dr_times[0]) / np.timedelta64(1, 's')
-                dr['x'] = np.interp(sts, dts, dr['lon'])
-                dr['y'] = np.interp(sts, dts, dr['lat'])
-                dr['x'][sts < dts[0]] = np.nan
-                dr['x'][sts > dts[-1]] = np.nan
-                dr['y'][sts < dts[0]] = np.nan
-                dr['y'][sts > dts[-1]] = np.nan
+                dr['lon'] = np.interp(sts, dts, dr['lon'])
+                dr['lat'] = np.interp(sts, dts, dr['lat'])
+                dr['lon'][sts < dts[0]] = np.nan
+                dr['lon'][sts > dts[-1]] = np.nan
+                dr['lat'][sts < dts[0]] = np.nan
+                dr['lat'][sts > dts[-1]] = np.nan
                 dlabel = dr['label'] if 'label' in dr else 'Drifter'
                 dcolor = dr['color'] if 'color' in dr else 'r'
                 dlinewidth = dr['linewidth'] if 'linewidth' in dr else 2
@@ -3764,22 +3769,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         '''Plot provided trajectory along with simulated'''
         time = np.array(drifter['time'], dtype=self.result.time.dtype)
         i = np.where((time >= self.result.time[0].values) & (time <= self.result.time[-1].values))[0]
-        x, y = (np.atleast_1d(drifter['lon'])[i],
+        lon, lat = (np.atleast_1d(drifter['lon'])[i],
                 np.atleast_1d(drifter['lat'])[i])
         dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
         dcolor = drifter['color'] if 'color' in drifter else 'r'
         dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
         dzorder = drifter['zorder'] if 'zorder' in drifter else 10
 
-        ax.plot(x,
-                y,
+        ax.plot(lon,
+                lat,
                 linewidth=dlinewidth,
                 color=dcolor,
                 transform=self.crs_lonlat,
                 label=dlabel,
                 zorder=dzorder)
-        ax.plot(x[0], y[0], 'ok', transform=self.crs_lonlat)
-        ax.plot(x[-1], y[-1], 'xk', transform=self.crs_lonlat)
+        ax.plot(lon[0], lat[0], 'ok', transform=self.crs_lonlat)
+        ax.plot(lon[-1], lat[-1], 'xk', transform=self.crs_lonlat)
 
     def get_map_background(self, ax, background, crs, time=None):
         # Get background field for plotting on map or animation
