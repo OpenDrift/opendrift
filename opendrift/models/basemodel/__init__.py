@@ -2761,9 +2761,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
             if drifter is not None:
                 for drnum, dr in enumerate(drifter):
-                    drifter_pos[drnum].set_offsets(np.c_[dr['x'][i],
-                                                         dr['y'][i]])
-                    drifter_line[drnum].set_data(dr['x'][0:i+1], dr['y'][0:i+1])
+                    drifter_pos[drnum].set_offsets(np.c_[dr['lon'][i],
+                                                         dr['lat'][i]])
+                    drifter_line[drnum].set_data(dr['lon'][0:i+1], dr['lat'][0:i+1])
                     ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
 
@@ -2987,12 +2987,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 sts = (self.result.time - self.result.time[0]) / np.timedelta64(1, 's')
                 dr_times = np.array(dr['time'], dtype=self.result.time.dtype)
                 dts = (dr_times-dr_times[0]) / np.timedelta64(1, 's')
-                dr['x'] = np.interp(sts, dts, dr['lon'])
-                dr['y'] = np.interp(sts, dts, dr['lat'])
-                dr['x'][sts < dts[0]] = np.nan
-                dr['x'][sts > dts[-1]] = np.nan
-                dr['y'][sts < dts[0]] = np.nan
-                dr['y'][sts > dts[-1]] = np.nan
+                dr['lon'] = np.interp(sts, dts, dr['lon'])
+                dr['lat'] = np.interp(sts, dts, dr['lat'])
+                dr['lon'][sts < dts[0]] = np.nan
+                dr['lon'][sts > dts[-1]] = np.nan
+                dr['lat'][sts < dts[0]] = np.nan
+                dr['lat'][sts > dts[-1]] = np.nan
                 dlabel = dr['label'] if 'label' in dr else 'Drifter'
                 dcolor = dr['color'] if 'color' in dr else 'r'
                 dlinewidth = dr['linewidth'] if 'linewidth' in dr else 2
@@ -3769,22 +3769,22 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         '''Plot provided trajectory along with simulated'''
         time = np.array(drifter['time'], dtype=self.result.time.dtype)
         i = np.where((time >= self.result.time[0].values) & (time <= self.result.time[-1].values))[0]
-        x, y = (np.atleast_1d(drifter['lon'])[i],
+        lon, lat = (np.atleast_1d(drifter['lon'])[i],
                 np.atleast_1d(drifter['lat'])[i])
         dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
         dcolor = drifter['color'] if 'color' in drifter else 'r'
         dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
         dzorder = drifter['zorder'] if 'zorder' in drifter else 10
 
-        ax.plot(x,
-                y,
+        ax.plot(lon,
+                lat,
                 linewidth=dlinewidth,
                 color=dcolor,
                 transform=self.crs_lonlat,
                 label=dlabel,
                 zorder=dzorder)
-        ax.plot(x[0], y[0], 'ok', transform=self.crs_lonlat)
-        ax.plot(x[-1], y[-1], 'xk', transform=self.crs_lonlat)
+        ax.plot(lon[0], lat[0], 'ok', transform=self.crs_lonlat)
+        ax.plot(lon[-1], lat[-1], 'xk', transform=self.crs_lonlat)
 
     def get_map_background(self, ax, background, crs, time=None):
         # Get background field for plotting on map or animation
