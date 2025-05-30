@@ -41,15 +41,14 @@ o.seed_within_polygon(lons=lons, lats=lats,
 # Finally running simulation
 o.run(end_time=r.end_time, time_step=r.time_step)
 
-o.animation(buffer=.01, fast=True, drifter={'time': driftertimes, 'lon': drifterlons, 'lat': drifterlats,
-    'label': 'CODE Drifter', 'color': 'b', 'linewidth': 2, 'markersize': 40})
+drifter={'time': driftertimes, 'lon': drifterlons, 'lat': drifterlats,
+         'label': 'CODE Drifter', 'color': 'b', 'linewidth': 2, 'markersize': 40}
+o.animation(buffer=.01, fast=True, drifter=drifter)
 
 #%%
 # .. image:: /gallery/animations/example_current_from_drifter_0.gif
 
 #%%
 # Drifter track is shown in red, and simulated trajectories are shown in gray. Oil spill is displaced relative to drifter, but drifter current is assumed to be spatially homogeneous.
-o.plot(buffer=.01, fast=True, drifter={
-        'lon': drifterlons, 'lat': drifterlats,
-        'time': driftertimes, 'linewidth': 2, 'color': 'r'})
+o.plot(buffer=.01, fast=True, drifter=drifter)
 
