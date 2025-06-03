@@ -486,26 +486,25 @@ class OpenBerg(OpenDriftSimulation):
         effective_water_depth = water_depth + sea_surface_height
         # Difference between draft and actual water depth
         hwall = draft - effective_water_depth
-        
+
         grounded = np.logical_and(hwall >= 0, grounding)
         if grounding:
             # Determine which icebergs are grounded
-            grounded = np.logical_and(hwall >= 0, grounding)
             if np.any(grounded):
                 logger.debug(f"Grounding condition: Icebergs grounded = {np.sum(grounded)}, "
-                    f"hwall = {np.round(hwall[grounded], 3)} meters")
+                            f"hwall = {np.round(hwall[grounded], 3)} meters")
                 # Grounded icebergs stop moving
                 self.elements.moving[grounded] = 0
-
-                # Check for Degrounding
-                degrounding = np.logical_and(self.elements.moving == 0, hwall < 0)
-                if np.any(degrounding):
-                    logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}, "
-                        f"hwall = {np.round(hwall[degrounding], 3)} meters")
-                    # Degrounded icebergs start moving again
-                    self.elements.moving[degrounding] = 1
             else:
                 logger.debug("No grounded icebergs detected in this timestep")
+
+            # Check for Degrounding regardless of whether grounding occurred now
+            degrounding = np.logical_and(self.elements.moving == 0, hwall < 0)
+            if np.any(degrounding):
+                logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}, "
+                            f"hwall = {np.round(hwall[degrounding], 3)} meters")
+                # Degrounded icebergs start moving again
+                self.elements.moving[degrounding] = 1
         else:
             logger.debug("Grounding process disabled in configuration")
         
