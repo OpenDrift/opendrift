@@ -132,8 +132,8 @@ def wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length):
         wave_direction : Wave direction
         iceb_length    : Iceberg's length
     """
-    F_wave_x = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad((wave_direction + 180) % 360)))
-    F_wave_y = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.cos(np.deg2rad((wave_direction + 180) % 360)))
+    F_wave_x = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad(wave_direction)))
+    F_wave_y = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.cos(np.deg2rad(wave_direction)))
     return np.array([F_wave_x, F_wave_y])
 
 
@@ -336,7 +336,7 @@ class OpenBerg(OpenDriftSimulation):
             },
             'drift:stokes_drift':{
                 'type': 'bool',
-                'default': True,
+                'default': False,
                 'description': 'If True, stokes drift force is added',
                 'level': CONFIG_LEVEL_BASIC
             },
@@ -348,7 +348,7 @@ class OpenBerg(OpenDriftSimulation):
             },
             'drift:sea_surface_slope':{
             'type': 'bool',
-            'default': True,
+            'default': False,
             'description': 'If True, sea surface slope force is added',
             'level': CONFIG_LEVEL_BASIC,
             },
@@ -482,11 +482,8 @@ class OpenBerg(OpenDriftSimulation):
         V0[:, sea_ice_conc >= 0.9] = sea_ice_vel[:, sea_ice_conc >= 0.9]  # With this criterium, the iceberg moves with the sea ice
         V0 = V0.flatten() # V0 needs to be 1D
 
-        # Effective water depth = sea floor depth + tide
         effective_water_depth = water_depth + sea_surface_height
-        # Difference between draft and actual water depth
         hwall = draft - effective_water_depth
-
         grounded = np.logical_and(hwall >= 0, grounding)
         if grounding:
             # Determine which icebergs are grounded
