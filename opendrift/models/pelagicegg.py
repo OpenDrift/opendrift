@@ -89,10 +89,12 @@ class PelagicEggDrift(OceanDrift):
         super(PelagicEggDrift, self).__init__(*args, **kwargs)
 
         # By default, eggs do not strand towards coastline
-        self.set_config('general:coastline_action', 'previous')
+        self._set_config_default('general:coastline_action', 'previous')
 
-        # Vertical mixing is enabled by default
-        self.set_config('drift:vertical_mixing', True)
+        # Vertical mixing is enabled by default, also at surface. Also vertical advection at surface.
+        self._set_config_default('drift:vertical_mixing', True)
+        self._set_config_default('drift:vertical_mixing_at_surface', True)
+        self._set_config_default('drift:vertical_advection_at_surface', True)
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
