@@ -98,6 +98,8 @@ class LarvalFish(OceanDrift):
             })
 
         self._set_config_default('drift:vertical_mixing', True)
+        self._set_config_default('drift:vertical_mixing_at_surface', True)
+        self._set_config_default('drift:vertical_advection_at_surface', True)
 
     def update_terminal_velocity(self, Tprofiles=None,
                                  Sprofiles=None, z_index=None):
