@@ -14,7 +14,7 @@
 #
 # Copyright 2015, 2023, Knut-Frode Dagestad, MET Norway
 # Copyright 2024, Lenny Hucher, NERSC, Norway
-# Copyright 2023, 2024, Achref Othmani, NERSC, Norway
+# Copyright 2023, 2024, 2025 Achref Othmani, NERSC, Norway
 
 """
 This code is initiated from the following reference with posterior modifications. 
@@ -34,20 +34,19 @@ import numpy as np
 
 
 # Constants
-rho_water = 1027   # Density of water (kg/m^3)
-rho_air = 1.293    # Density of air (kg/m^3)
-rho_ice = 917      # Density of ice (kg/m^3)
-rho_iceb = 900     # Density of iceberg (kg/m^3)
-g = 9.81           # Acceleration due to gravity in m/s²
-omega = 7.2921e-5  # Angular frequency (rad/s)
-csi = 1            # Sea ice coefficient of resistance
-wave_drag_coef = 0.3 # Wave drag coefficient
+rho_water = 1027       # Density of water (kg/m^3)
+rho_air = 1.293        # Density of air (kg/m^3)
+rho_ice = 917          # Density of ice (kg/m^3)
+rho_iceb = 900         # Density of iceberg (kg/m^3)
+g = 9.81               # Acceleration due to gravity in m/s²
+omega = 7.2921e-5      # Angular frequency (rad/s)
+csi = 1                # Sea ice coefficient of resistance
+wave_drag_coef = 0.3   # Wave drag coefficient
 
 
 
 class IcebergObj(LagrangianArray):
-    """ Extending Lagrangian3DArray with relevant properties for an Iceberg """
-
+    """ Extending LagrangianArray with relevant properties for an Iceberg """
     variables = LagrangianArray.add_variables([
         ('sail', {'dtype': np.float32,
                   'units': 'm',
@@ -69,7 +68,7 @@ class IcebergObj(LagrangianArray):
                    'default': 30,
                    'description': 'Width of iceberg)',
                    'level': CONFIG_LEVEL_ESSENTIAL}),
-        ('weight_coeff', {'dtype': np.float32,     # Relative to the shape of iceberg (e.g. 1 for tabular; 0.3 for pinnacle: It affects the mass only !)
+        ('weight_coeff', {'dtype': np.float32,     # Relative to the shape of iceberg (e.g. 1 for tabular; 0.3 for pinnacle: It affects the mass only)
                               'units': '1',
                               'default': 1}),
         ('water_drag_coeff', {'dtype': np.float32, # Ocean drag coeff.
@@ -133,8 +132,8 @@ def wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length):
         wave_direction : Wave direction
         iceb_length    : Iceberg's length
     """
-    F_wave_x = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad((wave_direction + 180) % 360)))
-    F_wave_y = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.cos(np.deg2rad((wave_direction + 180) % 360)))
+    F_wave_x = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad(wave_direction)))
+    F_wave_y = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.cos(np.deg2rad(wave_direction)))
     return np.array([F_wave_x, F_wave_y])
 
 
@@ -276,6 +275,7 @@ class OpenBerg(OpenDriftSimulation):
         "x_sea_water_velocity": {"fallback": None, "profiles": True},
         "y_sea_water_velocity": {"fallback": None, "profiles": True},
         "sea_floor_depth_below_sea_level": {"fallback": 10000},
+        'sea_surface_height': {'fallback': 0},
         "sea_surface_x_slope": {"fallback": 0},
         "sea_surface_y_slope": {"fallback": 0},
         "x_wind": {"fallback": None, "important": True},
@@ -300,12 +300,21 @@ class OpenBerg(OpenDriftSimulation):
         """
         draft = self.elements.draft
         profile = self.environment_profiles[variable]
-        z = self.environment_profiles["z"]
+        z = self.environment_profiles["z"] 
+        if profile.ndim == 1:
+            profile = profile[np.newaxis, :]
         if z is None or (len(z) == 1 and z[0] is None):
-            z = np.zeros_like(profile)
-        mask = draft[:, np.newaxis] < -z
-        mask[np.argmax(mask, axis=0), np.arange(mask.shape[1])] = False
-        return np.ma.masked_array(profile, mask.T, fill_value=np.nan)
+            z = np.zeros(profile.shape[0])
+        z = np.atleast_1d(z)
+        if z.ndim == 1:
+            z = z[:, np.newaxis] 
+        draft = np.atleast_1d(draft)
+        mask = draft[np.newaxis, :] < -z 
+        if mask.shape[0] > 1:
+            mask[np.argmax(mask, axis=0), np.arange(mask.shape[1])] = False
+        assert profile.shape == mask.shape, f"Incompatible shapes: profile {profile.shape}, mask {mask.shape}"
+
+        return np.ma.masked_array(profile, mask, fill_value=np.nan)
 
 
     def get_basal_env(self, variable):
@@ -327,7 +336,7 @@ class OpenBerg(OpenDriftSimulation):
             },
             'drift:stokes_drift':{
                 'type': 'bool',
-                'default': True,
+                'default': False,
                 'description': 'If True, stokes drift force is added',
                 'level': CONFIG_LEVEL_BASIC
             },
@@ -339,7 +348,7 @@ class OpenBerg(OpenDriftSimulation):
             },
             'drift:sea_surface_slope':{
             'type': 'bool',
-            'default': True,
+            'default': False,
             'description': 'If True, sea surface slope force is added',
             'level': CONFIG_LEVEL_BASIC,
             },
@@ -403,6 +412,7 @@ class OpenBerg(OpenDriftSimulation):
         rho_water = PhysicsMethods.sea_water_density(T, S)
         sea_slope_x = self.environment.sea_surface_x_slope
         sea_slope_y = self.environment.sea_surface_y_slope
+        sea_surface_height= self.environment.sea_surface_height
         wave_height = self.environment.sea_surface_wave_significant_height
         wave_direction = self.environment.sea_surface_wave_from_direction
         sea_ice_thickness = self.environment.sea_ice_thickness
@@ -438,7 +448,7 @@ class OpenBerg(OpenDriftSimulation):
             vprof_mean_inter = (vprof[1:] + vprof[:-1]) / 2
             mask = mask[:-1]
             thickness_reshaped = np.tile(thickness, (1, mask.shape[1]))
-            thickness_reshaped[mask] = np.nan
+            thickness_reshaped = np.where(mask, np.nan, thickness_reshaped)
             umean = np.nansum(thickness_reshaped * uprof_mean_inter, axis=0) / np.nansum(thickness_reshaped, axis=0)
             vmean = np.nansum(thickness_reshaped * vprof_mean_inter, axis=0) / np.nansum(thickness_reshaped, axis=0)
             water_vel = np.array([umean, vmean])
@@ -471,11 +481,29 @@ class OpenBerg(OpenDriftSimulation):
         V0 = advect_iceberg_no_acc(f, water_vel, wind_vel)  # Approximation of the solution of the dynamic equation for the iceberg velocity
         V0[:, sea_ice_conc >= 0.9] = sea_ice_vel[:, sea_ice_conc >= 0.9]  # With this criterium, the iceberg moves with the sea ice
         V0 = V0.flatten() # V0 needs to be 1D
-        hwall = draft - water_depth
+
+        effective_water_depth = water_depth + sea_surface_height
+        hwall = draft - effective_water_depth
         grounded = np.logical_and(hwall >= 0, grounding)
-        if any(grounded) and grounding:
-            logger.debug(f"Grounding condition : Icebergs grounded = {len(hwall[hwall>0])}, hwall={np.round(hwall[hwall>0],3)} meters")
-            self.elements.moving[grounded] = 0  # Grounded icebergs shall not move, also not with diffusivity
+        if grounding:
+            # Determine which icebergs are grounded
+            if np.any(grounded):
+                logger.debug(f"Grounding condition: Icebergs grounded = {np.sum(grounded)}, "
+                            f"hwall = {np.round(hwall[grounded], 3)} meters")
+                # Grounded icebergs stop moving
+                self.elements.moving[grounded] = 0
+            else:
+                logger.debug("No grounded icebergs detected in this timestep")
+
+            # Check for Degrounding regardless of whether grounding occurred now
+            degrounding = np.logical_and(self.elements.moving == 0, hwall < 0)
+            if np.any(degrounding):
+                logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}, "
+                            f"hwall = {np.round(hwall[degrounding], 3)} meters")
+                # Degrounded icebergs start moving again
+                self.elements.moving[degrounding] = 1
+        else:
+            logger.debug("Grounding process disabled in configuration")
         
         sol = solve_ivp(dynamic, [0, self.time_step.total_seconds()], V0,
                         args=(water_vel, wind_vel, wave_height, wave_direction, Ao, Aa, rho_water,

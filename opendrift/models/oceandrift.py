@@ -125,12 +125,12 @@ class OceanDrift(OpenDriftSimulation):
             'drift:vertical_advection': {'type': 'bool', 'default': True, 'description':
                 'Advect elements with vertical component of ocean current.',
                 'level': CONFIG_LEVEL_BASIC},
-            'drift:vertical_advection_at_surface': {'type': 'bool', 'default': True, 'description':
+            'drift:vertical_advection_at_surface': {'type': 'bool', 'default': False, 'description':
                 'If vertical advection is activated, surface elements (z=0) can only be advected (downwards) if this setting it True.',
                 'level': CONFIG_LEVEL_ADVANCED},
             'drift:vertical_mixing': {'type': 'bool', 'default': False, 'level': CONFIG_LEVEL_BASIC,
                 'description': 'Activate vertical mixing scheme with inner loop'},
-            'drift:vertical_mixing_at_surface': {'type': 'bool', 'default': True, 'description':
+            'drift:vertical_mixing_at_surface': {'type': 'bool', 'default': False, 'description':
                 'If vertical mixing is activated, surface elements (z=0) can only be mixed (downwards) if this setting it True.',
                 'level': CONFIG_LEVEL_ADVANCED},
             'vertical_mixing:timestep': {'type': 'float', 'min': 0.1, 'max': 3600, 'default': 60,

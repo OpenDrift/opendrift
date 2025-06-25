@@ -386,6 +386,8 @@ class TestRun(unittest.TestCase):
             diffusivity[z<-15] = case['K_below']
             o = OceanDrift(loglevel=20)
             o.set_config('drift:vertical_mixing', True)
+            o.set_config('drift:vertical_mixing_at_surface', True)
+            o.set_config('drift:vertical_advection_at_surface', True)
             o.set_config('vertical_mixing:diffusivitymodel', 'environment')
             o.set_config('vertical_mixing:timestep', case['T'])
             o.set_config('environment:fallback:land_binary_mask', 0)
