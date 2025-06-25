@@ -10,7 +10,7 @@ import pytest
 def test_logging(tmpdir, capsys):
     # Accepting small variations in log output,
     # depending on machine, and from which folder test is run
-    accepted = (285, 288, 313) 
+    accepted = (286, 289, 314) 
 
     # Logging to console
     logfile = None

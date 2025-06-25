@@ -262,6 +262,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.steps_calculation = 0  # Increase for each simulation step
         self.elements_deactivated = self.ElementType()  # Empty array
         self.elements = self.ElementType()  # Empty array
+        self._elements_previous = None
+        self._environment_previous = None
 
         # Set up logging
         logformat = '%(asctime)s %(levelname)-7s %(name)s:%(lineno)d: %(message)s'
@@ -570,55 +572,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def post_run(self):
         pass
 
-    def store_present_positions(self, IDs=None, lons=None, lats=None):
-        """Store present element positions, in case they shall be moved back"""
-        if self.get_config('general:coastline_action') in ['previous', 'stranding'] or (
-                'general:seafloor_action' in self._config
-                and self.get_config('general:seafloor_action') == 'previous'):
-            if not hasattr(self, 'previous_lon'):
-                self.previous_lon = np.ma.masked_all(self.num_elements_total())
-                self.previous_lat = np.ma.masked_all(self.num_elements_total())
-            if IDs is None:
-                IDs = self.elements.ID
-                lons = self.elements.lon
-                lats = self.elements.lat
-                self.newly_seeded_IDs = None
-            else:
-                # to check if seeded on land
-                if len(IDs) > 0:
-                    self.newly_seeded_IDs = np.copy(IDs)
-                else:
-                    self.newly_seeded_IDs = None
-            self.previous_lon[IDs] = np.copy(lons)
-            self.previous_lat[IDs] = np.copy(lats)
+    def update_previous_state(self):
+        """Store some properties and variables, for access at next time step"""
 
-    def store_previous_variables(self):
-        """Store some environment variables, for access at next time step"""
+        # Retrieve previous from storage
+        if self._environment_previous is not None:
+            # Update previous environment
+            self.environment_previous = self._environment_previous.isel(trajectory=self.elements.ID)
+            # Store present environment variables
+            for var in self._environment_previous:
+                self._environment_previous[var][self.elements.ID] = self.environment[var]
 
-        if not hasattr(self, 'store_previous'):
-            return
-        if not hasattr(self, 'variables_previous'):
-            # Create ndarray to store previous variables
-            dtype = [(var, np.float32) for var in self.store_previous]
-            self.variables_previous = np.array(np.full(
-                self.num_elements_total(), np.nan),
-                                               dtype=dtype)
-
-        # Copying variables_previous to environment_previous
-        self.environment_previous = self.variables_previous[self.elements.ID]
-
-        # Use new values for new elements which have no previous value
-        for var in self.store_previous:
-            undefined = np.isnan(self.environment_previous[var])
-            self.environment_previous[var][undefined] = getattr(
-                self.environment, var)[undefined]
-
-        self.environment_previous = self.environment_previous.view(np.recarray)
-
-        for var in self.store_previous:
-            self.variables_previous[var][self.elements.ID] = getattr(
-                self.environment, var)
-
+        if self._elements_previous is not None:
+            # Update previous elements
+            self.elements_previous = self._elements_previous.isel(trajectory=self.elements.ID)
+            # Store present element properties
+            for var in self._elements_previous:
+                self._elements_previous[var][self.elements.ID] = getattr(self.elements, var)
+            
     def interact_with_coastline(self, final=False):
         """Coastline interaction according to configuration setting"""
 
@@ -661,23 +632,24 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             for on_land_id, on_land_prev_id in zip(on_land, self.elements.ID[on_land]):
                 lon = self.elements.lon[on_land_id]
                 lat = self.elements.lat[on_land_id]
-                prev_lon = self.previous_lon[on_land_prev_id]
-                prev_lat = self.previous_lat[on_land_prev_id]
-
+                prev_lon = self._elements_previous.lon[on_land_prev_id].data
+                prev_lat = self._elements_previous.lat[on_land_prev_id].data
                 step_degrees = float(coastline_approximation_precision)
 
                 x_degree_diff = np.abs(prev_lon - lon)
+                y_degree_diff = np.abs(prev_lat - lat)
+                if x_degree_diff == 0 and y_degree_diff == 0:
+                    continue
                 x_samples = np.floor(x_degree_diff / step_degrees).astype(np.int64) if x_degree_diff > step_degrees else 1
                 x = np.linspace(prev_lon, lon, x_samples)
 
-                y_degree_diff = np.abs(prev_lat - lat)
                 y_samples = np.floor(y_degree_diff/ step_degrees).astype(np.int64) if y_degree_diff > step_degrees else 1
                 y = np.linspace(prev_lat, lat, y_samples)
 
                 xx, yy = np.meshgrid(x,y)
                 xx, yy = xx.ravel(), yy.ravel()
 
-                rl_mask = rl.contains_many(xx.ravel(), yy.ravel())
+                rl_mask = rl.contains_many(xx, yy)
                 if np.any(rl_mask):
                     index = np.argmax(rl_mask)
                     new_lon = xx[index]
@@ -702,9 +674,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                              'moving back to water' % len(on_land))
                 on_land_ID = self.elements.ID[on_land]
                 self.elements.lon[on_land] = \
-                    np.copy(self.previous_lon[on_land_ID])
+                    self._elements_previous.lon[on_land_ID]
                 self.elements.lat[on_land] = \
-                    np.copy(self.previous_lat[on_land_ID])
+                    self._elements_previous.lat[on_land_ID]
                 self.environment.land_binary_mask[on_land] = 0
 
     def interact_with_seafloor(self):
@@ -741,10 +713,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.warning('%s elements hit seafloor, '
                            'moving back ' % len(below))
             below_ID = self.elements.ID[below]
-            self.elements.lon[below] = \
-                np.copy(self.previous_lon[below_ID])
-            self.elements.lat[below] = \
-                np.copy(self.previous_lat[below_ID])
+            self.elements.lon[below] = self._elements_previous.lon[below_ID].data
+            self.elements.lat[below] = self._elements_previous.lat[below_ID].data
 
     @abstractmethod
     def update(self):
@@ -873,6 +843,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             'to be seeded: %s, already seeded %s' %
             (len(self.elements_scheduled), self.num_elements_activated()))
         if len(self.elements_scheduled) == 0:
+            self.newly_seeded_IDs = None
             return
         if self.time_step.days >= 0:
             indices = (self.elements_scheduled_time >= self.time) & \
@@ -882,9 +853,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             indices = (self.elements_scheduled_time <= self.time) & \
                       (self.elements_scheduled_time >
                        self.time + self.time_step)
-        self.store_present_positions(self.elements_scheduled.ID[indices],
-                                     self.elements_scheduled.lon[indices],
-                                     self.elements_scheduled.lat[indices])
+        
+        self.newly_seeded_IDs = self.elements_scheduled.ID[indices]  # may be deactivated if on land
+        if self._elements_previous is not None and 'lon' in self._elements_previous:
+            # store position of newly seeded elements
+            self._elements_previous.lon[self.newly_seeded_IDs] = self.elements_scheduled.lon[indices]
+            self._elements_previous.lat[self.newly_seeded_IDs] = self.elements_scheduled.lat[indices]
         self.elements_scheduled.move_elements(self.elements, indices)
         self.elements_scheduled_time = self.elements_scheduled_time[~indices]
         logger.debug('Released %i new elements.' % np.sum(indices))
@@ -915,10 +889,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if isinstance(land_reader, ShapeReader):
             # can do this better
-            is_inside = land_reader.__on_land__(lon, lat)
-            lon[is_inside], lat[is_inside], _ = land_reader.get_nearest_outside(
-                lon[is_inside],
-                lat[is_inside],
+            land_indices = land_reader.__on_land__(lon, lat)
+            lon[land_indices], lat[land_indices], _ = land_reader.get_nearest_outside(
+                lon[land_indices],
+                lat[land_indices],
                 buffer_distance=land_reader._land_kdtree_buffer_distance,
             )
 
@@ -938,11 +912,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                         time=land_reader.start_time)[0]['land_binary_mask']
             if land.max() == 0:
                 logger.info('All points are in ocean')
-                return lon, lat
+                return lon, lat, None
             logger.info('Moving %i out of %i points from land to water' %
                         (np.sum(land != 0), len(lon)))
-            landlons = lon[land != 0]
-            landlats = lat[land != 0]
+            land_indices = np.where(land != 0)[0]
+            landlons = lon[land_indices]
+            landlats = lat[land_indices]
             longrid = np.arange(lonmin, lonmax, deltalon)
             latgrid = np.arange(latmin, latmax, deltalat)
             longrid, latgrid = np.meshgrid(longrid, latgrid)
@@ -960,10 +935,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if landgrid.size == 0:
                 # Need to catch this before trying .min() on it...
                 logger.warning('Land grid has zero size, cannot move elements.')
-                return lon, lat                                        
+                return lon, lat, land_indices                                        
             if landgrid.min() == 1 or np.isnan(landgrid.min()):
                 logger.warning('No ocean pixels nearby, cannot move elements.')
-                return lon, lat
+                return lon, lat, land_indices
 
             oceangridlons = longrid[landgrid == 0]
             oceangridlats = latgrid[landgrid == 0]
@@ -972,10 +947,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             landpoints = np.dstack([landlons, landlats])
             _dist, indices = tree.query(landpoints)
             indices = indices.ravel()
-            lon[land != 0] = oceangridlons[indices]
-            lat[land != 0] = oceangridlats[indices]
+            lon[land_indices] = oceangridlons[indices]
+            lat[land_indices] = oceangridlats[indices]
 
-        return lon, lat
+        return lon, lat, land_indices
 
     @require_mode(mode=Mode.Ready)
     def seed_elements(self,
@@ -1992,7 +1967,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if varname == 'ID' or (self.export_variables is not None and
                                    varname not in self.export_variables):
                 continue
-            attrs = {k:v for k,v in attrs.copy().items() if k not in ['seed', 'default']}
+            attrs = {k:v for k,v in attrs.copy().items() if k not in ['seed', 'default', 'store_previous']}
             element_vars[varname] = (dims,
                                      np.full(shape=shape, fill_value=np.nan, dtype=default_dtype),
                                      attrs)
@@ -2048,10 +2023,29 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             ('land_binary_mask' in self.required_variables):
             #('land_binary_mask' not in self.fallback_values) and \
             self.timer_start('preparing main loop:moving elements to ocean')
-            self.elements_scheduled.lon, self.elements_scheduled.lat = \
+            self.elements_scheduled.lon, self.elements_scheduled.lat, land_indices = \
                 self.closest_ocean_points(self.elements_scheduled.lon,
                                           self.elements_scheduled.lat)
             self.timer_end('preparing main loop:moving elements to ocean')
+
+        # TODO: adjust store_previous according to config, later with upcming conditional mechanism
+        if self.get_config('general:coastline_action') in ['previous', 'stranding'] or (
+                'general:coastline_action' in self._config and
+                self.get_config('general:coastline_action') == 'previous'):
+            logger.info('Storing previous position of elements for coastline interaction')
+            self.elements.variables['lon']['store_previous'] = True
+            self.elements.variables['lat']['store_previous'] = True
+
+        # Make Xarray datasets to store environment variables and element properties from previous time step
+        environment_previous = [vn for vn, v in self.required_variables.items()
+                                if v.get('store_previous', False) is True]
+        elements_previous = [vn for vn, v in self.elements.variables.items()
+                             if v.get('store_previous', False) is True]
+        
+        if len(environment_previous) > 0:
+            self._environment_previous = self.result[[*environment_previous]].isel(time=0, drop=True).copy(deep=True)
+        if len(elements_previous) > 0:
+            self._elements_previous = self.result[[*elements_previous]].isel(time=0, drop=True).copy(deep=True)
 
         #############################
         # Check validity domain
@@ -2147,9 +2141,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
                 self.remove_deactivated_elements()
 
-                # Store location, in case elements shall be moved back
-                self.store_present_positions()
-                
+                self.update_previous_state()  # Store location, in case elements shall be moved back
+
                 if self.num_elements_active() > 0:
                     ########################################
                     # Calling module specific update method
