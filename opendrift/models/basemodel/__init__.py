@@ -3640,9 +3640,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             else:
                 time = None
             if isinstance(background, xr.DataArray):
-                map_x = background.coords['lon_bin']
-                map_y = background.coords['lat_bin']
-                scalar = background
+                if 'lon' in background.coords:  # From TrajAn
+                    map_x = background.coords['lon']
+                    map_y = background.coords['lat']
+                    scalar = background.T
+                else:  # From get_density_array
+                    map_x = background.coords['lon_bin']
+                    map_y = background.coords['lat_bin']
+                    scalar = background
                 map_y, map_x = np.meshgrid(map_y, map_x)
             elif background == 'residence':
                 scalar, lon_res, lat_res = self.get_residence_time(
