@@ -1816,7 +1816,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if 'skip_if' in var:
                 skip = self.evaluate_conditional(*var['skip_if'])
                 if skip is True:
-                    logger.info(f'Skipping environment variable {vn} because of condition {var['skip_if']}')
+                    logger.info(f'Skipping environment variable {vn} because of condition {var["skip_if"]}')
                     self.required_variables.pop(vn)
 
         ########################
