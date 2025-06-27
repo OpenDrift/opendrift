@@ -135,13 +135,11 @@ class Reader(BaseReader, StructuredReader):
             -2000, -2500, -3000, -3500, -4000, -4500, -5000, -5500, -6000,
             -6500, -7000, -7500, -8000])
 
-        gls_param = ['gls_cmu0', 'gls_p', 'gls_m', 'gls_n']
-        
         self.name = name or 'roms native'
 
         def drop_non_essential_vars_pop(ds):
             dropvars = [v for v in ds.variables if v not in
-                        list(self.ROMS_variable_mapping.keys()) + gls_param +
+                        list(self.ROMS_variable_mapping.keys()) +
                         ['ocean_time', 'time', 'bulk_time', 's_rho',
                          'Cs_r', 'Cs_rho', 'hc', 'angle', 'Vtransform']
                         and v[0:3] not in ['lon', 'lat', 'mas']]
@@ -231,16 +229,6 @@ class Reader(BaseReader, StructuredReader):
         for var in list(self.ROMS_variable_mapping):  # Remove unused variables
             if var not in self.Dataset.variables:
                 del self.ROMS_variable_mapping[var]
-
-        try:  # Check for GLS parameters (diffusivity)
-            self.gls_parameters = {}
-            for gls_par in gls_param:
-                self.gls_parameters[gls_par] = \
-                    self.Dataset.variables[gls_par][()]
-            logger.info('Read GLS parameters from file.')
-        except Exception as e:
-            logger.info(e)
-            logger.info('Did not find complete set of GLS parameters')
 
         # Get time coverage
         ocean_time = None
