@@ -21,7 +21,7 @@ from scipy.interpolate import interp1d
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
-from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, gls_tke
+from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983
 from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 
 # Defining the oil element properties
@@ -92,10 +92,6 @@ class OceanDrift(OpenDriftSimulation):
         'sea_surface_wind_wave_to_direction': {'fallback': 0, 'important': False},
         'sea_surface_wind_wave_mean_period': {'fallback': 0, 'important': False},
         'sea_surface_wind_wave_significant_height': {'fallback': 0, 'important': False},
-        'surface_downward_x_stress': {'fallback': 0},
-        'surface_downward_y_stress': {'fallback': 0},
-        'turbulent_kinetic_energy': {'fallback': 0},
-        'turbulent_generic_length_scale': {'fallback': 0},
         'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'land_binary_mask': {'fallback': None},
@@ -142,7 +138,7 @@ class OceanDrift(OpenDriftSimulation):
                 'Time step used for inner loop of vertical mixing.'},
             'vertical_mixing:diffusivitymodel': {'type': 'enum', 'default': 'environment',
                 'enum': ['environment', 'stepfunction', 'windspeed_Sundby1983',
-                 'windspeed_Large1994', 'gls_tke','constant'], 'level': CONFIG_LEVEL_ADVANCED,
+                 'windspeed_Large1994', 'constant'], 'level': CONFIG_LEVEL_ADVANCED,
                  'units': 'seconds', 'description': 'Algorithm/source used for profile of vertical diffusivity. Environment means that diffusivity is aquired from readers or environment constants/fallback.'},
             'vertical_mixing:background_diffusivity': {'type': 'float', 'min': 0, 'max': 1, 'default': 1.2e-5,
                 'level': CONFIG_LEVEL_ADVANCED, 'units': 'm2s-1', 'description':
@@ -363,24 +359,6 @@ class OceanDrift(OpenDriftSimulation):
             return verticaldiffusivity_Large1994(wind, depth, MLD, background_diffusivity)
         elif model == 'windspeed_Sundby1983':
             return verticaldiffusivity_Sundby1983(wind, depth, MLD, background_diffusivity)
-        elif model == 'gls_tke':
-            if not hasattr(self, 'gls_parameters'):
-                logger.info('Searching readers for GLS parameters...')
-                for reader_name, reader in self.readers.items():
-                    if hasattr(reader, 'gls_parameters'):
-                        self.gls_parameters = reader.gls_parameters
-                        logger.info('Found gls-parameters in ' + reader_name)
-                        break  # Success
-                if not hasattr(self, 'gls_parameters'):
-                    logger.info('Did not find gls-parameters in any readers.')
-                    self.gls_parameters = None
-            windstress = np.sqrt(self.environment.surface_downward_x_stress**2 +
-                                 self.environment.surface_downward_y_stress**2)
-            return gls_tke(windstress, depth, self.sea_water_density(),
-                           self.environment.turbulent_kinetic_energy,
-                           self.environment.turbulent_generic_length_scale,
-                           gls_parameters)
-
         else:
             raise ValueError('Unknown diffusivity model: ' + model)
 
