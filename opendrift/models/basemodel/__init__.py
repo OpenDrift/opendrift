@@ -241,6 +241,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
 
+        self.required_variables = self.required_variables.copy()  # Avoid modifying the class variable
+
         self.env = Environment(self.required_variables, self._config)
 
         # Make copies of dictionaries so that they are private to each instance
@@ -1806,6 +1808,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Some cleanup needed if starting from imported state
         if self.steps_calculation >= 1:
             self.steps_calculation = 0
+
+        ###################################################################################
+        # Remove variables from required_variables based on configuration and conditionals
+        ###################################################################################
+        for vn, var in self.required_variables.copy().items():
+            if 'skip_if' in var:
+                skip = self.evaluate_conditional(*var['skip_if'])
+                if skip is True:
+                    logger.info(f'Skipping environment variable {vn} because of condition {var['skip_if']}')
+                    self.required_variables.pop(vn)
 
         ########################
         # Simulation time step
@@ -4755,3 +4767,34 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def gui_postproc(self):
         '''To be overloaded by subclasses'''
         pass
+
+    def evaluate_conditional(self, key, operator, value):
+        """Evaluate a condition as True or False
+
+        This can be used to:
+        - skip required_variables that are not required, based on config setting
+        - store previous value of element property or environment variable, based on config setting
+        - disable a config setting based on another setting (for dynamic menus)
+
+        key: config key string
+        operator: one from operator_map below
+        value: the provided value to be matched with operator against actual config setting
+
+        Returns: True or False
+        """
+
+        operator_map = { 
+            '==': lambda x, y: x == y,
+            '!=': lambda x, y: x != y,
+            '<': lambda x, y: x < y,
+            '<=': lambda x, y: x <= y,
+            '>': lambda x, y: x > y,
+            '>=': lambda x, y: x >= y,
+            'is': lambda x, y: x is y,
+            'is not': lambda x, y: x is not y,
+        }
+        
+        # Presently assuming that key is a config key
+        key = self.get_config(key)
+
+        return operator_map[operator](key, value)
