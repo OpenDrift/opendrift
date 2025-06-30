@@ -1922,7 +1922,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             np.radians(np.mean(self.elements_scheduled.lat)))
         # TODO: extent should ideally be a general polygon, not only lon/lat-min/max
         # TODO: Should also take into account eventual lifetime of elements
-        simulation_extent = [
+        simulation_extent = np.array([
             np.maximum(-360,
                        self.elements_scheduled.lon.min() - deltalon),
             np.maximum(-89,
@@ -1931,7 +1931,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                        self.elements_scheduled.lon.max() + deltalon),
             np.minimum(89,
                        self.elements_scheduled.lat.max() + deltalat)
-        ]
+        ])
         if simulation_extent[2] == 360 and simulation_extent[0] < 0:
             simulation_extent[0] = 0
 
