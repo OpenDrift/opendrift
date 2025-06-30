@@ -1084,7 +1084,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 az = np.random.rand(np.sum(number)) * 360
                 dist = np.sqrt(np.random.uniform(0, 1,
                                                  np.sum(number))) * radius
-            lon, lat, az = geod.fwd(lon, lat, az, dist, radians=False)
+            if len(lon) > 1:
+                lon, lat, az = geod.fwd(lon, lat, az, dist, radians=False)
+            else:
+                lon, lat, az = geod.fwd(lon[0], lat[0], az[0], dist[0], radians=False)
+                lon = np.atleast_1d(lon)
+                lat = np.atleast_1d(lat)
 
         # If z is 'seafloor'
         if not 'z' in kwargs or kwargs['z'] is None:
@@ -4473,9 +4478,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         velocity = velocity * self.elements.moving  # Do not move frosen elements
 
         # Calculate new positions
-        self.elements.lon, self.elements.lat, back_az = geod.fwd(
-            self.elements.lon, self.elements.lat, azimuth,
-            velocity * self.time_step.total_seconds())
+        if len(self.elements.lon) > 1:
+            self.elements.lon, self.elements.lat, back_az = geod.fwd(
+                self.elements.lon, self.elements.lat, azimuth,
+                velocity * self.time_step.total_seconds())
+        else:  # Avoiding pyproj warning for arrays with length 1
+            self.elements.lon, self.elements.lat, back_az = geod.fwd(
+                self.elements.lon[0], self.elements.lat[0], azimuth[0],
+                velocity[0] * self.time_step.total_seconds())
+            self.elements.lon = np.atleast_1d(self.elements.lon)
+            self.elements.lat = np.atleast_1d(self.elements.lat)
 
         # Check that new positions are valid
         if (self.elements.lon.min()
