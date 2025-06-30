@@ -266,6 +266,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.elements = self.ElementType()  # Empty array
         self._elements_previous = None
         self._environment_previous = None
+        self.elements_previous = None
+        self.environment_previous = None
 
         # Set up logging
         logformat = '%(asctime)s %(levelname)-7s %(name)s:%(lineno)d: %(message)s'
@@ -1794,7 +1796,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
-        self.elements = self.ElementType()
 
         # Export seed_geojson as FeatureCollection string
         self.add_metadata('seed_geojson',
