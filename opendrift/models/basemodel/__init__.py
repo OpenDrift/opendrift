@@ -2041,7 +2041,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.timer_end('preparing main loop:moving elements to ocean')
 
         # TODO: adjust store_previous according to config, later with upcming conditional mechanism
-        if self.get_config('general:coastline_action') in ['previous']:
+        if self.get_config('general:coastline_action', None) in ['stranding', 'previous']:
             logger.info('Storing previous position of elements for coastline interaction')
             self.elements.variables['lon']['store_previous'] = True
             self.elements.variables['lat']['store_previous'] = True

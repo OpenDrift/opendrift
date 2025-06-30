@@ -27,7 +27,7 @@ def test_add_readers(test_data_roms):
 
 def test_previous():
     o = OceanDrift()  # With coastline_action = stranding
-    o.set_config('general:coastline_action', 'stranding')
+    o.set_config('general:coastline_action', 'none')
     o.set_config('environment:constant:land_binary_mask', 0)
     o.set_config('environment:constant:x_sea_water_velocity', 1)
     o.seed_elements(lon=3, lat=60, time=datetime.now())
