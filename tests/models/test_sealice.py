@@ -13,12 +13,13 @@ def test_sealice_larc():
         tdf +
         '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
     o.add_reader([reader_arome])
-    reader_light = reader_netCDF_CF_generic.Reader(
-        'https://opendap.larc.nasa.gov/opendap/hyrax/POWER/monthly/power_901_monthly_radiation_utc.nc',
-        standard_name_mapping={
-            'ALLSKY_SFC_SW_DWN': 'surface_net_downward_radiative_flux'
-        })
-    o.add_reader(reader_light)
+    # Disabling as opendap resource is (temprarily?) unavailable
+    #reader_light = reader_netCDF_CF_generic.Reader(
+    #    'https://opendap.larc.nasa.gov/opendap/hyrax/POWER/monthly/power_901_monthly_radiation_utc.nc',
+    #    standard_name_mapping={
+    #        'ALLSKY_SFC_SW_DWN': 'surface_net_downward_radiative_flux'
+    #    })
+    #o.add_reader(reader_light)
     lcts = timedelta(hours=1).total_seconds()  #seeding time-steps
     lat = 67.711251
     lon = 13.556971  # Lofoten
