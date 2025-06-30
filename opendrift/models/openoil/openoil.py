@@ -1321,7 +1321,7 @@ class OpenOil(OceanDrift):
 
         b = self.get_oil_budget()
 
-        oil_budget = np.row_stack(
+        oil_budget = np.vstack(
             (b['mass_dispersed'], b['mass_submerged'], b['mass_surface'],
              b['mass_stranded'], b['mass_evaporated'], b['mass_biodegraded']))
         oil_density = b['oil_density']

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Vietnam
-==================================
+========
 """
 
 from datetime import datetime, timedelta
@@ -19,7 +19,7 @@ o.add_readers_from_list([
 # Seed some particles
 object_type = 26  # 26 = Life-raft, no ballast
 o.seed_elements(lon=107.8, lat=10.0, radius=1000, number=1000,
-                object_type=object_type, time=datetime.utcnow())
+                object_type=object_type, time=datetime.now())
 
 # Run model
 o.run(duration=timedelta(days=3),
