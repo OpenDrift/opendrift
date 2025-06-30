@@ -266,6 +266,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         self.elements = self.ElementType()  # Empty array
         self._elements_previous = None
         self._environment_previous = None
+        self.elements_previous = None
+        self.environment_previous = None
 
         # Set up logging
         logformat = '%(asctime)s %(levelname)-7s %(name)s:%(lineno)d: %(message)s'
@@ -1794,7 +1796,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if self.num_elements_scheduled() == 0:
             raise ValueError('Please seed elements before starting a run.')
-        self.elements = self.ElementType()
 
         # Export seed_geojson as FeatureCollection string
         self.add_metadata('seed_geojson',
@@ -2041,9 +2042,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.timer_end('preparing main loop:moving elements to ocean')
 
         # TODO: adjust store_previous according to config, later with upcming conditional mechanism
-        if self.get_config('general:coastline_action') in ['previous', 'stranding'] or (
-                'general:coastline_action' in self._config and
-                self.get_config('general:coastline_action') == 'previous'):
+        if self.get_config('general:coastline_action', None) in ['stranding', 'previous']:
             logger.info('Storing previous position of elements for coastline interaction')
             self.elements.variables['lon']['store_previous'] = True
             self.elements.variables['lat']['store_previous'] = True

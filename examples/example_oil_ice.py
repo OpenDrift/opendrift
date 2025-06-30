@@ -26,7 +26,7 @@ o.set_config('drift:truncate_ocean_model_below_m', 3)
 #%%
 # Imaginary oil spill in Hinlopen strait
 o.seed_elements(lon=19.1909, lat=79.5986, radius=50,
-                number=3000, time=datetime.utcnow() - timedelta(days=7))
+                number=3000, time=datetime.now() - timedelta(days=7))
 
 #%%
 # Running model

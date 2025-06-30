@@ -31,7 +31,7 @@ o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 lat=59.169194
 lon=10.962920
 o.seed_elements(lon=lon, lat=lat, number=10000,
-                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=48)],
+                time=[datetime.now(), datetime.now()+timedelta(hours=48)],
                 terminal_velocity=-.001)  # 1 mm/s settling speed
 
 o.run(time_step=600, time_step_output=1800, duration=timedelta(hours=36))

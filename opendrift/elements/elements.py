@@ -15,6 +15,7 @@
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
 import logging; logger = logging.getLogger(__name__)
+import copy
 from collections import OrderedDict
 import numpy as np
 
@@ -98,6 +99,8 @@ class LagrangianArray:
             is specified in the OrderedDict 'variables'
             An empty object may be created by giving no input.
         """
+
+        self.variables = copy.deepcopy(self.variables)  # Make self.variables dictionary immutable
 
         # Collect default values in separate dict, for easier access
         default_values = {variable: self.variables[variable]['dtype'](

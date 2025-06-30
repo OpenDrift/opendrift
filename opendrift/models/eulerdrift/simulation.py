@@ -75,7 +75,7 @@ class Simulation:
     def __init__(self, grid):
         self.grid = grid
         self.readers = []
-        self.t0 = datetime.utcnow()
+        self.t0 = datetime.now()
 
     @classmethod
     def new(cls, lon0 = 10., lat0 = 65., res = 10., shape=(100, 100)):

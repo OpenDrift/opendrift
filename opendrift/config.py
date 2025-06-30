@@ -20,7 +20,7 @@ class Configurable:
                 raise ValueError('No config setting named %s' % key)
             else:
                 return default
-        return (self._config[key]['value'])
+        return self._config[key]['value']
 
     def list_config(self, prefix=''):
         """List all possible configuration settings with values"""

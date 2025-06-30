@@ -23,7 +23,7 @@ o.set_config('drift:horizontal_diffusivity', 10)  # m2/s
 # Seed 1000 elements at random depths
 z = -np.random.rand(2000)*50
 o.seed_elements(lon=4.8, lat=60.0, z=z, radius=0, number=2000,
-                time=datetime.utcnow())
+                time=datetime.now())
 
 print(o)
 

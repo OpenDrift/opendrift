@@ -105,9 +105,9 @@ class Reader(BaseReader, ContinuousReader):
 
     def __on_land__(self, x, y):
         if self.invert is False:
-            return shapely.vectorized.contains(self.land, x, y)
+            return shapely.contains_xy(self.land, x, y)
         else:  # Inverse if polygons are lakes and not land areas
-            return 1 - shapely.vectorized.contains(self.land, x, y)
+            return 1 - shapely.contains_xy(self.land, x, y)
 
     def get_variables(self, requestedVariables, time = None,
                       x = None, y = None, z = None):
