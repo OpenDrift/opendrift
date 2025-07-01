@@ -16,7 +16,6 @@ o.set_config('environment:fallback:x_wind', 7)
 o.set_config('environment:fallback:x_sea_water_velocity', .1)
 o.set_config('environment:fallback:sea_surface_wave_stokes_drift_x_velocity', .2)
 o.set_config('environment:fallback:sea_surface_wave_significant_height', 2)
-o.set_config('environment:fallback:sea_surface_wave_period_at_variance_spectral_density_maximum', 8)
 
 #%%
 # Seed elements between surface and 5m depth

@@ -83,16 +83,8 @@ class OceanDrift(OpenDriftSimulation):
             'skip_if': ['drift:stokes_drift', 'is', False]},
         'sea_surface_wave_stokes_drift_y_velocity': {'fallback': 0,
             'skip_if': ['drift:stokes_drift', 'is', False]},
-        'sea_surface_wave_period_at_variance_spectral_density_maximum':
-            {'fallback': 0},
-        'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment': {'fallback': 0},
-        'sea_surface_swell_wave_to_direction': {'fallback': 0, 'important': False},
-        'sea_surface_swell_wave_peak_period_from_variance_spectral_density': {'fallback': 0, 'important': False},
-        'sea_surface_swell_wave_significant_height': {'fallback': 0, 'important': False},
-        'sea_surface_wind_wave_to_direction': {'fallback': 0, 'important': False},
-        'sea_surface_wind_wave_mean_period': {'fallback': 0, 'important': False},
-        'sea_surface_wind_wave_significant_height': {'fallback': 0, 'important': False},
-        'ocean_mixed_layer_thickness': {'fallback': 50},
+        'ocean_mixed_layer_thickness': {
+            'fallback': 50, 'skip_if': ['drift:vertical_mixing', 'is', False]},
         'sea_floor_depth_below_sea_level': {'fallback': 10000},
         'land_binary_mask': {'fallback': None},
         }
