@@ -33,7 +33,7 @@ from opendrift.models.basemodel.environment import Environment
 from opendrift.readers import reader_global_landmask
 
 from datetime import datetime, timedelta
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 
 import geojson
 import xarray as xr
@@ -677,10 +677,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug('%s elements hit coastline, '
                              'moving back to water' % len(on_land))
                 on_land_ID = self.elements.ID[on_land]
-                self.elements.lon[on_land] = \
-                    self._elements_previous.lon[on_land_ID]
-                self.elements.lat[on_land] = \
-                    self._elements_previous.lat[on_land_ID]
+                self.elements.lon[on_land] = self._elements_previous.lon[on_land_ID]
+                self.elements.lat[on_land] = self._elements_previous.lat[on_land_ID]
                 self.environment.land_binary_mask[on_land] = 0
 
     def interact_with_seafloor(self):
@@ -717,8 +715,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             logger.warning('%s elements hit seafloor, '
                            'moving back ' % len(below))
             below_ID = self.elements.ID[below]
-            self.elements.lon[below] = self._elements_previous.lon[below_ID].data
-            self.elements.lat[below] = self._elements_previous.lat[below_ID].data
+            self.elements.lon[below] = self._elements_previous.lon[below_ID]
+            self.elements.lat[below] = self._elements_previous.lat[below_ID]
 
     @abstractmethod
     def update(self):
@@ -727,11 +725,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         update properties (including position) of its particles (self.elements)
         """
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def ElementType(self):
         """Any trajectory model implementation must define an ElementType."""
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def required_variables(self):
         """Any trajectory model implementation must list needed variables."""
 
