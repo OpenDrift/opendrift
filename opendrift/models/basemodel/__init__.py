@@ -1729,7 +1729,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if 'store_previous_if' in prop:
                 store = evaluate_conditional(*prop['store_previous_if'], self)
                 if store is True:
-                    logger.info(f'Storing previous values of element property {en} because of condition {prop['store_previous_if']}')
+                    logger.info(f'Storing previous values of element property {en} because of condition {prop["store_previous_if"]}')
                     self.elements.variables[en]['store_previous'] = True
                 del self.elements.variables[en]['store_previous_if']  # To avoid writing this to netCDF metadata
 
