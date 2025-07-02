@@ -73,12 +73,18 @@ class LagrangianArray:
                  'standard_name': 'longitude',
                  'long_name': 'longitude',
                  'seed': False,
+                 'store_previous_if': (
+                    ('general:coastline_action', 'in', ['stranding', 'previous']), 'or',
+                    ('general:seafloor_action', 'in', ['previous'])),
                  'axis': 'X'}),
         ('lat', {'dtype': np.float32,
                  'units': 'degrees_north',
                  'standard_name': 'latitude',
                  'long_name': 'latitude',
                  'seed': False,
+                 'store_previous_if': (
+                    ('general:coastline_action', 'in', ['stranding', 'previous']), 'or',
+                    ('general:seafloor_action', 'in', ['previous'])),
                  'axis': 'Y'}),
         ('z', {'dtype': np.float32,
                    'units': 'm',

@@ -472,8 +472,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         # Add default element properties to config
         c = {}
-        for p in self.ElementType.variables:
-            v = self.ElementType.variables[p]
+        for p in self.elements.variables:
+            v = self.elements.variables[p]
             if 'seed' in v and v['seed'] is False:
                 continue  # Properties which may not be provided by user
             c['seed:%s' % p] = {
@@ -1717,10 +1717,21 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         ###################################################################################
         for vn, var in self.required_variables.copy().items():
             if 'skip_if' in var:
-                skip = self.evaluate_conditional(*var['skip_if'])
+                skip = evaluate_conditional(*var['skip_if'], self)
                 if skip is True:
                     logger.info(f'Skipping environment variable {vn} because of condition {var["skip_if"]}')
                     self.required_variables.pop(vn)
+
+        ####################################################################################
+        # Evaluate conditionals to determine if previous element properties shall be stored
+        ####################################################################################
+        for en, prop in self.elements.variables.copy().items():
+            if 'store_previous_if' in prop:
+                store = evaluate_conditional(*prop['store_previous_if'], self)
+                if store is True:
+                    logger.info(f'Storing previous values of element property {en} because of condition {prop["store_previous_if"]}')
+                    self.elements.variables[en]['store_previous'] = True
+                del self.elements.variables[en]['store_previous_if']  # To avoid writing this to netCDF metadata
 
         ########################
         # Simulation time step
@@ -1878,7 +1889,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         element_vars = {}
         default_dtype = np.float32  # Allows NaN (in contrast to np.int)
-        for varname, attrs in self.ElementType.variables.items():
+        for varname, attrs in self.elements.variables.items():
             if varname == 'ID' or (self.export_variables is not None and
                                    varname not in self.export_variables):
                 continue
@@ -1923,7 +1934,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if self.origin_marker is not None and 'origin_marker' in self.result.data_vars:
             self.result['origin_marker'] = self.result.origin_marker.assign_attrs(
-                {'flag_values': np.arange(len(self.origin_marker)).astype(self.ElementType.variables['origin_marker']['dtype']),
+                {'flag_values': np.arange(len(self.origin_marker)).astype(self.elements.variables['origin_marker']['dtype']),
                  'flag_meanings': " ".join(self.origin_marker.values())
                 })
 
@@ -1943,11 +1954,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                           self.elements_scheduled.lat)
             self.timer_end('preparing main loop:moving elements to ocean')
 
-        # TODO: adjust store_previous according to config, later with upcming conditional mechanism
-        if self.get_config('general:coastline_action', None) in ['stranding', 'previous']:
-            logger.info('Storing previous position of elements for coastline interaction')
-            self.elements.variables['lon']['store_previous'] = True
-            self.elements.variables['lat']['store_previous'] = True
 
         # Make Xarray datasets to store environment variables and element properties from previous time step
         environment_previous = [vn for vn, v in self.required_variables.items()
@@ -2211,7 +2217,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug(f'Truncating buffer from {numtimes_before} to {numtimes_after} times')
 
             # Final update some variable attributes
-            status_dtype = self.ElementType.variables['status']['dtype']
+            status_dtype = self.elements.variables['status']['dtype']
             self.result['status'] = self.result.status.assign_attrs(
                 {'valid_range': np.array((0, len(self.status_categories) - 1)).astype(status_dtype),
                  'flag_values': np.array(np.arange(len(self.status_categories))).astype(status_dtype),
@@ -4676,33 +4682,47 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         '''To be overloaded by subclasses'''
         pass
 
-    def evaluate_conditional(self, key, operator, value):
-        """Evaluate a condition as True or False
-
-        This can be used to:
-        - skip required_variables that are not required, based on config setting
-        - store previous value of element property or environment variable, based on config setting
-        - disable a config setting based on another setting (for dynamic menus)
-
-        key: config key string
-        operator: one from operator_map below
-        value: the provided value to be matched with operator against actual config setting
-
-        Returns: True or False
-        """
-
-        operator_map = { 
-            '==': lambda x, y: x == y,
-            '!=': lambda x, y: x != y,
-            '<': lambda x, y: x < y,
-            '<=': lambda x, y: x <= y,
-            '>': lambda x, y: x > y,
-            '>=': lambda x, y: x >= y,
-            'is': lambda x, y: x is y,
-            'is not': lambda x, y: x is not y,
-        }
-        
+    def _evaluate_key(self, key):
         # Presently assuming that key is a config key
-        key = self.get_config(key)
+        return self.get_config(key, 'not_implemented')
 
-        return operator_map[operator](key, value)
+def evaluate_conditional(key, operator, value, self=None):
+    """Evaluate a condition as True or False
+
+    This can be used to:
+    - skip required_variables that are not required, based on config setting
+    - store previous value of element property or environment variable, based on config setting
+    - disable a config setting based on another setting (for dynamic menus)
+
+    key: e.g. config key/setting as string
+    operator: relation between key and value, one from operator_map below
+    value: the provided value to be matched with operator against actual key
+
+    Returns: True or False
+    """
+
+    operator_map = { 
+        '==': lambda x, y: x == y,
+        '!=': lambda x, y: x != y,
+        '<': lambda x, y: x < y,
+        '<=': lambda x, y: x <= y,
+        '>': lambda x, y: x > y,
+        '>=': lambda x, y: x >= y,
+        'in': lambda x, y: x in y,
+        'is': lambda x, y: x is y,
+        'is not': lambda x, y: x is not y,
+        'or': lambda x, y: x or y,
+        'and': lambda x, y: x and y,
+    }
+    
+    if isinstance(key, tuple):
+        key = evaluate_conditional(key[0], key[1], key[2], self)
+
+    if self is not None and not isinstance(key, bool):
+        # If a OpenDrift instance is provided, this will evaluate the key, e.g. with get_config
+        key = self._evaluate_key(key)
+    
+    if isinstance(value, tuple):
+        value = evaluate_conditional(value[0], value[1], value[2], self)
+
+    return operator_map[operator](key, value)
