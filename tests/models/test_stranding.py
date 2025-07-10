@@ -90,7 +90,7 @@ class TestStranding(unittest.TestCase):
     def test_stranding_options(self):
         reader_osc = reader_oscillating.Reader(
                 'x_sea_water_velocity', amplitude=.5,
-                period_seconds=3600*6,
+                period=timedelta(hours=6),
                 zero_time=datetime.now())
 
         reader_global = reader_global_landmask.Reader()

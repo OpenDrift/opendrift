@@ -70,7 +70,8 @@ class OceanDrift(OpenDriftSimulation):
     required_variables = {
         'x_sea_water_velocity': {'fallback': 0},
         'y_sea_water_velocity': {'fallback': 0},
-        'sea_surface_height': {'fallback': 0},
+        'sea_surface_height': {'fallback': 0,
+            'store_previous_if': ['drift:vertical_advection', 'is', True]},
         'x_wind': {'fallback': 0},
         'y_wind': {'fallback': 0},
         'upward_sea_water_velocity': {'fallback': 0,
@@ -177,6 +178,8 @@ class OceanDrift(OpenDriftSimulation):
     def update(self):
         """Update positions and properties of elements."""
 
+        self.water_column_stretching()
+
         # Simply move particles with ambient current
         self.advect_ocean_current()
 
@@ -223,7 +226,6 @@ class OceanDrift(OpenDriftSimulation):
             if np.isnan(lo):
                 continue
             self.seed_elements(lon=lo, lat=la, time=time, number=number, **kwargs)
-        print(self)
         self.run(outfile=outfile, end_time=start_times[-1]+simulation_duration)
         # Simulate and save to file
 
@@ -286,6 +288,12 @@ class OceanDrift(OpenDriftSimulation):
 
     def prepare_run(self):
         super(OceanDrift, self).prepare_run()
+
+    def water_column_stretching(self):
+        """If sea_water_level changes, adjust z for continuity"""
+
+        return  # To be implemented
+        delta_zeta = self.environment.sea_surface_height - self.environment_previous.sea_surface_height
 
     def vertical_advection(self):
         """Move particles vertically according to vertical ocean current
