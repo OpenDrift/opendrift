@@ -23,6 +23,7 @@ logging.getLogger('urllib3').setLevel(logging.INFO)
 
 import sys
 import os
+import copy
 import types
 from typing import Union, List
 import traceback
@@ -241,8 +242,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # List to store GeoJSON dicts of seeding commands
         self.seed_geojson = []
 
-        self.required_variables = self.required_variables.copy()  # Avoid modifying the class variable
-
+        self.required_variables = copy.deepcopy(self.required_variables)  # Avoid modifying the class variable
         self.env = Environment(self.required_variables, self._config)
 
         # Make copies of dictionaries so that they are private to each instance
@@ -579,16 +579,26 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def update_previous_state(self):
         """Store some properties and variables, for access at next time step"""
 
-        # Retrieve previous from storage
+        if self.newly_seeded_IDs is not None:  # For newly seeded elements, we set previous equal to present
+            newly_seeded_rel_indices = np.where(self.elements.age_seconds==self.time_step.total_seconds())[0]    
+
+        # Environment variables
         if self._environment_previous is not None:
             # Update previous environment
+            if self.newly_seeded_IDs is not None:
+                for var in self._environment_previous:
+                    self._environment_previous[var][newly_seeded_rel_indices] = self.environment[var][newly_seeded_rel_indices]
             self.environment_previous = self._environment_previous.isel(trajectory=self.elements.ID)
             # Store present environment variables
             for var in self._environment_previous:
                 self._environment_previous[var][self.elements.ID] = self.environment[var]
 
+        # Element properties
         if self._elements_previous is not None:
             # Update previous elements
+            if self.newly_seeded_IDs is not None:  # For new elements there is no previous, so using present
+                for var in self._elements_previous:
+                    self._elements_previous[var][newly_seeded_rel_indices] = getattr(self.elements, var)[newly_seeded_rel_indices]
             self.elements_previous = self._elements_previous.isel(trajectory=self.elements.ID)
             # Store present element properties
             for var in self._elements_previous:
@@ -1722,9 +1732,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     logger.info(f'Skipping environment variable {vn} because of condition {var["skip_if"]}')
                     self.required_variables.pop(vn)
 
-        ####################################################################################
-        # Evaluate conditionals to determine if previous element properties shall be stored
-        ####################################################################################
+        #########################################################################################
+        # Evaluate conditionals to determine if previous properties or variables shall be stored
+        #########################################################################################
+        # Element properties
         for en, prop in self.elements.variables.copy().items():
             if 'store_previous_if' in prop:
                 store = evaluate_conditional(*prop['store_previous_if'], self)
@@ -1732,6 +1743,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     logger.info(f'Storing previous values of element property {en} because of condition {prop["store_previous_if"]}')
                     self.elements.variables[en]['store_previous'] = True
                 del self.elements.variables[en]['store_previous_if']  # To avoid writing this to netCDF metadata
+        # Environment variables
+        for en, var in self.required_variables.copy().items():
+            if 'store_previous_if' in var:
+                store = evaluate_conditional(*var['store_previous_if'], self)
+                if store is True:
+                    logger.info(f'Storing previous values of environment variable {en} because of condition {var["store_previous_if"]}')
+                    self.required_variables[en]['store_previous'] = True
+                del self.required_variables[en]['store_previous_if']  # To avoid writing this to netCDF metadata
+
 
         ########################
         # Simulation time step

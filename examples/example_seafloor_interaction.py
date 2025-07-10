@@ -25,7 +25,7 @@ from opendrift.readers import reader_oscillating
 # readers
 o = OceanDrift(loglevel=50)
 reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=10, period_seconds=3600)
+reader_osc = reader_oscillating.Reader('x_sea_water_velocity', amplitude=10, period=timedelta(hours=1))
 
 runs = []
 seafloor_actions = ['previous', 'deactivate', 'lift_to_seafloor']

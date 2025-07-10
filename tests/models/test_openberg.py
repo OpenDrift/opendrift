@@ -85,7 +85,7 @@ def test_grounding_and_degrounding():
     o = OpenBerg(loglevel=0)
     reader_osc = reader_oscillating.Reader('sea_surface_height',
                                                 amplitude=2,
-                                                period_seconds=3600 * 6,
+                                                period=timedelta(hours=6),
                                                 zero_time=datetime(2020,1,1))
     o.add_reader(reader_osc)
     o.set_config('environment:constant:x_sea_water_velocity', 0)

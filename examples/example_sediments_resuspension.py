@@ -13,7 +13,7 @@ from opendrift.models.sedimentdrift import SedimentDrift
 reader_oscx = reader_oscillating.Reader('x_sea_water_velocity',
     amplitude=0.6, zero_time=datetime.now())
 reader_oscy = reader_oscillating.Reader('y_sea_water_velocity',
-    amplitude=.3, period_seconds=3600*5, zero_time=datetime.now())
+    amplitude=.3, period=timedelta(hours=5), zero_time=datetime.now())
 
 o = SedimentDrift(loglevel=50)  # 0 for debug output
 
