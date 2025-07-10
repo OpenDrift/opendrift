@@ -121,6 +121,9 @@ class OceanDrift(OpenDriftSimulation):
             'drift:vertical_advection_at_surface': {'type': 'bool', 'default': False, 'description':
                 'If vertical advection is activated, surface elements (z=0) can only be advected (downwards) if this setting it True.',
                 'level': CONFIG_LEVEL_ADVANCED},
+            'drift:water_column_stretching': {'type': 'bool', 'default': False, 'description':
+                'If sea surface elevation changes, vertical particle position (element property "z" is relative to surface, and not absolute zero-level) is adjusted so that elements at surface and seafloor remains at resp surface and seafloor.',
+                'level': CONFIG_LEVEL_ADVANCED},
             'drift:vertical_mixing': {'type': 'bool', 'default': False, 'level': CONFIG_LEVEL_BASIC,
                 'description': 'Activate vertical mixing scheme with inner loop'},
             'drift:vertical_mixing_at_surface': {'type': 'bool', 'default': False, 'description':
@@ -292,8 +295,12 @@ class OceanDrift(OpenDriftSimulation):
     def water_column_stretching(self):
         """If sea_water_level changes, adjust z for continuity"""
 
-        return  # To be implemented
+        if self.get_config('drift:water_column_stretching') is False:
+            return
+
         delta_zeta = self.environment.sea_surface_height - self.environment_previous.sea_surface_height
+        logger.info('Compensating for change in surface elevation')
+        self.elements.z = self.elements.z + delta_zeta*(self.elements.z/self.environment.sea_floor_depth_below_sea_level)
 
     def vertical_advection(self):
         """Move particles vertically according to vertical ocean current
