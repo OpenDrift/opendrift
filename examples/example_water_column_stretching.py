@@ -45,6 +45,7 @@ plt.show()
 # This lifting is in this case unphysical.
 
 #%%
+# We then make a simulation wih correction for the stretching/contraction of the water column.
 o = OceanDrift(loglevel=20)
 o.add_reader(reader_tidal)
 o.set_config('drift:water_column_stretching', True)
@@ -54,6 +55,7 @@ o.run(duration=timedelta(hours=24), time_step=1800)
 o.result.z.plot.line(x='time', add_legend=False)
 plt.show()
 
+#%%
 # Here we see that element depth (z, relative to surface) is changed so that
 # elements at surface and seafloor remain at resp surface (z=0) and
 # seafloor (z = sea_floor_depth + sea_surface_elevation)
