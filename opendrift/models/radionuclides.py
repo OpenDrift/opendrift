@@ -290,6 +290,7 @@ class RadionuclideDrift(OceanDrift):
             uncert_ln = uncert/diam * 3.
         else:
             uncert_ln = 0.
+            uncert    = 0.
 
         rng = np.random.default_rng()
 
@@ -1055,10 +1056,24 @@ class RadionuclideDrift(OceanDrift):
                                               horizontal_smoothing=False,
                                               smoothing_cells=0,
                                               reader_sea_depth=None,
+                                              landmask_shapefile=None,
+                                              origin_marker=None,
                                               ):
         '''Write netCDF file with map of radionuclide species densities and concentrations'''
 
         from netCDF4 import Dataset, date2num #, stringtochar
+        if landmask_shapefile is not None:
+            if 'shape' in self.env.readers.keys():
+                # removing previously stored landmask
+                del self.env.readers['shape']
+            # Adding new landmask
+            from opendrift.readers import reader_shape
+            custom_landmask = reader_shape.Reader.from_shpfiles(landmask_shapefile)
+            self.add_reader(custom_landmask)
+        elif 'global_landmask' not in self.env.readers.keys():
+            from opendrift.readers import reader_global_landmask
+            global_landmask = reader_global_landmask.Reader()
+            self.add_reader(global_landmask)
 
         logger.info('Postprocessing: Write density and concentration to netcdf file')
 
@@ -1133,7 +1148,9 @@ class RadionuclideDrift(OceanDrift):
             zlevels = np.sort(zlevels)
             z_array = np.append(np.append(-10000, zlevels) , max(0,np.nanmax(z)))
         else:
-            z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
+            z_array = self.depthintervals
+            z_array = np.append(np.append(-10000, z_array) , max(0,np.nanmax(z)))
+#            z_array = [min(-10000,np.nanmin(z)), max(0,np.nanmax(z))]
         logger.info('z_array: {}'.format(  [str(item) for item in z_array] ) )
 
 
@@ -1152,7 +1169,16 @@ class RadionuclideDrift(OceanDrift):
         lon_array = (lon_array[:-1,:-1] + lon_array[1:,1:])/2
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
+        landmask = np.zeros_like(H[0,0,0,:,:])
+        if landmask_shapefile is not None:
+            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
+        else:
+            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
 
+
+        print('landmask.shape: ', landmask.shape)
+        landmask = landmask.reshape(lat_array.shape[0],lat_array.shape[1])
+        print('landmask.shape: ', landmask.shape)
 
         if horizontal_smoothing:
             # Compute horizontally smoother field
@@ -1189,6 +1215,7 @@ class RadionuclideDrift(OceanDrift):
 
 
         conc = np.zeros_like(H)
+        Landmask=np.zeros_like(H)
         if horizontal_smoothing:
             conc_sm = np.zeros_like(Hsm)
         for ti in range(H.shape[0]):
@@ -1196,6 +1223,9 @@ class RadionuclideDrift(OceanDrift):
                 conc[ti,sp,:,:,:] = H[ti,sp,:,:,:] / pixel_volume * activity_per_element
                 if horizontal_smoothing:
                     conc_sm[ti,sp,:,:,:] = Hsm[ti,sp,:,:,:] / pixel_volume * activity_per_element
+                    for zi in range(len(z_array)-1):
+                        Landmask[ti,sp,zi,:,:] = landmask
+
 
 
 
@@ -1214,6 +1244,12 @@ class RadionuclideDrift(OceanDrift):
             odt = int(cshape[0]/ndt)
             logger.info ('ndt '+ str(ndt))   # number of time steps over which to average in conc file
             logger.info ('odt '+ str(odt))   # number of average slices
+
+            Landmask=np.zeros_like(conc[0:odt,:,:,:,:])
+            for zi in range(len(z_array)-1):
+                for sp in range(self.nspecies):
+                    for ti in range(odt):
+                        Landmask[ti,sp,zi,:,:] = landmask
 
 
             # This may probably be written more efficiently!
@@ -1312,6 +1348,7 @@ class RadionuclideDrift(OceanDrift):
         # Radionuclide concentration, horizontally smoothed
         nc.createVariable('concentration', 'f8',
                           ('time','specie','depth','y', 'x'),fill_value=1.e36)
+        conc = np.ma.masked_where(Landmask==1,conc)
         conc = np.swapaxes(conc, 3, 4) #.astype('i4')
         #conc = np.ma.masked_where(conc==0, conc)
         nc.variables['concentration'][:] = conc
@@ -1325,6 +1362,7 @@ class RadionuclideDrift(OceanDrift):
             # Radionuclide concentration, horizontally smoothed
             nc.createVariable('concentration_smooth', 'f8',
                               ('time','specie','depth','y', 'x'),fill_value=1.e36)
+            conc_sm = np.ma.masked_where(Landmask==1, conc_sm)
             conc_sm = np.swapaxes(conc_sm, 3, 4) #.astype('i4')
           #  conc_sm = np.ma.masked_where(conc_sm==0, conc_sm)
             nc.variables['concentration_smooth'][:] = conc_sm
@@ -1350,21 +1388,31 @@ class RadionuclideDrift(OceanDrift):
         nc.createVariable('volume', 'f8',
                           ('depth','y', 'x'),fill_value=0)
         pixel_volume = np.swapaxes(pixel_volume, 1, 2) #.astype('i4')
-        pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
+        for zi in range(len(z_array)-1):
+            pixel_volume[zi,:,:] = np.ma.masked_where(landmask.T==1, pixel_volume[zi,:,:])
+        #pixel_volume = np.ma.masked_where(pixel_volume==0, pixel_volume)
         nc.variables['volume'][:] = pixel_volume
-        nc.variables['volume'].long_name = 'Volume of grid cell'
+        nc.variables['volume'].long_name = 'Volume of grid cell (' + str(pixelsize_m)+'x'+str(pixelsize_m)+'m)'
         nc.variables['volume'].grid_mapping = 'projection_lonlat'
         nc.variables['volume'].units = 'm3'
 
 
         # Topography
         nc.createVariable('topo', 'f8', ('y', 'x'),fill_value=0)
-        pixel_mean_depth = np.ma.masked_where(pixel_mean_depth==0, pixel_mean_depth)
+        #pixel_mean_depth = np.ma.masked_where(pixel_mean_depth==0, pixel_mean_depth)
+        pixel_mean_depth = np.ma.masked_where(landmask==1, pixel_mean_depth)
         nc.variables['topo'][:] = pixel_mean_depth.T
         nc.variables['topo'].long_name = 'Depth of grid point'
         nc.variables['topo'].grid_mapping = 'projection_lonlat'
         nc.variables['topo'].units = 'm'
 
+        # Binary mask
+        nc.createVariable('land', 'i4', ('y', 'x'),fill_value=-1)
+        #landmask = np.ma.masked_where(landmask==0, landmask)
+        nc.variables['land'][:] = np.swapaxes(landmask,0,1).astype('i4')
+        nc.variables['land'].long_name = 'Binary land mask'
+        nc.variables['land'].grid_mapping = 'projection_lonlat'
+        nc.variables['land'].units = 'm'
 
         nc.close()
         logger.info('Wrote to '+filename)
@@ -1376,7 +1424,7 @@ class RadionuclideDrift(OceanDrift):
     def get_radionuclide_density_array(self, pixelsize_m, z_array,
                                        density_proj=None, llcrnrlon=None,llcrnrlat=None,
                                        urcrnrlon=None,urcrnrlat=None,
-                                       weight=None):
+                                       weight=None, origin_marker=None):
         '''
         compute a particle concentration map from particle positions
         Use user defined projection (density_proj=<proj4_string>)
@@ -1409,8 +1457,10 @@ class RadionuclideDrift(OceanDrift):
         if weight is not None:
             weight_array = self.result[weight]
 
-        status = self.result.status
-        specie = self.result.specie.T
+        status = self.get_property('status')[0]
+        specie = self.get_property('specie')[0]
+        if origin_marker is not None:
+            originmarker = self.get_property('origin_marker')[0]
         Nspecies = self.nspecies
         H = np.zeros((len(times),
                       Nspecies,
@@ -1423,6 +1473,8 @@ class RadionuclideDrift(OceanDrift):
             for i in range(len(times)):
                 if weight is not None:
                     weights = weight_array[i,:]
+                    if origin_marker is not None:
+                        weight_array[i,:] = weight_array[i,:] * (originmarker[i,:]==origin_marker)
                 else:
                     weights = None
                 for zi in range(len(z_array)-1):
@@ -1430,6 +1482,7 @@ class RadionuclideDrift(OceanDrift):
                     H[i,sp,zi,:,:], dummy, dummy = \
                         np.histogram2d(x[i,kktmp], y[i,kktmp],
                                    weights=weights, bins=bins)
+# chem                                   weights=weight_array[i,kktmp], bins=bins)
 
         if density_proj is not None:
             Y,X = np.meshgrid(y_array, x_array)
@@ -1455,6 +1508,7 @@ class RadionuclideDrift(OceanDrift):
 
         # Interpolate topography to new grid
         h = interpolate.griddata((lon_grd[h_grd.mask==False].flatten(),lat_grd[h_grd.mask==False].flatten()), h_grd[h_grd.mask==False].flatten(), (lons, lats), method='linear')
+# chem        h = interpolate.griddata((lon_grd.flatten(),lat_grd.flatten()), h_grd.flatten(), (lons, lats), method='linear')
 
         return h
 
