@@ -896,7 +896,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             o.env.finalize()  # This is not env of the main simulation
             land_reader = reader_landmask
         else:
-            logger.info('Using existing reader for land_binary_mask')
+            logger.info('Using existing reader for land_binary_mask to move elements to ocean')
             land_reader_name = self.env.priority_list['land_binary_mask'][0]
             land_reader = self.env.readers[land_reader_name]
             o = self
@@ -904,6 +904,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if isinstance(land_reader, ShapeReader):
             # can do this better
             land_indices = land_reader.__on_land__(lon, lat)
+            land_indices = np.where(land_indices==1)[0]
             lon[land_indices], lat[land_indices], _ = land_reader.get_nearest_outside(
                 lon[land_indices],
                 lat[land_indices],
@@ -2484,9 +2485,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if 'land_binary_mask' in self.env.priority_list and self.env.priority_list[
                     'land_binary_mask'][0] == 'shape':
                 logger.debug('Using custom shapes for plotting land..')
+                if self.env.readers['shape'].invert is True:  # Switching land and ocean colors
+                    facecolor = ocean_color
+                    ax.patch.set_facecolor(land_color)
+                else:
+                    facecolor = land_color
+
                 ax.add_geometries(self.env.readers['shape'].polys,
                                   self.crs_lonlat,
-                                  facecolor=land_color,
+                                  facecolor=facecolor,
                                   edgecolor='black')
             else:
                 reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax,
