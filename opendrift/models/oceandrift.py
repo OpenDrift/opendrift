@@ -301,6 +301,11 @@ class OceanDrift(OpenDriftSimulation):
         if self.get_config('drift:water_column_stretching') is False:
             return
 
+        if self.environment_previous is None or 'sea_surface_height' not in self.environment_previous:
+            logger.warning('water_column_stretching requires storing '
+                           'previous value of sea_surface_height')
+            return
+
         delta_zeta = self.environment.sea_surface_height - self.environment_previous.sea_surface_height
         logger.info('Compensating for change in surface elevation')
         self.elements.z = self.elements.z + delta_zeta*(self.elements.z/self.environment.sea_floor_depth_below_sea_level)
@@ -327,13 +332,17 @@ class OceanDrift(OpenDriftSimulation):
             w = self.environment.upward_sea_water_velocity[applicable]
 
             if self.get_config('drift:vertical_advection_correction', None) is True:
-                logger.debug('Subtracting motion due to elevation change from vertical water velocity')
-                delta_zeta = self.environment.sea_surface_height[applicable] - self.environment_previous.sea_surface_height[applicable]
-                w_surface = delta_zeta / self.time_step.total_seconds()
-                total_depth = self.environment.sea_surface_height[applicable] + \
-                     self.environment.sea_floor_depth_below_sea_level[applicable]
-                w_elevation = w_surface * (self.elements.z[applicable] + total_depth) / total_depth
-                w = w - w_elevation
+                if self.environment_previous is not None and 'sea_surface_height' in self.environment_previous:
+                    logger.debug('Subtracting motion due to elevation change from vertical water velocity')
+                    delta_zeta = self.environment.sea_surface_height[applicable] - self.environment_previous.sea_surface_height[applicable]
+                    w_surface = delta_zeta / self.time_step.total_seconds()
+                    total_depth = self.environment.sea_surface_height[applicable] + \
+                         self.environment.sea_floor_depth_below_sea_level[applicable]
+                    w_elevation = w_surface * (self.elements.z[applicable] + total_depth) / total_depth
+                    w = w - w_elevation
+                else:
+                    logger.warning('vertical_advection_correction requires storing '
+                                   'previous value of sea_surface_height')
 
             self.elements.z[applicable] = np.minimum(0,
                 self.elements.z[applicable] + self.elements.moving[applicable] * w *
