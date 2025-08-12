@@ -99,6 +99,16 @@
       0.7
     ]
   },
+  "BALDER BLEND 2025": {
+    "temperatures": [
+      5.0,
+      15.0
+    ],
+    "max_water_fraction": [
+      0.8,
+      0.8
+    ]
+  },
   "BLANE 2009": {
     "temperatures": [
       5.0,
@@ -1041,6 +1051,16 @@
       0.8
     ]
   },
+  "RINGHORNE 2025": {
+    "temperatures": [
+      5.0,
+      15.0
+    ],
+    "max_water_fraction": [
+      0.6,
+      0.62
+    ]
+  },
   "SF NORD BRENT 2021": {
     "temperatures": [
       5.0,
@@ -1352,10 +1372,9 @@
     ],
     "max_water_fraction": [
       0.79,
-      0.80
+      0.8
     ]
   },
-
   "ULA 1999": {
     "temperatures": [
       5.0,
