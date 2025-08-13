@@ -15,7 +15,7 @@ import numpy as np
 o = ChemicalDrift(loglevel=0, seed=0)
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
 mixed_layer = ConstantReader({'ocean_mixed_layer_thickness': 40})
 o.add_reader([reader_norkyst,mixed_layer])
 

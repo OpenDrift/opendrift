@@ -9,7 +9,7 @@ from opendrift.models.oceandrift import OceanDrift
 
 o = OceanDrift(loglevel=30)
 o.add_readers_from_list(
-    ['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
+    ['https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be'])
 o.seed_elements(lon=4.85, lat=60, time=datetime.now(), number=10000, radius=1000)
 
 o.run(duration=timedelta(hours=24))
