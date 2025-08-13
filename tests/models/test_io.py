@@ -35,6 +35,16 @@ except:
 need_fastparquet = pytest.mark.skipif(has_fastparquet == False,
         reason = 'fastparquet must be installed to use fastparquet writer')
 
+def test_export_variables():
+    o = OceanDrift(loglevel=50)
+    o.set_config('drift:vertical_advection', True)  # Needs previous value of sea_surface_height
+    o.set_config('general:use_auto_landmask', False)
+    o.set_config('environment:constant:land_binary_mask', 0)
+    o.seed_elements(lon=3, lat=60, time=datetime.now())
+    o.run(steps=2, export_variables=['z'])
+    assert 'sea_surface_height' in o.result.var()
+    assert 'land_binary_mask' not in o.result.var()
+
 def test_custom_result(tmpdir):
     """Adding custom data to self.result during self.prepare_run()"""
 
