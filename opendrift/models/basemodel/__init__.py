@@ -1892,10 +1892,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             # Forward simulation, start time has been set when seeding
             self.time = self.start_time
 
-        # Add the output variables which are always required
+        # Find variables and element properties for which previous value shall be stored
+        environment_previous = [vn for vn, v in self.required_variables.items()
+                                if v.get('store_previous', False) is True]
+        elements_previous = [vn for vn, v in self.elements.variables.items()
+                             if v.get('store_previous', False) is True]
+ 
+        # Add the output variables which are always required,
+        # as well as variables for which previous value is stored
         if export_variables is not None:
             export_variables = list(
-                set(export_variables + ['lon', 'lat', 'status']))
+                set(export_variables + ['lon', 'lat', 'status'] +
+                    environment_previous + elements_previous))
+
         self.export_variables = export_variables
 
         # Create Xarray Dataset to hold result
@@ -1977,11 +1986,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
 
         # Make Xarray datasets to store environment variables and element properties from previous time step
-        environment_previous = [vn for vn, v in self.required_variables.items()
-                                if v.get('store_previous', False) is True]
-        elements_previous = [vn for vn, v in self.elements.variables.items()
-                             if v.get('store_previous', False) is True]
-        
         if len(environment_previous) > 0:
             self._environment_previous = self.result[[*environment_previous]].isel(time=0, drop=True).copy(deep=True)
         if len(elements_previous) > 0:

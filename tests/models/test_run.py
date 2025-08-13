@@ -155,7 +155,6 @@ class TestRun(unittest.TestCase):
             self.assertTrue('Did you mean' in str(e))
 
     def test_config_seed(self):
-        #o = Leeway(loglevel=20)
         o = OceanDrift(loglevel=20)
         o.list_configspec()
 
@@ -350,7 +349,7 @@ class TestRun(unittest.TestCase):
                          time=norkyst.start_time)
 
         o1.run(steps=20, time_step=300, time_step_output=1800,
-               export_buffer_length=10, outfile='verticalmixing.nc')
+               outfile='verticalmixing.nc')
         self.assertAlmostEqual(o1.result.z.min().values, -42.60, 1)
         self.assertAlmostEqual(o1.result.z.max().values, 0.0, 1)
         os.remove('verticalmixing.nc')
