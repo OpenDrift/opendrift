@@ -104,6 +104,8 @@ class OpenDriftGUI(tk.Tk):
 
     def __init__(self, forcing_files):
 
+        self.forcing_files = forcing_files
+
         tk.Tk.__init__(self)
 
         self.title('OpenDrift ' + opendrift.__version__ + ' GTI Turbo Ultra')
@@ -367,7 +369,7 @@ class OpenDriftGUI(tk.Tk):
         ##############
         self.set_model(list(self.opendrift_models)[0])
 
-        for i, ff in enumerate(forcing_files):
+        for i, ff in enumerate(self.forcing_files):
             tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
                      row=i, column=0, sticky=tk.W)
 
@@ -785,7 +787,7 @@ class OpenDriftGUI(tk.Tk):
                     nothing
             self.o.set_config(se, val)
 
-        self.o.add_readers_from_list(forcing_files)
+        self.o.add_readers_from_list(self.forcing_files)
 
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
                          time=start_time)#, #cone=cone,
