@@ -40,8 +40,8 @@ mpl.rcParams['mathtext.fontset'] = "dejavusans"
 # will be used for the usual simulation, and one will
 # be used for the measurement combined simulation.
 
-reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
-reader_norkyst2 = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
+reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst2 = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
 
 #Verification
 print(reader_norkyst)
