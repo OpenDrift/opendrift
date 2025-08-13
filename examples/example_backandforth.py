@@ -14,7 +14,7 @@ ncfile = 'backandforth.nc'
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 reader_norkyst = reader_netCDF_CF_generic.Reader(opendrift.test_data_folder +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+#reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
 
 o.add_reader(reader_norkyst)
 o.set_config('environment:fallback:land_binary_mask', 0)

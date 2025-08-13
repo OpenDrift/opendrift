@@ -13,7 +13,7 @@ o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 #%%
 # Using live data from Thredds
 o.add_readers_from_list([
-    'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
+    'https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be'])
 
 #%%
 # Adding some diffusion

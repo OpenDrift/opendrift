@@ -13,7 +13,7 @@ o = OpenOil(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Norkyst
 reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
-#reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+#reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
 
 o.add_reader([reader_norkyst])
 o.set_config('environment:fallback:x_wind', 3)
