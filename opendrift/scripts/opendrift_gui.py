@@ -878,11 +878,8 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: self.handle_result(
                           'copy_netcdf')).grid(row=81, column=1)
 
-def main(readers=None):
-    OpenDriftGUI().mainloop()
 
-if __name__ == '__main__':
-
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--forcing', type=str, help='A file with URLs/names of forcing datasets, overriding built-in data_sources.txt')
     parser.add_argument('-t', '--terminal', action='store_true', help='redirect otput to terminal instead of GUI')
@@ -896,7 +893,7 @@ if __name__ == '__main__':
                 forcing_files = fd.readlines()
             forcing_files_ok = True
         except:
-            print(f'Could not read {args.forcing}, using default OpenDrift forcing configuration instead.')
+            print(f'WARNING: Could not read {args.forcing}, using default OpenDrift forcing configuration instead.')
     if forcing_files_ok is False:
         with open(files('opendrift.scripts').joinpath('data_sources.txt')) as fd:
             forcing_files = fd.readlines()
@@ -909,3 +906,7 @@ if __name__ == '__main__':
         os.environ['OPENDRIFT_GUI_OUTPUT'] = 'gui'
 
     OpenDriftGUI(forcing_files=forcing_files).mainloop()
+
+
+if __name__ == '__main__':
+    main()
