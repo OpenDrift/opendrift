@@ -254,6 +254,7 @@ class Environment(Timeable, Configurable):
 
         if isinstance(urls, str):
             urls = [urls]
+        urls = [u.strip() for u in urls]  # strip whitespace
         if lazy is True:
             from opendrift.readers.reader_lazy import Reader
             readers = [Reader(u) for u in urls]
