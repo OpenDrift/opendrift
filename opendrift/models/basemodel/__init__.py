@@ -69,6 +69,55 @@ from roaring_landmask import RoaringLandmask
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
 rl = roaring_landmask.RoaringLandmask.new()
 
+def coastline_crossing(lon1, lat1, lon2, lat2, step_degrees, land_side=True):
+    """Return the coastline crossing points between positions in water (lon1,lat1) and positions on land (lon2, lat2).
+
+    This function uses the RoaringLandmask to find the coastline crossing points,
+    but can be generalised to any landmask later.
+
+    Args:
+        lon1, lat1: Coordinates of first point
+        lon2, lat2: Coordinates of second point
+        precision: Precision for coastline approximation, in degrees
+        land_side: If True, return the last position in water and first position on land.
+
+    Returns:
+        lon, lat
+            Last position in water (if land_side is False) or first position on land (if land_side is True (default)) along transect
+    """
+
+    lon1 = np.atleast_1d(lon1)
+    lat1 = np.atleast_1d(lat1)
+    lon2 = np.atleast_1d(lon2)
+    lat2 = np.atleast_1d(lat2)
+    if land_side is True:
+        lon_c = lon2
+        lat_c = lat2
+    else:
+        lon_c = lon1
+        lat_c = lat1
+    for i, (lon1, lat1, lon2, lat2) in enumerate(zip(lon1, lat1, lon2, lat2)):
+        x_degree_diff = np.abs(lon2 - lon1)
+        y_degree_diff = np.abs(lat2 - lat1)
+        if x_degree_diff == 0 and y_degree_diff == 0:
+            continue
+        x_samples = np.floor(x_degree_diff / step_degrees).astype(np.int64) if x_degree_diff > step_degrees else 1
+        x = np.linspace(lon1, lon2, x_samples)
+        y_samples = np.floor(y_degree_diff/ step_degrees).astype(np.int64) if y_degree_diff > step_degrees else 1
+        y = np.linspace(lat1, lat2, y_samples)
+
+        xx, yy = np.meshgrid(x,y)
+        xx, yy = xx.ravel(), yy.ravel()
+
+        rl_mask = rl.contains_many(xx, yy)
+        if np.any(rl_mask):
+            index = np.argmax(rl_mask)
+            if land_side is False:
+                index = np.maximum(0, index-1)
+            lon_c[i] = xx[index]
+            lat_c[i] = yy[index]
+    return lon_c, lat_c
+
 def require_mode(mode: Union[Mode, List[Mode]], post_next_mode=False, error=None):
     if not isinstance(mode, list):
         mode = [mode]
@@ -643,34 +692,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if not coastline_approximation_precision:
                 return
 
-            for on_land_id, on_land_prev_id in zip(on_land, self.elements.ID[on_land]):
-                lon = self.elements.lon[on_land_id]
-                lat = self.elements.lat[on_land_id]
-                prev_lon = self._elements_previous.lon[on_land_prev_id].data
-                prev_lat = self._elements_previous.lat[on_land_prev_id].data
-                step_degrees = float(coastline_approximation_precision)
-
-                x_degree_diff = np.abs(prev_lon - lon)
-                y_degree_diff = np.abs(prev_lat - lat)
-                if x_degree_diff == 0 and y_degree_diff == 0:
-                    continue
-                x_samples = np.floor(x_degree_diff / step_degrees).astype(np.int64) if x_degree_diff > step_degrees else 1
-                x = np.linspace(prev_lon, lon, x_samples)
-
-                y_samples = np.floor(y_degree_diff/ step_degrees).astype(np.int64) if y_degree_diff > step_degrees else 1
-                y = np.linspace(prev_lat, lat, y_samples)
-
-                xx, yy = np.meshgrid(x,y)
-                xx, yy = xx.ravel(), yy.ravel()
-
-                rl_mask = rl.contains_many(xx, yy)
-                if np.any(rl_mask):
-                    index = np.argmax(rl_mask)
-                    new_lon = xx[index]
-                    new_lat = yy[index]
-
-                    self.elements.lon[on_land_id] = new_lon
-                    self.elements.lat[on_land_id] = new_lat
+            self.elements.lon[on_land], self.elements.lat[on_land] = coastline_crossing(
+                self._elements_previous.lon[on_land],
+                self._elements_previous.lat[on_land],
+                self.elements.lon[on_land],
+                self.elements.lat[on_land],
+                coastline_approximation_precision,
+                land_side=True
+            )
 
             self.environment.land_binary_mask[on_land] = 0
 
@@ -687,8 +716,19 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug('%s elements hit coastline, '
                              'moving back to water' % len(on_land))
                 on_land_ID = self.elements.ID[on_land]
-                self.elements.lon[on_land] = self._elements_previous.lon[on_land_ID]
-                self.elements.lat[on_land] = self._elements_previous.lat[on_land_ID]
+
+                if not coastline_approximation_precision:
+                    self.elements.lon[on_land] = self._elements_previous.lon[on_land_ID]
+                    self.elements.lat[on_land] = self._elements_previous.lat[on_land_ID]
+                else:
+                    self.elements.lon[on_land], self.elements.lat[on_land] = coastline_crossing(
+                        self._elements_previous.lon[on_land],
+                        self._elements_previous.lat[on_land],
+                        self.elements.lon[on_land],
+                        self.elements.lat[on_land],
+                        coastline_approximation_precision,
+                        land_side=False
+                    )
                 self.environment.land_binary_mask[on_land] = 0
 
     def interact_with_seafloor(self):
