@@ -156,7 +156,7 @@ class Reader(BaseReader, StructuredReader):
 
         if gridfile is not None:  # Merging gridfile dataset with main dataset
             gf = xr.open_dataset(gridfile)
-            self.Dataset = xr.merge([self.Dataset, gf])
+            self.Dataset = xr.merge([self.Dataset, gf], compat='override')
 
         if 'Vtransform' in self.Dataset.variables:
             self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
