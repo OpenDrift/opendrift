@@ -101,6 +101,12 @@ def coastline_crossing(lon1, lat1, lon2, lat2, step_degrees, land_side=True):
         y_degree_diff = np.abs(lat2 - lat1)
         if x_degree_diff == 0 and y_degree_diff == 0:
             continue
+        if x_degree_diff > 180:  # Crossing dateline
+            if lon1 < 0:
+                lon2 = lon2 - 360
+                x_degree_diff = np.abs(lon2 - lon1)
+            pass
+        # TODO: delta_lon * cos(latitude)
         x_samples = np.floor(x_degree_diff / step_degrees).astype(np.int64) if x_degree_diff > step_degrees else 1
         x = np.linspace(lon1, lon2, x_samples)
         y_samples = np.floor(y_degree_diff/ step_degrees).astype(np.int64) if y_degree_diff > step_degrees else 1
@@ -693,8 +699,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 return
 
             self.elements.lon[on_land], self.elements.lat[on_land] = coastline_crossing(
-                self._elements_previous.lon[on_land],
-                self._elements_previous.lat[on_land],
+                self._elements_previous.lon[self.elements.ID][on_land],
+                self._elements_previous.lat[self.elements.ID][on_land],
                 self.elements.lon[on_land],
                 self.elements.lat[on_land],
                 coastline_approximation_precision,
@@ -716,14 +722,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug('%s elements hit coastline, '
                              'moving back to water' % len(on_land))
                 on_land_ID = self.elements.ID[on_land]
-
                 if not coastline_approximation_precision:
                     self.elements.lon[on_land] = self._elements_previous.lon[on_land_ID]
                     self.elements.lat[on_land] = self._elements_previous.lat[on_land_ID]
                 else:
                     self.elements.lon[on_land], self.elements.lat[on_land] = coastline_crossing(
-                        self._elements_previous.lon[on_land],
-                        self._elements_previous.lat[on_land],
+                        self._elements_previous.lon[self.elements.ID][on_land],
+                        self._elements_previous.lat[self.elements.ID][on_land],
                         self.elements.lon[on_land],
                         self.elements.lat[on_land],
                         coastline_approximation_precision,
