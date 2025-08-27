@@ -156,7 +156,22 @@ class Reader(BaseReader, StructuredReader):
 
         if gridfile is not None:  # Merging gridfile dataset with main dataset
             gf = xr.open_dataset(gridfile)
+            for var in gf:
+                if var in self.Dataset:
+                    logger.warning(f'Skipping duplicate variable {var} from grdfile')
+                    gf = gf.drop_vars(var)
             self.Dataset = xr.merge([self.Dataset, gf], compat='override')
+
+        for var in self.Dataset:  # Check for mis-named Croco-dimensions
+            dims = self.Dataset[var].dims
+            if 'eta_rho' in dims and 'xi_u' in dims:
+                logger.warning(f'Wrongly named dimensions of {var} in Croco output: ' +
+                               'Renaming dimensions (eta_rho, xi_u) to (eta_u, xi_u)')
+                self.Dataset[var] = self.Dataset[var].rename({'eta_rho': 'eta_u'})
+            elif 'eta_v' in dims and 'xi_rho' in dims:
+                logger.warning(f'Wrongly named dimensions of {var} in Croco output: ' +
+                               'Renaming dimensions (eta_v, xi_rho) to (eta_v, xi_v)')
+                self.Dataset[var] = self.Dataset[var].rename({'xi_rho': 'xi_v'})
 
         if 'Vtransform' in self.Dataset.variables:
             self.Vtransform = self.Dataset.variables['Vtransform'].data  # scalar
