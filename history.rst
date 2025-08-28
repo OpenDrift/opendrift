@@ -1,14 +1,36 @@
 History
 =======
 
+2025-08-28 / Release v1.14.3
+----------------------------
+* Added two new oils to OpenOil / ADIOS: RINGHORNE 2025 and BALDER BLEND 2025
+* Property opendrift.test_data_folder now replaces object method test_data_folder
+* reader_ROMS_native:
+  * Fix for non-CF-compliant Croco files and corresponding GRD-files
+  * Removed gls_tke functionality, now found in new file legacy.py
+* Several updates to OpenBerg module
+* Vertical advection and mixing is disabled by default in OceanDrift (e.g. to prevent sinking of simulated surface drifters), but enabled in some sub-modules.
+* General cleaning of main loop (run) in Basemodel class
+* Environment variables and element properties with attribute ``store_previous=True`` are now available as ``self.environment_previos.<var>`` and ``self.elements_previous.<var>``. This replaces hardcoded solution for lon and lat only.
+* New mechanism to skip environment variables based on conditional given in dictionary required_variables with key *skip_if*
+* Conditional mechanism now also used to decide if previous value of element properties shall be stored
+* reader_oscillating now takes period as timedelta instead of period_seconds as float.
+* Two new (optional) corrections to compensate for vertical velocity (w) from ocean models being relative to fixed z=0, whereas z/depth in OpenDrift is relative to actual surface (zeta possibly nonzero): ``drift:water_column_stretching`` and ``drift:vertical_velocity_correction``. Of minior importance to most (3D) applications.
+* Switching land and ocean colors if inverted shapefile (i.e. lake) is used for landmask. Also fixed indexing bug in algorithm to move land elements to water when using shapefile landmask.
+* Several fixes to ``<reader>.plot()``
+* ``opendrift_gui`` now takes ``--forcing`` as an optional commandline argument, for user defined file with list of forcing datasets
+* Made fix and added test for export_variables. Thx to vincentcasseau for reporting.
+* Extracted ``coastline_crossing`` from stranding algorithm as a separate method, which now also applies to ``previous`` and not only ``stranding``
+
+
 2025-05-19 / Release v1.14.2
 ----------------------------
-- Adding new oil TYRVING 2025
+* Adding new oil TYRVING 2025
 
 2025-05-19 / Release v1.14.1
 ----------------------------
-- Relaxing 3rd party package requirements.
-- Added two new config settings of OceanDrift and submodels (``drift:vertical_advection_at_surface`` and ``drift:vertical_mixing_at_surface``) to control whether vertical advection and mixing shall apply to elements at the very surface (z=0). Both are presently default False for OpenOil, but default True for other modules.
+* Relaxing 3rd party package requirements.
+* Added two new config settings of OceanDrift and submodels (``drift:vertical_advection_at_surface`` and ``drift:vertical_mixing_at_surface``) to control whether vertical advection and mixing shall apply to elements at the very surface (z=0). Both are presently default False for OpenOil, but default True for other modules.
 
 2025-05-15 / Release v1.14.0
 ----------------------------
