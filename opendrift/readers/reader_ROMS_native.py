@@ -113,6 +113,7 @@ class Reader(BaseReader, StructuredReader):
             'gls': 'turbulent_generic_length_scale',
             'tke': 'turbulent_kinetic_energy',
             'AKs': 'ocean_vertical_diffusivity',
+            'ln_AKs': 'ocean_vertical_diffusivity',
             'sustr': 'surface_downward_x_stress',
             'svstr': 'surface_downward_y_stress',
             'tair': 'air_temperature',
@@ -767,6 +768,9 @@ class Reader(BaseReader, StructuredReader):
                         variables['y_wind'], rad)
                 logger.debug('Rotated x_wind and y_wind')
 
+        if 'ocean_vertical_diffusivity' in variables.keys() and 'AKs' not in self.Dataset.variables:
+            variables['ocean_vertical_diffusivity'] = np.exp(variables['ocean_vertical_diffusivity'])
+            logger.info("Using AKs from ln_AKs.")
         # Masking NaN
         for var in requested_variables:
             variables[var] = np.ma.masked_invalid(variables[var])
