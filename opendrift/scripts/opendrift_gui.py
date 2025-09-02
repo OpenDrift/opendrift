@@ -8,6 +8,7 @@ if __name__ == '__main__':
 import sys
 import logging
 import os
+import argparse
 from datetime import datetime, timedelta
 import numpy as np
 
@@ -101,7 +102,9 @@ class OpenDriftGUI(tk.Tk):
             'seed:m3_per_hour': {'default': 100}
             }
 
-    def __init__(self):
+    def __init__(self, forcing_files):
+
+        self.forcing_files = forcing_files
 
         tk.Tk.__init__(self)
 
@@ -366,17 +369,14 @@ class OpenDriftGUI(tk.Tk):
         ##############
         self.set_model(list(self.opendrift_models)[0])
 
-        with open(files('opendrift.scripts').joinpath('data_sources.txt')) as fd:
-            forcingfiles = fd.readlines()
-
-        for i, ff in enumerate(forcingfiles):
+        for i, ff in enumerate(self.forcing_files):
             tk.Label(self.forcing, text=ff.strip(), wraplength=650, font=('Courier', 8)).grid(
                      row=i, column=0, sticky=tk.W)
 
         ##########################
         try:
             img = ImageTk.PhotoImage(Image.open(
-                self.o.test_data_folder() +
+                opendrift.test_data_folder +
                                      '../../docs/opendrift_logo.png'))
             panel = tk.Label(self.seed, image=img)
             panel.image = img
@@ -787,8 +787,7 @@ class OpenDriftGUI(tk.Tk):
                     nothing
             self.o.set_config(se, val)
 
-        forcing_file = str(files('opendrift.scripts').joinpath('data_sources.txt'))
-        self.o.add_readers_from_file(forcing_file)
+        self.o.add_readers_from_list(self.forcing_files)
 
         self.o.seed_cone(lon=lon, lat=lat, radius=radius,
                          time=start_time)#, #cone=cone,
@@ -881,15 +880,35 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: self.handle_result(
                           'copy_netcdf')).grid(row=81, column=1)
 
+
 def main():
-    OpenDriftGUI().mainloop()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--forcing', type=str, help='A file with URLs/names of forcing datasets, overriding built-in data_sources.txt')
+    parser.add_argument('-t', '--terminal', action='store_true', help='redirect otput to terminal instead of GUI')
 
-if __name__ == '__main__':
+    args = parser.parse_args()
 
-    # Add any argument to redirect output to terminal instead of GUI window.
-    # TODO: must be a better way to pass arguments to Tkinter?
-    if len(sys.argv) > 1:
+    forcing_files_ok = False
+    if args.forcing is not None:
+        try:
+            with open(args.forcing) as fd:
+                forcing_files = fd.readlines()
+            forcing_files_ok = True
+        except:
+            print(f'WARNING: Could not read {args.forcing}, using default OpenDrift forcing configuration instead.')
+    if forcing_files_ok is False:
+        with open(files('opendrift.scripts').joinpath('data_sources.txt')) as fd:
+            forcing_files = fd.readlines()
+
+    ## Add any argument to redirect output to terminal instead of GUI window.
+    ## TODO: must be a better way to pass arguments to Tkinter?
+    if args.terminal is True:
         os.environ['OPENDRIFT_GUI_OUTPUT'] = 'terminal'
     else:
         os.environ['OPENDRIFT_GUI_OUTPUT'] = 'gui'
-    OpenDriftGUI().mainloop()
+
+    OpenDriftGUI(forcing_files=forcing_files).mainloop()
+
+
+if __name__ == '__main__':
+    main()

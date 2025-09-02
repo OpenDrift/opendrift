@@ -15,7 +15,7 @@ from opendrift.models.oceandrift import OceanDrift
 o = OceanDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be')
+reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
 
 # Topaz
 reader_topaz = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml')

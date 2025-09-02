@@ -21,7 +21,7 @@ import os
 from datetime import datetime
 import unittest
 
-
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_global_landmask
 from opendrift.models.oceandrift import OceanDrift
@@ -32,9 +32,9 @@ class TestNetCDF(unittest.TestCase):
         reader_landmask = reader_global_landmask.Reader()
 
         o = OceanDrift(loglevel=30)
-        nordicMF = reader_ROMS_native.Reader(o.test_data_folder() +
+        nordicMF = reader_ROMS_native.Reader(tdf +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset_day*.nc')
-        nordicMF_all = reader_ROMS_native.Reader(o.test_data_folder() +
+        nordicMF_all = reader_ROMS_native.Reader(tdf +
             '2Feb2016_Nordic_sigma_3d/Nordic_subset.nc')
         lon = 14.0
         lat = 67.3
@@ -42,7 +42,7 @@ class TestNetCDF(unittest.TestCase):
         # nordicMF is missing angle
         nordicMF.Dataset["angle"] = nordicMF_all.Dataset.angle
 
-        #nordic3d = reader_ROMS_native.Reader(o.test_data_folder() +
+        #nordic3d = reader_ROMS_native.Reader(tdf +
         #    '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         #o.add_reader(nordic3d)  # Slightly different results
         # Subset is made with ncks, and should give identical result

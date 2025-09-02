@@ -14,7 +14,7 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 
 from opendrift.readers.basereader import BaseReader, ContinuousReader
@@ -23,13 +23,15 @@ from opendrift.readers.basereader import BaseReader, ContinuousReader
 class Reader(BaseReader, ContinuousReader):
     '''Returning values oscillating in time with given amplitude and period'''
 
-    def __init__(self, variable, amplitude, period_seconds=3600*24,
+    def __init__(self, variable, amplitude, period=timedelta(hours=24), period_seconds=None,
                  phase=0, zero_time=datetime(2017, 1, 1, 0)):
         '''init with '''
 
         self.variables = [variable]
         self.amplitude = amplitude
-        self.period_seconds = period_seconds
+        if period_seconds is not None:
+            raise ValueError('Input parameter "period_seconds" is deprecated, please use "period" (timedelta) instead')
+        self.period_seconds = period.total_seconds()
         self.zero_time = zero_time
         self.proj4 = '+proj=latlong +datum=WGS84'
         self.xmin = -180

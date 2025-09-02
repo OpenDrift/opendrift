@@ -17,7 +17,7 @@ if False:  # Using constant south-westwards current and wind
     o.set_config('environment:fallback:sea_floor_depth_below_sea_level', 100)  # 100m depth
 else:  # Using live data from Thredds
     o.add_readers_from_list([
-        'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
+        'https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be'])
 
 #%%
 # Adding some diffusion
@@ -31,7 +31,7 @@ o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 lat=59.169194
 lon=10.962920
 o.seed_elements(lon=lon, lat=lat, number=10000,
-                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=48)],
+                time=[datetime.now(), datetime.now()+timedelta(hours=48)],
                 terminal_velocity=-.001)  # 1 mm/s settling speed
 
 o.run(time_step=600, time_step_output=1800, duration=timedelta(hours=36))

@@ -201,9 +201,9 @@ class RadionuclideDrift(OceanDrift):
                 'level':CONFIG_LEVEL_ESSENTIAL,
                 'description':'Depth intervals for computation of concentration'},
                         })
-
-
-
+        self._set_config_default('drift:vertical_mixing', True)
+        self._set_config_default('drift:vertical_mixing_at_surface', True)
+        self._set_config_default('drift:vertical_advection_at_surface', True)
 
 
     def prepare_run(self):

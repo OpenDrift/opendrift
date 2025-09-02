@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
 
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
 try:
@@ -33,6 +34,16 @@ except:
 
 need_fastparquet = pytest.mark.skipif(has_fastparquet == False,
         reason = 'fastparquet must be installed to use fastparquet writer')
+
+def test_export_variables():
+    o = OceanDrift(loglevel=50)
+    o.set_config('drift:vertical_advection', True)  # Needs previous value of sea_surface_height
+    o.set_config('general:use_auto_landmask', False)
+    o.set_config('environment:constant:land_binary_mask', 0)
+    o.seed_elements(lon=3, lat=60, time=datetime.now())
+    o.run(steps=2, export_variables=['z'])
+    assert 'sea_surface_height' in o.result.var()
+    assert 'land_binary_mask' not in o.result.var()
 
 def test_custom_result(tmpdir):
     """Adding custom data to self.result during self.prepare_run()"""
@@ -72,8 +83,7 @@ def test_io_parquet(tmpdir):
         iomodule="parquet",
     )
     norkyst = reader_netCDF_CF_generic.Reader(
-        o.test_data_folder()
-        + "16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc"
+        tdf + "16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc"
     )
     o.add_reader(norkyst)
     o.seed_elements(4.96, 60.1, radius=10, number=10, time=norkyst.start_time)

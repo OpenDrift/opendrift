@@ -6,6 +6,7 @@ Openoil sample output netCDF file
 
 import os
 from datetime import timedelta
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_constant
 from opendrift.models.openoil import OpenOil
@@ -16,11 +17,11 @@ rc = reader_constant.Reader({'x_wind': 5,
                              'y_wind': 4})
 
 # Arome
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_arome = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Norkyst
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() +
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([rc, reader_norkyst, reader_arome])

@@ -111,6 +111,9 @@ class ReaderDomain(Timeable):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
+        #if hasattr(x, '__len__') and len(x) == 1:
+        #    x = x.copy().item()
+        #    y = y.copy().item()
         if self.proj.crs.is_geographic:
             if 'ob_tran' in str(self.proj4):
                 logger.debug('NB: Converting degrees to radians ' +
@@ -127,10 +130,9 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
-        if hasattr(lon, '__len__'):
-            if len(lon) == 1:
-                lon = lon[0]
-                lat = lat[0]
+        #if hasattr(lon, '__len__') and len(lon) == 1:
+        #    lon = lon.copy().item()
+        #    lat = lat.copy().item()
         if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)
@@ -381,7 +383,7 @@ class ReaderDomain(Timeable):
             lon, lat = self.xy2lonlat(x, y)
             raise OutsideSpatialCoverageError(('Argcheck: all %s particles (%.2f-%.2fE, ' +
                     '%.2f-%.2fN) are outside domain of %s (%s)') %
-                    (len(lon), lon.min(), lon.max(), lat.min(),
+                    (np.size(x), lon.min(), lon.max(), lat.min(),
                      lat.max(), self.name, self.coverage_string()))
 
         return variables, time, x, y, z, outside

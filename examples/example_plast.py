@@ -5,6 +5,7 @@ Plastic
 """
 
 from datetime import timedelta
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.plastdrift import PlastDrift
 
@@ -12,9 +13,9 @@ o = PlastDrift(loglevel=20)
 o.list_configspec()  # to see available configuration options
 
 # Arome atmospheric model
-reader_arome = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
+reader_arome = reader_netCDF_CF_generic.Reader(tdf + '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 # Norkyst ocean model
-reader_norkyst = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 o.add_reader([reader_norkyst, reader_arome])
 start_time = reader_arome.start_time

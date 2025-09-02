@@ -10,7 +10,7 @@ import pytest
 def test_logging(tmpdir, capsys):
     # Accepting small variations in log output,
     # depending on machine, and from which folder test is run
-    accepted = (288, 291, 316) 
+    accepted = (221, 224)
 
     # Logging to console
     logfile = None
@@ -171,3 +171,62 @@ def test_clone():
                             time=datetime(2015, 1, 1))
     c.run(steps=2, time_step=-10*3600, time_step_output=-10*3600)
 
+def test_conditionals():
+    from opendrift.models.basemodel import evaluate_conditional
+    assert evaluate_conditional(True, 'is', True) is True
+    assert evaluate_conditional(1, '==', 1) is True
+    assert evaluate_conditional(1, '==', 2) is False
+    assert evaluate_conditional('previous', '==', 'previous') is True
+    assert evaluate_conditional('previous', '==', 'stranding') is False
+    assert evaluate_conditional(1, '>', 0) is True
+    assert evaluate_conditional(1, '<', 0) is False
+    # Nested conditionals
+    assert evaluate_conditional((1, '==', 1), 'is', True) is True
+    assert evaluate_conditional((1, '==', 1), 'is', False) is False
+    assert evaluate_conditional((1, '==', 0), 'is', False) is True
+    assert evaluate_conditional((1, '==', 1), 'and', (1, '==', 1)) is True
+    assert evaluate_conditional((1, '==', 1), 'and', (0, '==', 1)) is False
+    assert evaluate_conditional((1, '==', 1), 'or', (0, '==', 1)) is True
+    # Double nesting
+    assert evaluate_conditional((1, '==', 1), 'or', ((1, '==', 1), 'is', (0, '==', 0))) is True
+
+    # Testing with a model instance
+    o = OceanDrift(loglevel=50)
+    o.set_config('general:coastline_action', 'stranding')
+    o.set_config('general:seafloor_action', 'previous')
+    assert evaluate_conditional('general:coastline_action', '==', 'stranding', o) is True
+    assert evaluate_conditional('general:coastline_action', '==', 'previous', o) is False
+    assert evaluate_conditional(('general:coastline_action', '==', 'stranding'), 'and',
+                                ('general:seafloor_action', '==', 'previous'), o) is True
+    assert evaluate_conditional(('general:coastline_action', '==', 'stranding'), 'and',
+                                ('general:seafloor_action', '==', 'wrong'), o) is False
+    assert evaluate_conditional(('general:coastline_action', '==', 'stranding'), 'or',
+                                ('general:seafloor_action', '==', 'wrong'), o) is True
+    assert evaluate_conditional(('general:coastline_action', '==', 'wrong'), 'or',
+                                ('general:seafloor_action', '==', 'wrong'), o) is False
+    
+    # Perform a simulation, to check if previous position is stored, based on given conditionals
+    o = OceanDrift(loglevel=50)
+    o.set_config('general:coastline_action', 'stranding')
+    o.set_config('general:seafloor_action', 'previous')
+    o.set_config('environment:constant:land_binary_mask', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime.now())
+    o.run(steps=1)
+    assert 'lon' in o.elements_previous
+
+    # Check that either coastline or seafloor actions require storing previous positions
+    o = OceanDrift(loglevel=50)
+    o.set_config('general:coastline_action', 'none')     # does not require storing previous positions
+    o.set_config('general:seafloor_action', 'previous')  # requires storing previous positions
+    o.set_config('environment:constant:land_binary_mask', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime.now())
+    o.run(steps=1)
+    assert 'lon' in o.elements_previous
+
+    o = OceanDrift(loglevel=50)
+    o.set_config('general:coastline_action', 'none')
+    o.set_config('general:seafloor_action', 'deactivate')
+    o.set_config('environment:constant:land_binary_mask', 0)
+    o.seed_elements(lon=4, lat=60, number=5, time=datetime.now())
+    o.run(steps=1)
+    assert o.elements_previous is None

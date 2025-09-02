@@ -261,6 +261,8 @@ class BaseReader(Variables, Combine, Filter):
             x0 = (self.xmin + self.xmax) / 2
             y0 = (self.ymin + self.ymax) / 2
             lon0, lat0 = self.xy2lonlat(x0, y0)
+            lon0 = np.squeeze(lon0).item()
+            lat0 = np.squeeze(lat0).item()
             sp = ccrs.Stereographic(central_longitude=lon0, central_latitude=lat0)
             latmax = np.maximum(latmax, lat0)
             latmin = np.minimum(latmin, lat0)
@@ -279,8 +281,8 @@ class BaseReader(Variables, Combine, Filter):
         f = cfeature.GSHHSFeature(scale=lscale, levels=[1,5,6])
         f._geometries_cache = {}
         ax.add_geometries(
-            #f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
-            f.geometries(),
+            f.intersecting_geometries([lonmin, lonmax, latmin, latmax]),
+            #f.geometries(),
             ccrs.PlateCarree(),
             facecolor=cfeature.COLORS['land'],
             edgecolor='black')
@@ -316,11 +318,12 @@ class BaseReader(Variables, Combine, Filter):
             boundary = Polygon(list(zip(xsp, ysp)), alpha=0.5, ec='k', fc='b',
                                zorder=100)
             ax.add_patch(boundary)
-            if self.global_coverage():
-                ax.set_global()
-            else:
-                buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
-                ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
+        if self.global_coverage():
+            ax.set_global()
+        else:
+            #buf = (xsp.max()-xsp.min())*.1  # Some whitespace around polygon
+            buf = 111000 * buffer  # degrees to meters
+            ax.set_extent([xsp.min()-buf, xsp.max()+buf, ysp.min()-buf, ysp.max()+buf], crs=sp)
         if title is None:
             plt.title(self.name)
         else:

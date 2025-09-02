@@ -207,6 +207,8 @@ if __name__ == '__main__':
         'LANGJELLET 2023': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.78, 0.8]},
         'BLANE 2009': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.8, 0.8]},
         'CARISA 2025': {'temperatures': [5.0, 15.0], 'max_water_fraction': [0.42, 0.58]},
+        'RINGHORNE 2025': {'temperatures': [5.0, 15.0], 'max_water_fraction': [.6, .62]},
+        'BALDER BLEND 2025': {'temperatures': [5.0, 15.0], 'max_water_fraction': [.8, .8]},
         }
 
     oilmax = oilmax | additional

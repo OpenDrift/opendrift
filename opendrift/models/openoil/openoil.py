@@ -233,6 +233,7 @@ class OpenOil(OceanDrift):
         'sea_surface_height': {'fallback': 0},
         'upward_sea_water_velocity': {
             'fallback': 0,
+            'skip_if': ['drift:vertical_advection', 'is', False],
             'important': False
         },
         'sea_surface_wave_significant_height': {
@@ -241,10 +242,12 @@ class OpenOil(OceanDrift):
         },
         'sea_surface_wave_stokes_drift_x_velocity': {
             'fallback': 0,
+            'skip_if': ['drift:stokes_drift', 'is', False],
             'important': False
         },
         'sea_surface_wave_stokes_drift_y_velocity': {
             'fallback': 0,
+            'skip_if': ['drift:stokes_drift', 'is', False],
             'important': False
         },
         'sea_surface_wave_period_at_variance_spectral_density_maximum': {
@@ -282,6 +285,7 @@ class OpenOil(OceanDrift):
         'ocean_vertical_diffusivity': {
             'fallback': 0.02,
             'important': False,
+            'skip_if': ['drift:vertical_mixing', 'is', False],
             'profiles': True
         },
         'land_binary_mask': {
@@ -289,6 +293,7 @@ class OpenOil(OceanDrift):
         },
         'ocean_mixed_layer_thickness': {
             'fallback': 50,
+            'skip_if': ['drift:vertical_mixing', 'is', False],
             'important': False
         },
     }
@@ -1316,7 +1321,7 @@ class OpenOil(OceanDrift):
 
         b = self.get_oil_budget()
 
-        oil_budget = np.row_stack(
+        oil_budget = np.vstack(
             (b['mass_dispersed'], b['mass_submerged'], b['mass_surface'],
              b['mass_stranded'], b['mass_evaporated'], b['mass_biodegraded']))
         oil_density = b['oil_density']

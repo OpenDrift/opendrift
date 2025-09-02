@@ -4,23 +4,49 @@ Icebergs (openberg)
 ====================
 """
 
+from datetime import datetime, timedelta
+import numpy as np
+import matplotlib.pyplot as plt
+import opendrift
 from opendrift.models.openberg import OpenBerg
-from datetime import datetime,timedelta
- 
+
+#%%
+# Currents and wind forcing
+forcing = ['https://thredds.met.no/thredds/dodsC/fou-hi/barents_eps_zdepth_be',
+           'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
+
+#%%
+# A permutation of iceberg sizes/dimensions
+n = 10
+lengths = np.linspace(50, 500, n)
+widths = np.linspace(20, 200, n)
+sails = np.linspace(5, 50, n)
+drafts = np.linspace(2, 120, n)
+lengths, widths, sails, drafts = np.meshgrid(lengths, widths, sails, drafts)
+
+icebergs = {'lon': 18.127, 'lat': 74.776, 'time': datetime.now(),
+            'number': lengths.size, 'radius': 500,
+            'sail': sails, 'draft': drafts, 'length': lengths, 'width': widths}
+
+#%%
+# Simulating drift for 48 hours
 o = OpenBerg()
+o.set_config('drift:vertical_profile', False)
+o.set_config('drift:horizontal_diffusivity', 100)
+o.add_readers_from_list(forcing)
+o.seed_elements(**icebergs)
+o.run(duration=timedelta(hours=48))
 
-# The user can overwrite the default setup using set_config method
-o.set_config('drift:vertical_profile', False) # use surface currents for this test
+o.animation(color='draft', contourlines=np.arange(0, 500, 25))
 
-o.add_readers_from_list([
-        'https://thredds.met.no/thredds/dodsC/cmems/topaz6/dataset-topaz6-arc-15min-3km-be.ncml',
-        'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd'])
+#%%
+# .. image:: /gallery/animations/example_openberg_0.gif
 
+o.plot(contourlines=np.arange(0, 500, 25))
 
-o.seed_elements(lon=-56, lat=72, time=datetime.now(),
-                number=100, radius=500,
-                sail=10,draft=50,length=90,width=40)
-
-o.run(duration=timedelta(days=3))
-o.plot(fast=True)
-o.plot_property('draft')
+#%%
+# Plotting the speed of icebergs
+iceberg_speed = np.sqrt(o.result.iceb_x_velocity**2 + o.result.iceb_y_velocity**2)
+iceberg_speed.plot.line(x='time', add_legend=False, color='gray')
+plt.ylabel('Iceberg speed  [m/s]')
+plt.show()

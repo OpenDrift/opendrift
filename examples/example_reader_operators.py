@@ -11,6 +11,7 @@ It is possible to combine readers using operators, to create e.g. a mean reader 
 """
 
 from datetime import timedelta
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_netCDF_CF_generic, reader_constant
 from opendrift.models.leeway import Leeway
 
@@ -18,12 +19,12 @@ lw = Leeway(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Atmospheric model for wind
 #reader_arome = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
-reader_arome = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
+reader_arome = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/arome_subset_16Nov2015.nc')
 
 # Ocean model for current
 #reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/mepslatest/meps_lagged_6_h_latest_2_5km_latest.nc')
-reader_norkyst = reader_netCDF_CF_generic.Reader(lw.test_data_folder() +
+reader_norkyst = reader_netCDF_CF_generic.Reader(tdf +
     '16Nov2015_NorKyst_z_surface/norkyst800_subset_16Nov2015.nc')
 
 #%%

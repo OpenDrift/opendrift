@@ -33,7 +33,7 @@ om.run(end_time=rm.end_time)
 #%
 # Second simulation using ready made aggregate from thredds
 ot = OceanDrift()
-ot.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
+ot.add_readers_from_list(['https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be'])
 ot.seed_elements(lon=4.5, lat=60.0, number=1000, radius=100, time=rm.start_time)
 ot.run(end_time=rm.end_time)
 

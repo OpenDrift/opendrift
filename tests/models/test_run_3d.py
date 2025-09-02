@@ -22,6 +22,7 @@ import unittest
 from datetime import datetime, timedelta
 import netCDF4
 
+from opendrift import test_data_folder as tdf
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
@@ -33,8 +34,8 @@ class TestRun(unittest.TestCase):
 
     def test_reader_boundary(self):
         o = PelagicEggDrift(loglevel=20)
-        reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
-        reader_arctic = reader_netCDF_CF_generic.Reader(o.test_data_folder() + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
+        reader_nordic = reader_ROMS_native.Reader(tdf + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+        reader_arctic = reader_netCDF_CF_generic.Reader(tdf + '2Feb2016_Nordic_sigma_3d/Arctic20_1to5Feb_2016.nc')
         ######################################################
         # Vertical interpolation is another issue to be fixed:
         reader_nordic.zlevels = reader_arctic.z
@@ -58,7 +59,7 @@ class TestRun(unittest.TestCase):
     def test_truncate_ocean_model(self):
         o = OceanDrift(loglevel=30)
         o.set_config('general:use_auto_landmask', False)
-        reader_nordic = reader_ROMS_native.Reader(o.test_data_folder() + \
+        reader_nordic = reader_ROMS_native.Reader(tdf + \
             '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
         o.add_reader(reader_nordic)
         o.seed_elements(lon=15.0, lat=71.1, radius=0, number=10,

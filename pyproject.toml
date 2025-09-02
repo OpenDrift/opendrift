@@ -5,16 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "opendrift"
 requires-python = ">=3.9"
-version = "1.14.0"
+version = "1.14.3"
 description = "OpenDrift - a framework for ocean trajectory modeling"
 authors = [
   { name = "Knut-Frode Dagestad", email = "knutfd@met.no" },
   { name = "Gaute Hope", email = "gauteh@met.no" }]
 dependencies = [
   "matplotlib>=3.5",
-  "numpy>=2.2",
+  "numpy>=1.23",
   "scipy>=1.9",
-  "netCDF4>=1.7.2",
+  "netCDF4>=1.6.1",
   "pyproj>=2.3",
   "xarray>=2022.6.0",
   "geopandas>=0.14",

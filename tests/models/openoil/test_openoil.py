@@ -133,7 +133,7 @@ def test_seed_oil_type():
     lonstart = 16.040701
     latend = 69.991446
     lonend = 17.760061
-    time = [datetime.utcnow(), datetime.utcnow() + timedelta(hours=12)]
+    time = [datetime.now(), datetime.now() + timedelta(hours=12)]
 
     # changing oil type on first seed is ok
     o.seed_cone(lon=[lonstart, lonend], lat=[latstart, latend],

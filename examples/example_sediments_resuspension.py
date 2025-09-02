@@ -11,9 +11,9 @@ from opendrift.models.sedimentdrift import SedimentDrift
 #%%
 # Constructing an artificial current field where x- and y-components are oscilating with different amplitude and period
 reader_oscx = reader_oscillating.Reader('x_sea_water_velocity',
-    amplitude=0.6, zero_time=datetime.utcnow())
+    amplitude=0.6, zero_time=datetime.now())
 reader_oscy = reader_oscillating.Reader('y_sea_water_velocity',
-    amplitude=.3, period_seconds=3600*5, zero_time=datetime.utcnow())
+    amplitude=.3, period=timedelta(hours=5), zero_time=datetime.now())
 
 o = SedimentDrift(loglevel=50)  # 0 for debug output
 
@@ -24,7 +24,7 @@ if True:
     o.set_config('environment:fallback:sea_floor_depth_below_sea_level', 30)  # 100m depth
 else:  # Using live data from Thredds instead of oscillating currents
     o.add_readers_from_list([
-        'https://thredds.met.no/thredds/dodsC/sea/norkyst800m/1h/aggregate_be'])
+        'https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be'])
 
 #%%
 # Set threshold for bottom resuspension
@@ -39,7 +39,7 @@ o.set_config('vertical_mixing:diffusivitymodel', 'windspeed_Large1994')
 #%%
 # Seeding sediments
 o.seed_elements(lon=4.65, lat=60, number=10000, 
-                time=[datetime.utcnow(), datetime.utcnow()+timedelta(hours=6)],
+                time=[datetime.now(), datetime.now()+timedelta(hours=6)],
                 terminal_velocity=-.01)  # 1 cm/s settling speed
 
 o.run(time_step=1800, time_step_output=1800, duration=timedelta(hours=72))
