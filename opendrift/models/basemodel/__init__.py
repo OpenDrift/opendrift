@@ -2120,6 +2120,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
                 self.report_missing_variables(missing)
 
+                self.deactivate_outside()
+
                 self.interact_with_coastline()
 
                 self.interact_with_seafloor()
@@ -2220,6 +2222,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 >= self.get_config('drift:max_age_seconds'),
                 reason='retired')
 
+    def deactivate_outside(self):
         # Deacticate any elements outside validity domain set by user
         if self.validity_domain is not None:
             W, E, S, N = self.validity_domain
