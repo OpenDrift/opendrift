@@ -27,6 +27,8 @@ import glob
 import json
 import opendrift
 import xarray as xr
+import copernicusmarine
+
 
 def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_options={}, chunks=None):
     """ Wrapper around Xarray open_dataset and open_mfdataset.
@@ -115,10 +117,12 @@ def applicable_readers(url):
     from opendrift.readers import reader_copernicusmarine
     if len(glob.glob(url)) > 0 or any(e in url for e in [':', '/']):
         return [reader_netCDF_CF_generic, reader_ROMS_native, reader_netCDF_CF_unstructured]
-    elif '_' in url or '-' in url:  # should have better indentificator
-        return [reader_copernicusmarine] 
     else:
-        return []
+        try :
+            copernicusmarine.describe(dataset_id=url)
+            return [reader_copernicusmarine]
+        except :
+            return []
 
 def reader_from_url(url, timeout=10):
     '''Make readers from URLs or paths to datasets'''
