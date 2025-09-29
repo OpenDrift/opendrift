@@ -35,7 +35,7 @@ def concatenate_outputs(input_files, output_file):
 
     return ds_conc
 
-def RunChemicalDrift(pool_number):
+def RunOceanDrift(pool_number):
     """
     Configure and run one OpenDrift instance
 
@@ -63,7 +63,7 @@ pool_size=len(positions)
 
 #%% Run pool of OpenDrift instances in parallel using distinct CPUs and concatenate results
 with Pool(pool_size) as p:
-    p.starmap(RunChemicalDrift, [(i,) for i in range(pool_size)])
+    p.starmap(RunOceanDrift, [(i,) for i in range(pool_size)])
 
 concatenate_outputs(input_files=glob.glob("output_W*.nc"), output_file="output_total.nc")
 
