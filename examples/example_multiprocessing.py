@@ -8,7 +8,7 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 from opendrift.readers import reader_netCDF_CF_generic
-from opendrift.models.chemicaldrift import OceanDrift
+from opendrift.models.oceandrift import OceanDrift
 from multiprocessing import Pool
 import glob
 import opendrift
