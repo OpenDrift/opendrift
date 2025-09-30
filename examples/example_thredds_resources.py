@@ -12,6 +12,7 @@ from opendrift.readers.reader_netCDF_CF_generic import Reader
 o = OceanDrift(loglevel=0)
 
 thredds_resources = open(tdf + '../../opendrift/scripts/data_sources.txt').readlines()
+thredds_resources = [t.strip() for t in thredds_resources]
 times = {}
 
 #%%
