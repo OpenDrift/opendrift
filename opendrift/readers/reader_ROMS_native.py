@@ -216,9 +216,14 @@ class Reader(BaseReader, StructuredReader):
             try:
                 self.hc = self.Dataset.variables['hc'][:]
             except:
-                self.hc = self.Dataset.variables['hc'].data  # scalar
-            else:
-                self.hc = None
+                try:
+                    self.hc = self.Dataset.variables['hc'].data  # scalar
+                except:
+                    self.hc = None
+            try:
+                self.hc = self.hc.values
+            except:
+                pass
 
             self.num_layers = len(self.sigma)
         else:
