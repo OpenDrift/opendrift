@@ -20,6 +20,7 @@ logging.captureWarnings(True)
 logger = logging.getLogger('opendrift')
 logging.getLogger('botocore').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
+logging.getLogger('PIL').setLevel(logging.INFO)
 
 import sys
 import os
