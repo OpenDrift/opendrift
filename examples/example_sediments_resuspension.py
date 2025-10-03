@@ -50,7 +50,8 @@ o.plot_property('z')
 
 #%%
 # Animate sediment particles
-o.animation(color='moving', colorbar=False, legend=['Sedimented', 'Moving'], fast=True, buffer=.01)
+o.animation(color='moving', colorbar=False, legend=['Sedimented', 'Moving'],
+            fast=True, buffer=.01, vmin=0, vmax=1)
 #o.animation_profile()
 
 #%%
