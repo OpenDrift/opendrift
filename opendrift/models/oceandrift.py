@@ -412,6 +412,7 @@ class OceanDrift(OpenDriftSimulation):
         self.timer_start('main loop:updating elements:vertical mixing')
 
         dt_mix = self.get_config('vertical_mixing:timestep')
+        dt_mix = dt_mix * np.sign(self.time_step.total_seconds())  # negative for backward simulations
 
         # minimum height/maximum depth for each particle accouting also for
         # the sea surface height
