@@ -221,7 +221,7 @@ class ChemicalDrift(OceanDrift):
                 'min': -100000., 'max': 100000., 'units': 'J/mol',
                 'level': CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:Setchenow': {'type': 'float', 'default': 0.2503,      # Naphthalene
-                'min': 0, 'max': 1, 'units': 'L/mol',
+                'min': -2, 'max': 1, 'units': 'L/mol',
                 'level': CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             'chemical:transformations:pKa_acid': {'type': 'float', 'default': -1,
                 'min': -1, 'max': 14, 'units': '',
@@ -341,7 +341,7 @@ class ChemicalDrift(OceanDrift):
                          'C2-Phenanthrene','Benzo-b-fluoranthene','Chrysene',
                          'C3-Dibenzothiophene','C3-Phenanthrene',
                          'Benzo-k-fluoranthene','Benzo-ghi-perylene','Indeno-123cd-pyrene',
-                         'Copper','Cadmium','Chromium','Lead','Vanadium','Zinc','Nickel',None],
+                         'Copper','Cadmium','Chromium','Lead','Vanadium','Zinc','Nickel','Tralopyril','Econea'],
                 'default': None,
                 'level': CONFIG_LEVEL_ESSENTIAL, 'description': ''},
             })
@@ -3231,6 +3231,43 @@ class ChemicalDrift(OceanDrift):
             self.set_config('chemical:transformations:Solub', 0.00142)
             self.set_config('chemical:transformations:Tref_Solub', 25)
             self.set_config('chemical:transformations:DeltaH_Solub', 38000)                   ### Benzo-a-pyrene value
+
+        elif self.get_config('chemical:compound') in ["Tralopyril",'Econea']:
+
+            # https://downloads.regulations.gov/EPA-HQ-OPP-2013-0217-0017/content.pdf
+            # https://downloads.regulations.gov/EPA-HQ-OPP-2013-0217-0005/content.pdf
+            # https://www.chemicalbook.com/ChemicalProductProperty_EN_CB81210138.htm
+
+            #partitioning
+            self.set_config('chemical:transfer_setup','organics')
+            self.set_config('chemical:transformations:dissociation','nondiss')  # weak base
+            #self.set_config('chemical:transformations:pKa_base', 7.08)         # EPA (pka 10.24 chemicalbook.com ?!?!)
+            #self.set_config('chemical:transformations:pKa_acid', -1)           # ?
+            self.set_config('chemical:transformations:LogKOW', 3.5)             # EPA-HQ-OPP-2013-0217-0005/17 experimental  ( Chemspider > 5 ?!? predicted )
+            self.set_config('chemical:transformations:TrefKOW',25)              # ?
+            self.set_config('chemical:transformations:DeltaH_KOC_Sed',-21036)   # Naphthalene (similar KOW)
+            self.set_config('chemical:transformations:DeltaH_KOC_DOM',-25900)   # Naphthalene (similar KOW)
+            self.set_config('chemical:transformations:Setchenow', -1.17)        # Artificial value to match KOC 4585 in sea water Tralopyril E-fate data review (freshwater)
+            self.set_config('chemical:transformations:KOC_sed', 18586.5)        # Tralopyril E-fate data review (freshwater)
+
+            #degradation
+            self.set_config('chemical:transformations:t12_W_tot', 16)           # (9-16 hours)
+            self.set_config('chemical:transformations:Tref_kWt', 10)            # ?
+            self.set_config('chemical:transformations:DeltaH_kWt', 50000)       # PAH generic
+            self.set_config('chemical:transformations:t12_S_tot', 16*30)        # ? for PAHs degradation in sediments is typically 20-30 times slower than in water
+            self.set_config('chemical:transformations:Tref_kSt', 10)            # ?
+            self.set_config('chemical:transformations:DeltaH_kSt', 50000)       # PAH generic
+
+            #volatilization
+            self.set_config('chemical:transformations:MolWt', 349.53)           # EPA-HQ-OPP-2013-0217-0005/17
+            self.set_config('chemical:transformations:Henry', 9.3e-10)          # EPA-HQ-OPP-2013-0217-0005/17
+            self.set_config('chemical:transformations:Vpress', 4.60e-8)         # Pa = 3.45e-10 mmHg EPA-HQ-OPP-2013-0217-0017
+            self.set_config('chemical:transformations:Tref_Vpress', 25)         # EPA-HQ-OPP-2013-0217-005/17
+            self.set_config('chemical:transformations:DeltaH_Vpress', 70000)    # https://www.chemspider.com/Chemical-Structure.159609.html
+
+            self.set_config('chemical:transformations:Solub', 0.16)             # EPA-HQ-OPP-2013-0217-005/17 (sea water)
+            self.set_config('chemical:transformations:Tref_Solub', 25)          # ?
+            self.set_config('chemical:transformations:DeltaH_Solub', 30315)     # Fluoranthene (similar solubility)
 
         elif self.get_config('chemical:compound') == "Copper":
             self.set_config('chemical:transfer_setup','metals')
