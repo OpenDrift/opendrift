@@ -31,7 +31,7 @@ dependencies:
   - cmocean
   - utm
   - roaring-landmask>=0.7
-  - adios_db>=1.2
+  - adios_db>=1.2,<1.2.7
   - copernicusmarine>=2.0
   - bottleneck
   - pip

@@ -73,6 +73,7 @@ def close(self):
                 self.outfile[var].setncattr(atn, atv)
     for atn, atv in self.result.attrs.items():  # Updating global attributes
         self.outfile.setncattr(atn, atv)
+    self.outfile.sync()  # Flush from memory to disk
     self.outfile.close()  # Finally close file
     logger.debug('Closed netCDF-file')
 
