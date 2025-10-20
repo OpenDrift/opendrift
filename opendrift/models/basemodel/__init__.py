@@ -636,7 +636,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         """Store some properties and variables, for access at next time step"""
 
         if self.newly_seeded_IDs is not None:  # For newly seeded elements, we set previous equal to present
-            newly_seeded_rel_indices = np.where(self.elements.age_seconds==self.time_step.total_seconds())[0]    
+            newly_seeded_rel_indices = np.where(self.elements.age_seconds==self.time_step.total_seconds())[0]
 
         # Environment variables
         if self._environment_previous is not None:
@@ -659,7 +659,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             # Store present element properties
             for var in self._elements_previous:
                 self._elements_previous[var][self.elements.ID] = getattr(self.elements, var)
-            
+
     def interact_with_coastline(self, final=False):
         """Coastline interaction according to configuration setting"""
 
@@ -913,7 +913,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             indices = (self.elements_scheduled_time <= self.time) & \
                       (self.elements_scheduled_time >
                        self.time + self.time_step)
-        
+
         self.newly_seeded_IDs = self.elements_scheduled.ID[indices]  # may be deactivated if on land
         if self._elements_previous is not None and 'lon' in self._elements_previous:
             # store position of newly seeded elements
@@ -996,7 +996,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             if landgrid.size == 0:
                 # Need to catch this before trying .min() on it...
                 logger.warning('Land grid has zero size, cannot move elements.')
-                return lon, lat, land_indices                                        
+                return lon, lat, land_indices
             if landgrid.min() == 1 or np.isnan(landgrid.min()):
                 logger.warning('No ocean pixels nearby, cannot move elements.')
                 return lon, lat, land_indices
@@ -1039,7 +1039,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 the number of elements are obtained from the config-default.
                 If provided, number must be a multiple of the number of points.
             number_per_point: integer, number of particles to be seeded at each point.
-                This shall not be provided along with number. 
+                This shall not be provided along with number.
                 Only relevant if lon/lat are arrays.
             time: datenum or list
                 The time at which particles are seeded/released.
@@ -1559,7 +1559,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         ga = g.to_crs({'proj':'cea'})  # Equal area projection for area calculation
         g_lonlat = g.to_crs({'proj':'lonlat'})  # Lonlat projection to get lon and lat
-        
+
         areas = np.array([p.area for p in ga.geometry.explode(index_parts=False)])
         logger.info(f'Seeding {number} elements within {len(areas)} polygons')
 
@@ -1571,7 +1571,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             number_per_polygon[0:abs(remaining)] += np.sign(remaining)
         elif abs(remaining) > len(number_per_polygon):
             raise ValueError('Should not happen')
-        
+
         for e, (n, polygon) in enumerate(zip(number_per_polygon, g_lonlat.geometry.explode(index_parts=False))):
             logger.info(f'Seeding {n} elements within polygon number {e+1} of area {areas[e]/1e6} km2')
             lons, lats = polygon.exterior.coords.xy
@@ -1943,7 +1943,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                 if v.get('store_previous', False) is True]
         elements_previous = [vn for vn, v in self.elements.variables.items()
                              if v.get('store_previous', False) is True]
- 
+
         # Add the output variables which are always required,
         # as well as variables for which previous value is stored
         if export_variables is not None:
@@ -2092,7 +2092,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 logger.debug('%s elements scheduled.' %
                              self.num_elements_scheduled())
                 logger.debug('===================================' * 2)
-                
+
                 # Display element locations to terminal
                 for n in ['lat', 'lon', 'z']:
                     d = getattr(self.elements, n)
@@ -2128,7 +2128,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 self.interact_with_seafloor()
 
                 self.state_to_buffer()  # Append status to history array
-                
+
                 self.increase_age_and_retire()
 
                 self.remove_deactivated_elements()
@@ -4738,10 +4738,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def center_of_gravity(self, onlysurface=False):
         """
-        calculate center of mass and variance of all elements
+        Calculate center of mass and variance of all elements
+
         returns  (lon,lat), variance
         where (lon,lat) are the coordinates of the center of mass as
-        function of time"""
+        function of time
+        """
         lon, lat = self.result.lon, self.result.lat
         x, y = self.proj_latlon(lon, lat)
         if onlysurface == True:
@@ -4781,7 +4783,7 @@ def evaluate_conditional(key, operator, value, self=None):
     Returns: True or False
     """
 
-    operator_map = { 
+    operator_map = {
         '==': lambda x, y: x == y,
         '!=': lambda x, y: x != y,
         '<': lambda x, y: x < y,
@@ -4794,14 +4796,14 @@ def evaluate_conditional(key, operator, value, self=None):
         'or': lambda x, y: x or y,
         'and': lambda x, y: x and y,
     }
-    
+
     if isinstance(key, tuple):
         key = evaluate_conditional(key[0], key[1], key[2], self)
 
     if self is not None and not isinstance(key, bool):
         # If a OpenDrift instance is provided, this will evaluate the key, e.g. with get_config
         key = self._evaluate_key(key)
-    
+
     if isinstance(value, tuple):
         value = evaluate_conditional(value[0], value[1], value[2], self)
 
