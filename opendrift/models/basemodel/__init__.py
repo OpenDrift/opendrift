@@ -1572,14 +1572,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         elif abs(remaining) > len(number_per_polygon):
             raise ValueError('Should not happen')
 
+        all_lons = np.array([])
+        all_lats = np.array([])
         for e, (n, polygon) in enumerate(zip(number_per_polygon, g_lonlat.geometry.explode(index_parts=False))):
             logger.info(f'Seeding {n} elements within polygon number {e+1} of area {areas[e]/1e6} km2')
             lons, lats = polygon.exterior.coords.xy
-            self.seed_within_polygon(lons=lons,
-                                     lats=lats,
-                                     number=n,
-                                     time=time,
-                                     **kwargs)
+            all_lons = np.append(all_lons, lons)
+            all_lats = np.append(all_lats, lats)
+        self.seed_within_polygon(lons=all_lons,
+                                 lats=all_lats,
+                                 number=number,
+                                 time=time,
+                                 **kwargs)
 
     @require_mode(mode=Mode.Ready)
     def seed_letters(self, text, lon, lat, time, number, scale=1.2):
