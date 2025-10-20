@@ -2791,6 +2791,17 @@ class ChemicalDrift(OceanDrift):
             "Indeno-123cd-pyrene":      [0.07,   0.06],
             "Benzo-ghi-perylene":       [0.02,   0.01],
             #
+            "C1-Naphthalene":           [10.8,   None],     # Alkylated PAHs derived from
+            "C2-Naphthalene":           [10.0,   None],     # https://doi.org/10.1016/j.mex.2024.102589
+            "C3-Naphthalene":           [5.81,   None],
+            "C4-Naphthalene":           [1.76,   None],
+            "C1-Phenanthrene":          [4.40,   None],
+            "C2-Phenanthrene":          [2.70,   None],
+            "C3-Phenanthrene":          [1.08,   None],
+            "C4-Phenanthrene":          [0.57,   None],
+            "C1-Fluorene":              [2.02,   None],
+            "C2-Fluorene":              [1.05,   None],
+            #
             "Nitrate":                  [2830.,    2060.],
             "Nitrite":                  [760.,     680.],
             "Ammonium":                 [730.,     30.],
@@ -2815,10 +2826,10 @@ class ChemicalDrift(OceanDrift):
             #
             "Naphthalene":              [2.08,   1.05],
             "Phenanthrene":             [5.00,   2.30],
-            "Fluoranthene":             [0.63,	 0.41],
-            "Benzo-a-anthracene":       [0.30,	 0.29],
-            "Benzo-a-pyrene":           [0.06,	 0.05],
-            "Dibenzo-ah-anthracene":    [0.03,	 0.02],
+            "Fluoranthene":             [0.63,   0.41],
+            "Benzo-a-anthracene":       [0.30,   0.29],
+            "Benzo-a-pyrene":           [0.06,   0.05],
+            "Dibenzo-ah-anthracene":    [0.03,   0.02],
             #
             "Acenaphthylene":           [0.09,   0.06],
             "Acenaphthene":             [0.47,   0.31],
