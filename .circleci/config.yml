@@ -217,8 +217,11 @@ jobs:
           name: Get PR title
           command: |
             if [[ -v CIRCLE_PULL_REQUEST ]]; then
+              echo "${CIRCLE_PULL_REQUEST}"
               PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
-              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
+              echo "${PR_NUMBER}"
+              curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}"
+              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq '.title')
               echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
               echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
               echo "PR: ${GITHUB_PR_TITLE}"
