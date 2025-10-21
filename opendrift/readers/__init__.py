@@ -65,6 +65,8 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
 
     # Decode CF times
     offending = ds.filter_by_attrs(units='hours since analysis')  # Found e.g. in HYCOM datasets
+    if len(offending) == 0:
+        offending = ds.filter_by_attrs(units='msec since 00:00:00')  # Found e.g. in FVCOM
     if len(offending) > 0:
         logger.warning(f'Removing variables that cannot be CF decoded: {list(offending.variables)}')
         ds = ds.drop_vars(offending)
