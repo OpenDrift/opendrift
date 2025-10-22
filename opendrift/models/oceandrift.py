@@ -524,7 +524,7 @@ class OceanDrift(OpenDriftSimulation):
             r = 1.0/3
             # New position  =  old position   - up_K_flux   + random walk
             self.elements.z = self.elements.z - self.elements.moving*(
-                dKdz*dt_mix - R*np.sqrt((Kz*dt_mix*2/r)))
+                dKdz*dt_mix - R*np.sqrt((Kz*np.abs(dt_mix)*2/r)))
 
             # Reflect from surface
             reflect = np.where(self.elements.z >= 0)
@@ -550,7 +550,7 @@ class OceanDrift(OpenDriftSimulation):
             # Formation of slick and wave mixing for surfaced particles
             # if implemented for this class
             self.surface_stick()
-            self.surface_wave_mixing(dt_mix)
+            self.surface_wave_mixing(np.abs(dt_mix))
 
             # Let particles stick to bottom
             bottom = np.where(self.elements.z < Zmin)
