@@ -36,7 +36,7 @@ class Environment(Timeable, Configurable):
         self.discarded_readers = {}
 
         self.required_variables = required_variables
-        self._config = _config # reference to simulation config
+        self._config = _config  # reference to simulation config
 
         # Add constant and fallback environment variables to config
         c = {}
@@ -68,7 +68,8 @@ class Environment(Timeable, Configurable):
                 'min': minval,
                 'max': maxval,
                 'units': units,
-                'default': self.required_variables[v]['fallback'] if 'fallback' in self.required_variables[v] else None,
+                'default': self.required_variables[v]['fallback'] if 'fallback'
+                           in self.required_variables[v] else None,
                 'level': CONFIG_LEVEL_BASIC,
                 'description': description_fallback
             }
@@ -78,7 +79,8 @@ class Environment(Timeable, Configurable):
             'general:use_auto_landmask': {
                 'type': 'bool',
                 'default': True,
-                'description': 'A built-in GSHHG global landmask is used if True, '
+                'description':
+                    'A built-in GSHHG global landmask is used if True, '
                     'otherwise landmask is taken from reader or fallback value.',
                 'level': CONFIG_LEVEL_ADVANCED
             },
@@ -88,8 +90,7 @@ class Environment(Timeable, Configurable):
                 'min': 0,
                 'max': 5,
                 'units': 'm/s',
-                'description':
-                'Add gaussian perturbation with this standard deviation to current components at each time step',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': CONFIG_LEVEL_ADVANCED
             },
             'drift:current_uncertainty_uniform': {
@@ -98,8 +99,7 @@ class Environment(Timeable, Configurable):
                 'min': 0,
                 'max': 5,
                 'units': 'm/s',
-                'description':
-                'Add gaussian perturbation with this standard deviation to current components at each time step',
+                'description': 'Add gaussian perturbation with this standard deviation to current components at each time step',
                 'level': CONFIG_LEVEL_ADVANCED
             },
             'drift:max_speed': {
@@ -108,8 +108,7 @@ class Environment(Timeable, Configurable):
                 'min': 0,
                 'max': np.inf,
                 'units': 'seconds',
-                'description':
-                'Typical maximum speed of elements, used to estimate reader buffer size',
+                'description': 'Typical maximum speed of elements, used to estimate reader buffer size',
                 'level': CONFIG_LEVEL_ADVANCED
             },
             'readers:max_number_of_fails': {
@@ -118,8 +117,7 @@ class Environment(Timeable, Configurable):
                 'min': 0,
                 'max': 1e6,
                 'units': 'number',
-                'description':
-                'Readers are discarded if they fail (e.g. corrupted data, og hanging servers) move than this number of times',
+                'description': 'Readers are discarded if they fail (e.g. corrupted data, og hanging servers) move than this number of times',
                 'level': CONFIG_LEVEL_ADVANCED
             },
         })
@@ -127,15 +125,15 @@ class Environment(Timeable, Configurable):
         # Find variables which require profiles
         self.required_profiles = [
             var for var in self.required_variables
-            if 'profiles' in self.required_variables[var]
-            and self.required_variables[var]['profiles'] is True
+            if 'profiles' in self.required_variables[var] and
+            self.required_variables[var]['profiles'] is True
         ]
 
         # Find variables which are desired, but not required
         self.desired_variables = [
             var for var in self.required_variables
-            if 'important' in self.required_variables[var]
-            and self.required_variables[var]['important'] is False
+            if 'important' in self.required_variables[var] and
+            self.required_variables[var]['important'] is False
         ]
 
     def finalize(self, simulation_extent=None, start=None, end=None):
@@ -192,11 +190,10 @@ class Environment(Timeable, Configurable):
         if self.get_config('general:use_auto_landmask', False) is True:
             if 'land_binary_mask' in self.priority_list:
                 if 'global_landmask' in self.priority_list['land_binary_mask']:
-                    self.priority_list['land_binary_mask'] = [
-                        'global_landmask'
-                    ]
+                    self.priority_list['land_binary_mask'] = ['global_landmask']
                 else:
-                    if self.get_config('environment:constant:land_binary_mask') is None:
+                    if self.get_config(
+                            'environment:constant:land_binary_mask') is None:
                         del self.priority_list['land_binary_mask']
 
         if self.get_config('general:use_auto_landmask', False) is True and \
@@ -209,16 +206,17 @@ class Environment(Timeable, Configurable):
                 self.add_reader(reader_landmask)
                 self.timer_end('preparing main loop:loading global landmask')
             else:
-                logger.warning('Using constant reader for land_binary_mask, ' 
-                               'although config general:use_auto_landmask is True')
+                logger.warning(
+                    'Using constant reader for land_binary_mask, '
+                    'although config general:use_auto_landmask is True')
 
     def __assert_no_missing_variables__(self):
         missing_variables = self.missing_variables()
         if len(missing_variables) > 0:
             has_fallback = [
-                var for var in missing_variables
-                if (self.get_config(f'environment:fallback:{var}') is not None or
-                    self.get_config(f'environment:constant:{var}') is not None)
+                var for var in missing_variables if
+                (self.get_config(f'environment:fallback:{var}') is not None or
+                 self.get_config(f'environment:constant:{var}') is not None)
             ]
             has_no_fallback = [
                 var for var in missing_variables
@@ -229,7 +227,9 @@ class Environment(Timeable, Configurable):
                 logger.info('Fallback values will be used for the following '
                             'variables which have no readers: ')
                 for var in has_fallback:
-                    logger.info('\t%s: %f' % (var, self.get_config(f'environment:fallback:{var}')))
+                    logger.info(
+                        '\t%s: %f' %
+                        (var, self.get_config(f'environment:fallback:{var}')))
             if len(has_no_fallback) > 0 and len(
                     self._lazy_readers()) == 0:  # == missing_variables:
                 logger.warning(
@@ -321,8 +321,7 @@ class Environment(Timeable, Configurable):
                                 self.priority_list[variable].insert(
                                     0, reader.name)
                             else:
-                                self.priority_list[variable].append(
-                                    reader.name)
+                                self.priority_list[variable].append(reader.name)
                     else:
                         self.priority_list[variable] = [reader.name]
 
@@ -422,7 +421,7 @@ class Environment(Timeable, Configurable):
             return False
         if reader.start_time is not None and reader.always_valid is False:
             if hasattr(self, 'expected_end_time'
-                       ) and reader.start_time > self.expected_end_time:
+                      ) and reader.start_time > self.expected_end_time:
                 self.discard_reader(reader, 'starts after simulation end')
                 return True
             if hasattr(self,
@@ -430,8 +429,7 @@ class Environment(Timeable, Configurable):
                 self.discard_reader(reader, 'ends before simuation start')
                 return True
             if time is not None and reader.end_time < time:
-                self.discard_reader(reader,
-                                    'ends before simuation is finished')
+                self.discard_reader(reader, 'ends before simuation is finished')
                 return True
         if len(set(self.required_variables) & set(reader.variables)) == 0:
             self.discard_reader(
@@ -499,7 +497,14 @@ class Environment(Timeable, Configurable):
             if var not in self.priority_list
         ]
 
-    def get_environment(self, variables, time, lon, lat, z, profiles=None, profiles_depth=None):
+    def get_environment(self,
+                        variables,
+                        time,
+                        lon,
+                        lat,
+                        z,
+                        profiles=None,
+                        profiles_depth=None):
         '''Retrieve environmental variables at requested positions.
 
         Args:
@@ -572,8 +577,8 @@ class Environment(Timeable, Configurable):
                         if self.discard_reader_if_not_relevant(reader, time):
                             reader = None
                     if reader is not None:
-                        if (reader.covers_time(time) and len(
-                                reader.covers_positions(lon, lat)[0]) > 0):
+                        if (reader.covers_time(time) and
+                                len(reader.covers_positions(lon, lat)[0]) > 0):
                             missing_variables = list(
                                 set(missing_variables) - set(reader.variables))
                             if len(missing_variables) == 0:
@@ -587,8 +592,7 @@ class Environment(Timeable, Configurable):
             if co is not None:
                 env[variable] = np.ma.ones(env[variable].shape) * co
 
-        for variable_group, reader_group in zip(variable_groups,
-                                                reader_groups):
+        for variable_group, reader_group in zip(variable_groups, reader_groups):
             logger.debug('----------------------------------------')
             logger.debug('Variable group %s' % (str(variable_group)))
             logger.debug('----------------------------------------')
@@ -607,8 +611,9 @@ class Environment(Timeable, Configurable):
                             logger.debug(
                                 'Missing variables: calling get_environment recursively'
                             )
-                            return self.get_environment(
-                                variables, time, lon, lat, z, profiles, profiles_depth)
+                            return self.get_environment(variables, time, lon,
+                                                        lat, z, profiles,
+                                                        profiles_depth)
                     continue
                 # Fetch given variables at given positions from current reader
                 try:
@@ -638,8 +643,9 @@ class Environment(Timeable, Configurable):
                             logger.debug(
                                 'Missing variables: calling get_environment recursively'
                             )
-                            return self.get_environment(
-                                variables, time, lon, lat, z, profiles, profiles_depth)
+                            return self.get_environment(variables, time, lon,
+                                                        lat, z, profiles,
+                                                        profiles_depth)
                     continue
 
                 except Exception as e:  # Unknown error
@@ -669,8 +675,9 @@ class Environment(Timeable, Configurable):
                             logger.debug(
                                 'Missing variables: calling get_environment recursively'
                             )
-                            return self.get_environment(
-                                variables, time, lon, lat, z, profiles, profiles_depth)
+                            return self.get_environment(variables, time, lon,
+                                                        lat, z, profiles,
+                                                        profiles_depth)
                     continue
 
                 # Copy retrieved variables to env array, and mask nan-values
@@ -740,8 +747,8 @@ class Environment(Timeable, Configurable):
                 except Exception as ex:  # Not sure what is happening here
                     logger.info('Problems setting mask on missing_indices!')
                     logger.exception(ex)
-                if (type(missing_indices)
-                        == np.int64) or (type(missing_indices) == np.int32):
+                if (type(missing_indices) == np.int64) or (type(missing_indices)
+                                                           == np.int32):
                     missing_indices = []
                 self.timer_end('main loop:readers:' +
                                reader_name.replace(':', '<colon>'))
@@ -756,8 +763,8 @@ class Environment(Timeable, Configurable):
                             logger.warning(
                                 'Missing variables: calling get_environment recursively'
                             )
-                            return self.get_environment(
-                                variables, time, lon, lat, z, profiles)
+                            return self.get_environment(variables, time, lon,
+                                                        lat, z, profiles)
 
         logger.debug('---------------------------------------')
         logger.debug('Finished processing all variable groups')
@@ -793,12 +800,12 @@ class Environment(Timeable, Configurable):
                 else:
                     mask = env_profiles[var].mask
                     num_masked_values_per_element = np.sum(mask == True)
-                    num_missing_profiles = np.sum(num_masked_values_per_element
-                                                  == len(env_profiles['z']))
+                    num_missing_profiles = np.sum(
+                        num_masked_values_per_element == len(env_profiles['z']))
                     env_profiles[var][mask] = fallback
                     logger.debug(
-                        '      Using fallback value %s for %s for %s profiles'
-                        % (
+                        '      Using fallback value %s for %s for %s profiles' %
+                        (
                             fallback,
                             var,
                             num_missing_profiles,
@@ -817,8 +824,7 @@ class Environment(Timeable, Configurable):
         if 'sea_water_temperature' in variables:
             t_kelvin = np.where(env['sea_water_temperature'] > 100)[0]
             if len(t_kelvin) > 0:
-                logger.warning(
-                    'Converting temperatures from Kelvin to Celcius')
+                logger.warning('Converting temperatures from Kelvin to Celcius')
                 env['sea_water_temperature'][
                     t_kelvin] = env['sea_water_temperature'][t_kelvin] - 273.15
                 if 'env_profiles' in locals(
@@ -876,10 +882,8 @@ class Environment(Timeable, Configurable):
             std = self.get_config('drift:wind_uncertainty')
             if std > 0:
                 logger.debug('Adding uncertainty for wind: %s m/s' % std)
-                env['x_wind'] += np.random.normal(0, std,
-                                                  num_elements_active)
-                env['y_wind'] += np.random.normal(0, std,
-                                                  num_elements_active)
+                env['x_wind'] += np.random.normal(0, std, num_elements_active)
+                env['y_wind'] += np.random.normal(0, std, num_elements_active)
 
         #####################
         # Diagnostic output
