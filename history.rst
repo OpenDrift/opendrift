@@ -1,6 +1,15 @@
 History
 =======
 
+2025-10-22 / Release v1.14.4
+----------------------------
+* Fix for vertical mixing for backwards simulations
+* Updates to OpenBerg, RadioNuclides and ChemicalDrift
+* Fixed problem with deactivation of elements outside user-defined area
+* More robust way to detect copernicus dataset_id (thx to Cruz Garcia)
+* ROMS native reader better compatible with CROCO
+* seed_from_geopandas (and seed_from_shapefile) can now take arguments with array length equal to number of elements.
+
 2025-08-28 / Release v1.14.3
 ----------------------------
 * Added two new oils to OpenOil / ADIOS: RINGHORNE 2025 and BALDER BLEND 2025
@@ -21,7 +30,6 @@ History
 * ``opendrift_gui`` now takes ``--forcing`` as an optional commandline argument, for user defined file with list of forcing datasets
 * Made fix and added test for export_variables. Thx to vincentcasseau for reporting.
 * Extracted ``coastline_crossing`` from stranding algorithm as a separate method, which now also applies to ``previous`` and not only ``stranding``
-
 
 2025-05-19 / Release v1.14.2
 ----------------------------
