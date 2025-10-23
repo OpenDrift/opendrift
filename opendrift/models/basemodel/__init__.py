@@ -2869,6 +2869,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if color is False:
             cargs = {'c': None, 'color': markercolor, 'cmap': None}
+            vmin=None
+            vmax=None
         else:
             cargs = {'c': [], 'color': None, 'cmap': cmap}
 
