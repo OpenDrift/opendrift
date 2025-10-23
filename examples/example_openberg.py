@@ -12,8 +12,7 @@ from opendrift.models.openberg import OpenBerg
 
 #%%
 # Currents and wind forcing
-forcing = ['https://thredds.met.no/thredds/dodsC/fou-hi/barents_eps_zdepth_be',
-           'https://pae-paha.pacioos.hawaii.edu/thredds/dodsC/ncep_global/NCEP_Global_Atmospheric_Model_best.ncd']
+forcing = ['https://thredds.met.no/thredds/dodsC/fou-hi/barents_eps_zdepth_be']
 
 #%%
 # A permutation of iceberg sizes/dimensions

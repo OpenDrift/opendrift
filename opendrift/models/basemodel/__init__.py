@@ -981,6 +981,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             landlats = lat[land_indices]
             longrid = np.arange(lonmin, lonmax, deltalon)
             latgrid = np.arange(latmin, latmax, deltalat)
+            if len(longrid) > 1000 or len(latgrid) > 1000:
+                logger.warning(f'Particles cover large area - using coarser resolution for closest ocean point')
+                longrid = np.linspace(lonmin, lonmax, 1000)
+                latgrid = np.linspace(latmin, latmax, 1000)
             longrid, latgrid = np.meshgrid(longrid, latgrid)
             longrid = longrid.ravel()
             latgrid = latgrid.ravel()
@@ -2865,6 +2869,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if color is False:
             cargs = {'c': None, 'color': markercolor, 'cmap': None}
+            vmin=None
+            vmax=None
         else:
             cargs = {'c': [], 'color': None, 'cmap': cmap}
 

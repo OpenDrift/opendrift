@@ -22,6 +22,7 @@ histogram_file = 'runoff_histogram.nc'
 o = OceanDrift(loglevel=20)
 o.set_config('drift:horizontal_diffusivity', 300)
 o.set_config('general:coastline_action', 'previous')
+o.set_config('general:coastline_approximation_precision', None)  # Faster to go back to previous
 t1 = datetime.now()
 t2 = t1 + timedelta(hours=48)
 reader_x = reader_oscillating.Reader('x_sea_water_velocity', period=timedelta(hours=24),
