@@ -213,20 +213,6 @@ jobs:
           name: Install packages
           command: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential jq curl
 
-      - run:
-          name: Get PR title
-          command: |
-            if [[ -v CIRCLE_PULL_REQUEST ]]; then
-              echo "${CIRCLE_PULL_REQUEST}"
-              PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
-              echo "${PR_NUMBER}"
-              curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}"
-              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq '.title')
-              echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
-              echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
-              echo "PR: ${GITHUB_PR_TITLE}"
-            fi
-
       - install_conda_environment
 
       - install_cartopy_shapes
@@ -267,7 +253,7 @@ jobs:
       - run:
           name: Clean cache if docs should be re-built
           command: |
-            if [[ "${GITHUB_PR_TITLE}" == *"[run-ex]"* || "${BUILD_EXAMPLES}" -eq 1 ]]; then
+            if [[ "${BUILD_EXAMPLES}" -eq 1 ]]; then
               echo "Clearing out examples.."
               source activate opendrift
               cd docs/
@@ -316,17 +302,6 @@ jobs:
       - run:
           name: Install packages
           command: DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential gfortran libgeos-dev gdal-bin imagemagick jq curl
-
-      - run:
-          name: Get PR title
-          command: |
-            if [[ -v CIRCLE_PULL_REQUEST ]]; then
-              PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
-              GITHUB_PR_TITLE=$(curl "https://api.github.com/repos/OpenDrift/OpenDrift/pulls/${PR_NUMBER}" | jq -e '.title')
-              echo "export GITHUB_PR_NO=${PR_NUMBER}" >> ${BASH_ENV}
-              echo "export GITHUB_PR_TITLE=${GITHUB_PR_TITLE}" >> ${BASH_ENV}
-              echo "PR: ${GITHUB_PR_TITLE}"
-            fi
 
       - run:
           name: Check if examples should be built
