@@ -126,7 +126,6 @@ class TestInterpolation(unittest.TestCase):
         lons = np.arange(-180, 181, 20)
         lats = np.arange(-80, 81, 20)
         lons, lats = np.meshgrid(lons, lats)
-        o.set_config('seed:ocean_only', False)
         o.seed_elements(lon=lons, lat=lats, time=start_time, wind_drift_factor=.1)
         o.run(steps=2, time_step=3600*12)
         # Check expected drift direction for each quadrant
