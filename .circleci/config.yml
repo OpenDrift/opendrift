@@ -116,7 +116,7 @@ jobs:
     docker:
       - image: condaforge/miniforge3
     environment:
-      - PYTHON_VERSION=3.13
+      - PYTHON_VERSION=3.14
 
     steps:
       - checkout
@@ -144,7 +144,7 @@ jobs:
     docker:
       - image: condaforge/miniforge3
     environment:
-      - PYTHON_VERSION=3.13
+      - PYTHON_VERSION=3.14
 
     steps:
       - checkout
@@ -167,10 +167,17 @@ jobs:
               twine upload --verbose --skip-existing -u __token__ -p ${PYPI_TOKEN} dist/*
             fi
 
+  python_314:
+    <<: *test-template
+    parallelism: 5
+    environment:
+      - PYTHON_VERSION=3.14
+
   python_313:
     <<: *test-template
     parallelism: 5
     environment:
+      - COVERALLS_UPLOAD=1
       - PYTHON_VERSION=3.13
 
   python_312:
@@ -189,7 +196,6 @@ jobs:
     <<: *test-template
     parallelism: 5
     environment:
-      - COVERALLS_UPLOAD=1
       - PYTHON_VERSION=3.10
 
   # python_39:
@@ -203,7 +209,7 @@ jobs:
       - image: condaforge/miniforge3
     parallelism: 20
     environment:
-      - PYTHON_VERSION=3.13
+      - PYTHON_VERSION=3.14
     steps:
       - checkout
       - run:
@@ -289,7 +295,7 @@ jobs:
     docker:
       - image: condaforge/miniforge3
     environment:
-      - PYTHON_VERSION=3.13
+      - PYTHON_VERSION=3.14
     steps:
       - checkout
 
@@ -402,6 +408,7 @@ workflows:
 
   test-and-package:
     jobs:
+      - python_314
       - python_313
       - python_312
       - python_311
