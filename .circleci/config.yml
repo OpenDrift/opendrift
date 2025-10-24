@@ -171,13 +171,13 @@ jobs:
     <<: *test-template
     parallelism: 5
     environment:
+      - COVERALLS_UPLOAD=1
       - PYTHON_VERSION=3.14
 
   python_313:
     <<: *test-template
     parallelism: 5
     environment:
-      - COVERALLS_UPLOAD=1
       - PYTHON_VERSION=3.13
 
   python_312:
@@ -191,18 +191,6 @@ jobs:
     parallelism: 5
     environment:
       - PYTHON_VERSION=3.11
-
-  python_310:
-    <<: *test-template
-    parallelism: 5
-    environment:
-      - PYTHON_VERSION=3.10
-
-  # python_39:
-  #   <<: *test-template
-  #   parallelism: 5
-  #   environment:
-  #     - PYTHON_VERSION=3.9
 
   docs-build-examples:
     docker:
@@ -412,13 +400,11 @@ workflows:
       - python_313
       - python_312
       - python_311
-      - python_310
-      # - python_39
       - build_package
       - publish_package:
           requires:
             - build_package
-            - python_311
+            - python_314
           filters:
             tags:
               only: /^v.*/
