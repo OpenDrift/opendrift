@@ -65,6 +65,27 @@ If you later want to edit the OpenDrift source code, or be able to update from r
 
    $ pip install --no-deps -e .
 
+Install and use on WEkEO
+++++++++++++++++++++++++
+
+To install and use OpenDrift in the JupyterHub workspace on https://wekeo.copernicus.eu, type the following in a workspace terminal window
+
+.. code-block:: bash
+
+   $ mamba install opendrift
+
+By installing in the base environment, you can use the default Python kernel for notebooks, and there is no risk of conflict with existing environment.
+
+If you want to use copernicus products as forcing, you can store your credentials in a file .env in the same folder as your notebooks:
+
+.. code-block:: bash
+
+   COPERNICUSMARINE_SERVICE_USERNAME=<your CMEMS username>
+   COPERNICUSMARINE_SERVICE_PASSWORD=<your CMEMS password>
+
+OpenDrift can now be imported and used in the JupyterHub notebooks.
+
+
 Building and using the Docker image
 +++++++++++++++++++++++++++++++++++
 

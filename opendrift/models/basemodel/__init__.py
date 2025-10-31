@@ -21,6 +21,7 @@ logger = logging.getLogger('opendrift')
 logging.getLogger('botocore').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 logging.getLogger('PIL').setLevel(logging.INFO)
+logging.getLogger('fiona').setLevel(logging.INFO)
 
 try:
     from dotenv import load_dotenv
