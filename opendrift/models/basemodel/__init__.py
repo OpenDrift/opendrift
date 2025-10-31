@@ -22,6 +22,12 @@ logging.getLogger('botocore').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 logging.getLogger('PIL').setLevel(logging.INFO)
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    logger.warning('Cound not load dotenv')
+
 import sys
 import os
 import copy
