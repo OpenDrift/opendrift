@@ -22,6 +22,12 @@ logging.getLogger('botocore').setLevel(logging.INFO)
 logging.getLogger('urllib3').setLevel(logging.INFO)
 logging.getLogger('PIL').setLevel(logging.INFO)
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    logger.warning('Cound not load dotenv')
+
 import sys
 import os
 import copy
@@ -3085,6 +3091,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                            frames=frames,
                                            interval=interval)
             try:
+                __IPYTHON__
+                from IPython.display import display, HTML
+                plt.close()  # prevent showing figure in addition to animation
+                logger.info('Preparing animation for notebook....')
+                display(HTML(anim.to_jshtml()))
+            except NameError:
                 plt.show()
             except AttributeError as e:
                 logger.exception(e)

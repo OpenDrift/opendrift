@@ -28,6 +28,12 @@ from datetime import datetime
 import numpy as np
 from opendrift.readers import applicable_readers
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
+
 
 def main():
     parser = argparse.ArgumentParser()
