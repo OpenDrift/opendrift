@@ -34,6 +34,7 @@ dependencies:
   - adios_db>=1.2,<1.2.7
   - copernicusmarine>=2.0
   - bottleneck
+  - python-dotenv
   - pip
   - git
   - pip:
