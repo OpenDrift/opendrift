@@ -1,6 +1,10 @@
 History
 =======
 
+2025-10-31 / Release v1.14.6
+----------------------------
+* Silencing debug logs from fiona
+
 2025-10-31 / Release v1.14.5
 ----------------------------
 * Show animations using Ipython.display if running within notebook or Ipython
