@@ -1,6 +1,12 @@
 History
 =======
 
+2025-10-31 / Release v1.14.5
+----------------------------
+* Show animations using Ipython.display if running within notebook or Ipython
+* Loading .env variables if existing, and if python-dotenv is installed
+* Using coarser resolution to find closest ocean point when particles are seeded globally
+
 2025-10-22 / Release v1.14.4
 ----------------------------
 * Fix for vertical mixing for backwards simulations
