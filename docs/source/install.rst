@@ -65,10 +65,10 @@ If you later want to edit the OpenDrift source code, or be able to update from r
 
    $ pip install --no-deps -e .
 
-Install and use on WEkEO
-++++++++++++++++++++++++
+Install and use on WEkEO and EDITO
+++++++++++++++++++++++++++++++++++
 
-To install and use OpenDrift in the JupyterHub workspace on https://wekeo.copernicus.eu, type the following in a workspace terminal window
+To install and use OpenDrift in the JupyterHub workspace on https://wekeo.copernicus.eu or https://datalab.dive.edito.eu, type the following in a workspace terminal window
 
 .. code-block:: bash
 
@@ -76,7 +76,14 @@ To install and use OpenDrift in the JupyterHub workspace on https://wekeo.copern
 
 By installing in the base environment, you can use the default Python kernel for notebooks, and there is no risk of conflict with existing environment.
 
-If you want to use copernicus products as forcing, you can store your credentials in a file .env in the same folder as your notebooks:
+If you want to use copernicus products as forcing, you can set your credentials as environment variables from the same terminal.
+
+.. code-block:: bash
+
+   $ export COPERNICUSMARINE_SERVICE_USERNAME=<your CMEMS username>
+   $ export COPERNICUSMARINE_SERVICE_PASSWORD=<your CMEMS password>
+
+Alternatively, you can store your credentials in a file .env in the same folder as your notebooks:
 
 .. code-block:: bash
 
