@@ -142,7 +142,7 @@ class Reader(BaseReader, StructuredReader):
             dropvars = [v for v in ds.variables if v not in
                         list(self.ROMS_variable_mapping.keys()) +
                         ['ocean_time', 'time', 'bulk_time', 's_rho',
-                         'Cs_r', 'Cs_rho', 'hc', 'angle', 'Vtransform']
+                         'Cs_r', 'Cs_rho', 'hc', 'angle', 'Vtransform', 'Vstretching']
                         and v[0:3] not in ['lon', 'lat', 'mas']]
             logger.debug('Dropping variables: %s' % dropvars)
             ds = ds.drop_vars(dropvars)
@@ -180,6 +180,13 @@ class Reader(BaseReader, StructuredReader):
             logger.warning('Vtransform not found, using 1')
             self.Vtransform = 1
         self.Vtransform = np.asarray(self.Vtransform)
+
+        if 'Vstretching' in self.Dataset.variables:
+            self.Vstretching = self.Dataset.variables['Vstretching'].data  # scalar
+        else:
+            logger.warning('Vstretching not found, using 1')
+            self.Vstretching = 1
+        self.Vstretching = np.asarray(self.Vstretching)
 
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
@@ -508,7 +515,8 @@ class Reader(BaseReader, StructuredReader):
                 Htot = self.sea_floor_depth_below_sea_level
                 zeta = self.zeta[indxTime]
                 self.z_rho_tot = depth.sdepth(Htot, zeta, self.hc, self.Cs_r,
-                                              Vtransform=self.Vtransform)
+                                              Vtransform=self.Vtransform,
+					      Vstretching=self.Vstretching)
                 # z_rho is positive relative to mean sea level but z is
                 # 0 at the surface.
                 # Transform z_rho to match convention of z.
@@ -517,7 +525,8 @@ class Reader(BaseReader, StructuredReader):
             H = self.sea_floor_depth_below_sea_level[indy, indx]
             zeta = self.zeta[itxy]
             z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
-                                 Vtransform=self.Vtransform)
+                                 Vtransform=self.Vtransform,
+				 Vstretching=self.Vstretching)
 
             # z_rho is positive relative to mean sea level but z is
             # 0 at the surface.
@@ -622,13 +631,11 @@ class Reader(BaseReader, StructuredReader):
                             logger.debug('Calculating sigma2z-coefficients for whole domain')
                             starttime = datetime.now()
                             dummyvar = np.ones((O, M, N))
-                            dummy, self.s2z_total = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
+                            dummy, self.s2z_A, self.s2z_C, self.s2z_I, self.s2z_kmax = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
                             # Store arrays/coefficients
-                            self.s2z_A = self.s2z_total[0].reshape(len(self.zlevels), M, N)
-                            self.s2z_C = self.s2z_total[1].reshape(len(self.zlevels), M, N)
-                            #self.s2z_I = self.s2z_total[2].reshape(M, N)
-                            self.s2z_kmax = self.s2z_total[3]
-                            del self.s2z_total  # Free memory
+                            self.s2z_A = self.s2z_A.reshape(len(self.zlevels), M, N)
+                            self.s2z_C = self.s2z_C.reshape(len(self.zlevels), M, N)
+                            #self.s2z_I = self.s2z_I.reshape(M, N)
                             logger.info('Time: ' + str(datetime.now() - starttime))
                         if 'A' not in locals():
                             logger.debug('Re-using sigma2z-coefficients')
@@ -661,9 +668,8 @@ class Reader(BaseReader, StructuredReader):
                             kmax = len(zle)  # Must be checked. Or number of sigma-layers?
                     if 'A' not in locals():
                         logger.debug('Calculating new sigma2z-coefficients')
-                        variables[par], s2z = depth.multi_zslice(
+                        variables[par], A,C,I,kmax = depth.multi_zslice(
                             variables[par], z_rho, variables['z'])
-                        A,C,I,kmax = s2z
                         # Reshaping to compare with subset of full array
                         #zle = np.arange(zi1, zi2)
                         #A = A.reshape(len(zle), len(indx), len(indy))

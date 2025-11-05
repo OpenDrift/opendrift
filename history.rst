@@ -204,7 +204,7 @@ History
 * Using now product_id instead of OPeNDAP URL for CMEMS datasets, and using copernicusmarineclient through new reader_copernicusmarine. username/password can be stored in netrc-file with machine name equal to *copernicusmarine* or *nrt.cmems-du.eu*
 * Model property reguired_profiles_z_range is now replaced with config setting drift:profile_depth, and profiles are retrieved from surface to this depth. profiles_depth is now input parameter to get_environment, and not anymore a property of Environment class. prepare_run must now always call prepare_run of parent class, since profile_depth is copied to object in basemodel.prepare_run
 * get_variables_along_trajectory now also takes depth (z) as input parameter
-* updates to wetting/drying in ROMS reader (Kristin Thyng)
+* updates to wetting/drying in ROMS reader (Kristen Thyng)
 * Fill value in output netCDF files is now set to NaN for floats and -999 for integers
 * Moving basereader.prepare() to variables.prepare(), as the former was overriding structured.prepare() due to multiple inheritance, and thus config *drift:max_speed* was not applied if config setting was made after reader was added. Also increasing *drift:max_speed* of OceanDrift from 1 to 2m/s
 * Leeway model now allows capsizing (and un-capsizing for backwards runs), with given probability and reduction of leeway coefficients when wind exceeds given threshold
@@ -217,8 +217,8 @@ History
 
 2024-04-02 / Release v1.11.2
 ----------------------------
-* Proper handling of sea_surface_height implemented by Kristin Thyng. All subclasses of OceanDrift now have `sea_surface_height` (default 0) as new parameter. z=0 is always sea surface (including sea_surface_height), and seafloor is now where z = -(sea_floor_depth + sea_surface_height)
-* Improvements of ROMS reader by Kristin Thyng:
+* Proper handling of sea_surface_height implemented by Kristen Thyng. All subclasses of OceanDrift now have `sea_surface_height` (default 0) as new parameter. z=0 is always sea surface (including sea_surface_height), and seafloor is now where z = -(sea_floor_depth + sea_surface_height)
+* Improvements of ROMS reader by Kristen Thyng:
 
   * Roppy-method `sdepth` (used by ROMS reader) now accounts for `sea_surface_height` (zeta).
   * Improved handling of rotation of vectors.
