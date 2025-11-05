@@ -301,11 +301,15 @@ def stokes_drift_profile_monochromatic(stokes_u_surface, stokes_v_surface,
     km = stokes_surface_speed / (
             2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
 
-    stokes_speed = stokes_surface_speed*np.exp(2*km*z)
+    #stokes_speed = stokes_surface_speed*np.exp(2*km*z)
+    unitprofile = np.exp(2*km*z)
+    stokes_speed = stokes_surface_speed*unitprofile
 
     zeromask = stokes_surface_speed == 0
-    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
-    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    #stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_u = stokes_u_surface*unitprofile
+    #stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_v = stokes_v_surface*unitprofile
     stokes_u[zeromask] = 0
     stokes_v[zeromask] = 0
 
@@ -326,11 +330,15 @@ def stokes_drift_profile_exponential(stokes_u_surface, stokes_v_surface,
           2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
     ke = km/3
 
-    stokes_speed = stokes_surface_speed*np.exp(2*ke*z)/(1-8*ke*z)
+    #stokes_speed = stokes_surface_speed*np.exp(2*ke*z)/(1-8*ke*z)
+    unitprofile = np.exp(2.0*ke*z)/(1.0-8.0*ke*z)
+    stokes_speed = stokes_surface_speed*unitprofile
 
     zeromask = stokes_surface_speed == 0
-    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
-    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    #stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_u = stokes_u_surface*unitprofile
+    #stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_v = stokes_v_surface*unitprofile
     stokes_u[zeromask] = 0
     stokes_v[zeromask] = 0
 
@@ -351,12 +359,16 @@ def stokes_drift_profile_phillips(stokes_u_surface, stokes_v_surface,
     km = stokes_surface_speed * (1-2*beta/3)/ (
             2*stokes_transport_monochromatic(mean_wave_period, significant_wave_height))
 
-    stokes_speed = stokes_surface_speed*(np.exp(2*km*z) -
-        beta*np.sqrt(2*np.pi*km*np.abs(z))*sp.special.erfc(np.sqrt(2*km*np.abs(z))))
+    #stokes_speed = stokes_surface_speed*(np.exp(2*km*z) -
+    #    beta*np.sqrt(2*np.pi*km*np.abs(z))*sp.special.erfc(np.sqrt(2*km*np.abs(z))))
+    unitprofile = (np.exp(2*km*z) - beta*np.sqrt(2*np.pi*km*np.abs(z))*sp.special.erfc(np.sqrt(2*km*np.abs(z))))
+    stokes_speed = stokes_surface_speed*unitprofile
 
     zeromask = stokes_surface_speed == 0
-    stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
-    stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    #stokes_u = stokes_speed*stokes_u_surface/stokes_surface_speed
+    stokes_u = stokes_u_surface*unitprofile
+    #stokes_v = stokes_speed*stokes_v_surface/stokes_surface_speed
+    stokes_v = stokes_v_surface*unitprofile
     stokes_u[zeromask] = 0
     stokes_v[zeromask] = 0
 
