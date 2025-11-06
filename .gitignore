@@ -16,3 +16,4 @@ build
 /.pydevproject
 
 .vscode/*
+.ipynb_checkpoints
