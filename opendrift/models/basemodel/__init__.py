@@ -1203,6 +1203,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             kwargs['z'] = \
                 -env['sea_floor_depth_below_sea_level'].astype('float32') + meters_above_seafloor
 
+        # Getting element properties from seed config, if not specified explicitly
+        seed_config = self.get_configspec('seed:')
+        for seed_prop in seed_config:
+            prop = seed_prop.split(':')[-1]
+            if prop in kwargs:
+                continue
+            if prop in self.ElementType.variables:
+                kwargs[prop] = seed_config[f'seed:{prop}']['value']
+
         # Creating and scheduling elements
         elements = self.ElementType(lon=lon, lat=lat, **kwargs)
         time_array = np.array(time)

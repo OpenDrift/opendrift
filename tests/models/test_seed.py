@@ -29,6 +29,14 @@ from opendrift.models.openoil import OpenOil
 class TestSeed(unittest.TestCase):
     """Tests of seeding methods"""
 
+    def test_seed_elements_config(self):
+        """Check that default element properties are fetched from config if not provided explicitly"""
+        o = OceanDrift(loglevel=50)
+        wdf = 5
+        o.set_config('seed:wind_drift_factor', wdf)
+        o.seed_elements(lon=4, lat=60, time=datetime.now())
+        assert o.elements_scheduled.wind_drift_factor == wdf
+
     def test_seed_elements(self):
         # Some cases with expected outcome
         lon_vec = np.array([3, 4, 5])
