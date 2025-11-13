@@ -25,6 +25,7 @@ from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.openberg import OpenBerg
 from opendrift.models.plastdrift import PlastDrift
 from opendrift.models.radionuclides import RadionuclideDrift
+from opendrift.models.basemodel import Mode
 
 # Class to redirect output to text box
 class TextRedirector:
@@ -487,10 +488,12 @@ class OpenDriftGUI(tk.Tk):
                 value_if_allowed = float(value_if_allowed)
             except:
                 return False
+
         try:
             self.o.set_config(key, value_if_allowed)
             return True
-        except:
+        except Exception as e:
+            print(e)
             return False
 
     def set_model(self, model, rebuild_gui=True, logfile=None):
@@ -880,6 +883,8 @@ class OpenDriftGUI(tk.Tk):
                       command=lambda: self.handle_result(
                           'copy_netcdf')).grid(row=81, column=1)
 
+        # Allow setting config for next run
+        self.o.mode = Mode.Config
 
 def main():
     parser = argparse.ArgumentParser()
