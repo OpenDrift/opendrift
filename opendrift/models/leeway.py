@@ -156,10 +156,12 @@ class Leeway(OpenDriftSimulation):
         },
         'sea_surface_wave_stokes_drift_x_velocity': {
             'fallback': 0,
+            'skip_if': ['drift:stokes_drift', 'is', False],
             'important': False
         },
         'sea_surface_wave_stokes_drift_y_velocity': {
             'fallback': 0,
+            'skip_if': ['drift:stokes_drift', 'is', False],
             'important': False
         },
 
