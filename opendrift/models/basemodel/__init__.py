@@ -1940,7 +1940,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         # Store expected simulation extent, to check if new readers have coverage
         self.simulation_extent = simulation_extent
-        self.env.finalize(self.simulation_extent)
+        self.env.finalize(simulation_extent=self.simulation_extent,
+                          start=self.start_time, end=self.expected_end_time)
 
         ####################################################################
         # Preparing history array for storage in memory and eventually file
