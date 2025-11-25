@@ -27,8 +27,8 @@ def test_on_land():
                                           name='admin_0_countries')
     r = reader_shape.Reader.from_shpfiles(shpfilename)
 
-    assert r.__on_land__(np.array([10]), np.array([60])) == [True]
-    assert r.__on_land__(np.array([5]), np.array([60])) == [False]
+    assert r._on_land(np.array([10]), np.array([60])) == [True]
+    assert r._on_land(np.array([5]), np.array([60])) == [False]
 
 
 @need_ne_shapes
