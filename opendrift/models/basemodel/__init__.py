@@ -956,7 +956,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         if isinstance(land_reader, ShapeReader):
             # can do this better
-            land_indices = land_reader.__on_land__(lon, lat)
+            land_indices = land_reader.get_variables('land_binary_mask', x=lon, y=lat)['land_binary_mask']
             land_indices = np.where(land_indices==1)[0]
             lon[land_indices], lat[land_indices], _ = land_reader.get_nearest_outside(
                 lon[land_indices],

@@ -103,7 +103,7 @@ class Reader(BaseReader, ContinuousReader):
         self.xmin, self.ymin = self.lonlat2xy(self.xmin, self.ymin)
         self.xmax, self.ymax = self.lonlat2xy(self.xmax, self.ymax)
 
-    def __on_land__(self, x, y):
+    def _on_land(self, x, y):
         if self.invert is False:
             return shapely.contains_xy(self.land, x, y)
         else:  # Inverse if polygons are lakes and not land areas
@@ -127,7 +127,7 @@ class Reader(BaseReader, ContinuousReader):
         """
 
         self.check_arguments(requestedVariables, time, x, y, z)
-        return { 'x' : x, 'y' : y, 'land_binary_mask': self.__on_land__(x,y) }
+        return { 'x' : x, 'y' : y, 'land_binary_mask': self._on_land(x,y) }
 
     def get_nearest_outside(self, x, y, buffer_distance: float):
         """

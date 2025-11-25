@@ -222,7 +222,7 @@ class Reader(BaseReader, ContinuousReader):
         # setup landmask
         self.mask = get_mask()
 
-    def __on_land__(self, x, y):
+    def _on_land(self, x, y):
         x = self.modulate_longitude(x)
         x = x.astype(np.float64)
         y = y.astype(np.float64)
@@ -250,4 +250,4 @@ class Reader(BaseReader, ContinuousReader):
         """
 
         self.check_arguments(requestedVariables, time, x, y, z)
-        return {'land_binary_mask': self.__on_land__(x, y)}
+        return {'land_binary_mask': self._on_land(x, y)}

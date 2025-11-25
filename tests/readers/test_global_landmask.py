@@ -11,8 +11,8 @@ def test_global_setup(benchmark):
 def test_landmask_global():
     reader_global = reader_global_landmask.Reader()
 
-    assert reader_global.__on_land__(np.array([10]), np.array([60])) == [True]
-    assert reader_global.__on_land__(np.array([5]), np.array([60])) == [False]
+    assert reader_global._on_land(np.array([10]), np.array([60])) == [True]
+    assert reader_global._on_land(np.array([5]), np.array([60])) == [False]
 
 
 def test_global_array(test_data):
@@ -58,8 +58,8 @@ def test_plot(tmpdir):
 
     plt.figure()
     ax = plt.axes(projection=ccrs.PlateCarree())
-    c = reader_global.__on_land__(xx, yy).reshape(shp)
-    # c = reader_basemap.__on_land__(xx,yy).reshape(shp)
+    c = reader_global._on_land(xx, yy).reshape(shp)
+    # c = reader_basemap._on_land(xx,yy).reshape(shp)
     print(c)
     ex = [18.641, 19.369, 69.538, 69.80]
     plt.imshow(c, extent=ex, transform=ccrs.PlateCarree())
@@ -106,9 +106,9 @@ def test_performance_global(benchmark):
     print("points:", len(xx))
 
     # warmup
-    reader_global.__on_land__(xx, yy)
+    reader_global._on_land(xx, yy)
 
-    benchmark(reader_global.__on_land__, xx, yy)
+    benchmark(reader_global._on_land, xx, yy)
 
 def test_dateline():
     mask = reader_global_landmask.Reader()
@@ -118,7 +118,7 @@ def test_dateline():
 
     xx, yy = np.meshgrid(x, y)
     xx, yy = xx.ravel(), yy.ravel()
-    mm = mask.__on_land__(xx, yy)
+    mm = mask._on_land(xx, yy)
 
     # Offset
     x2 = np.linspace(180, 540, 100)
@@ -127,6 +127,6 @@ def test_dateline():
 
     xx, yy = np.meshgrid(x2, y2)
     xx, yy = xx.ravel(), yy.ravel()
-    MM = mask.__on_land__(xx, yy)
+    MM = mask._on_land(xx, yy)
 
     np.testing.assert_array_equal(mm, MM)

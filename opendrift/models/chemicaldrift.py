@@ -2206,9 +2206,9 @@ class ChemicalDrift(OceanDrift):
 
         landmask = np.zeros_like(H[0,0,0,:,:])
         if landmask_shapefile is not None:
-            landmask = self.env.readers['shape'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['shape'].get_variables('land_binary_mask', x=lon_array,y=lat_array)['land_binary_mask']
         else:
-            landmask = self.env.readers['global_landmask'].__on_land__(lon_array,lat_array)
+            landmask = self.env.readers['global_landmask'].get_variables('land_binary_mask', x=lon_array,y=lat_array)['land_binary_mask']
 
         if landmask.shape !=  lon_array.shape:
             landmask = landmask.reshape(lon_array.shape)
