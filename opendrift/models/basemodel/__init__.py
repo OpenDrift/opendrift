@@ -2559,6 +2559,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     **bx)
                 ax.add_patch(patch)
 
+        if 'line_plot_options' in kwargs:
+            x = kwargs['line_plot_options'].pop('x')
+            y = kwargs['line_plot_options'].pop('y')
+            plt.plot(x, y, **kwargs['line_plot_options'], transform=self.crs_lonlat)
+
         if not hide_landmask:
             if 'land_binary_mask' in self.env.priority_list and self.env.priority_list[
                     'land_binary_mask'][0] == 'shape':
