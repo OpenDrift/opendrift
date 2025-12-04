@@ -51,21 +51,29 @@ class IcebergObj(LagrangianArray):
         ('sail', {'dtype': np.float32,
                   'units': 'm',
                   'default': 10,
+                  'min': 1,
+                  'max': 100,
                   'description': 'Sail of iceberg (part above waterline)',
                   'level': CONFIG_LEVEL_ESSENTIAL}),
         ('draft', {'dtype': np.float32,
                    'units': 'm',
                    'default': 90,
+                   'min': 1,
+                   'max': 1000,
                    'description': 'Draft of iceberg (part below waterline)',
                    'level': CONFIG_LEVEL_ESSENTIAL}),
         ('length', {'dtype': np.float32,
                     'units': 'm',
                     'default': 100,
+                    'min': 1,
+                    'max': 10000,
                     'description': 'Length of iceberg',
                     'level': CONFIG_LEVEL_ESSENTIAL}),
         ('width', {'dtype': np.float32,
                    'units': 'm',
                    'default': 30,
+                   'min': 1,
+                   'max': 10000,
                    'description': 'Width of iceberg)',
                    'level': CONFIG_LEVEL_ESSENTIAL}),
         ('weight_coef', {'dtype': np.float32,          #This parameter is relative to the shape of iceberg (e.g. 1 for tabular; 0.3 for pinnacle: It affects the mass only)
@@ -287,15 +295,15 @@ class OpenBerg(OpenDriftSimulation):
         "x_sea_water_velocity": {"fallback": None, "profiles": True},
         "y_sea_water_velocity": {"fallback": None, "profiles": True},
         "sea_floor_depth_below_sea_level": {"fallback": 10000},
-        'sea_surface_height': {'fallback': 0},
-        "sea_surface_x_slope": {"fallback": 0},
-        "sea_surface_y_slope": {"fallback": 0},
+        'sea_surface_height': {'fallback': 0, 'important': False},
+        "sea_surface_x_slope": {"fallback": 0, 'important': False},
+        "sea_surface_y_slope": {"fallback": 0, 'important': False},
         "x_wind": {"fallback": None, "important": True},
         "y_wind": {"fallback": None, "important": True},
         "sea_surface_wave_significant_height": {"fallback": 0},
         "sea_surface_wave_from_direction": {"fallback": 0},
-        "sea_surface_wave_stokes_drift_x_velocity": {"fallback": 0},
-        "sea_surface_wave_stokes_drift_y_velocity": {"fallback": 0},
+        "sea_surface_wave_stokes_drift_x_velocity": {"fallback": 0, 'important': False},
+        "sea_surface_wave_stokes_drift_y_velocity": {"fallback": 0, 'important': False},
         "sea_water_temperature": {"fallback": 2, "profiles": True},
         "sea_water_salinity": {"fallback": 35, "profiles": True},
         "sea_ice_area_fraction": {"fallback": 0},
@@ -408,6 +416,11 @@ class OpenBerg(OpenDriftSimulation):
             },  
         })
 
+        # Since OpenBerg model is deterministic for given iceberg size,
+        # (in contrast to the Leeway model), we use a default diffusivity
+        # to yield some variability.
+        self._set_config_default('drift:horizontal_diffusivity', 100)
+
 
     def advect_iceberg(self):
         sail = self.elements.sail
@@ -504,8 +517,7 @@ class OpenBerg(OpenDriftSimulation):
         if grounding:
             # Determine which icebergs are grounded
             if np.any(grounded):
-                logger.debug(f"Grounding condition: Icebergs grounded = {np.sum(grounded)}, "
-                            f"hwall = {np.round(hwall[grounded], 3)} meters")
+                logger.debug(f"Grounding condition: Icebergs grounded = {np.sum(grounded)}")
                 # Grounded icebergs stop moving
                 self.elements.moving[grounded] = 0
             else:
@@ -514,8 +526,7 @@ class OpenBerg(OpenDriftSimulation):
             # Check for Degrounding regardless of whether grounding occurred now
             degrounding = np.logical_and(self.elements.moving == 0, hwall < 0)
             if np.any(degrounding):
-                logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}, "
-                            f"hwall = {np.round(hwall[degrounding], 3)} meters")
+                logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}")
                 # Degrounded icebergs start moving again
                 self.elements.moving[degrounding] = 1
         else:

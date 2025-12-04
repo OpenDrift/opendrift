@@ -2526,6 +2526,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 land_color = 'gray'
             else:
                 land_color = cfeature.COLORS['land']
+        land_zorder = kwargs.pop('land_zorder', 10)
 
         if 'text' in kwargs:
             if not isinstance(kwargs['text'], list):
@@ -2582,9 +2583,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                   facecolor=facecolor,
                                   edgecolor='black')
             else:
-                reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax,
-                                                 latmax, fast, ocean_color,
-                                                 land_color, lscale,
+                reader_global_landmask.plot_land(ax, lonmin, latmin, lonmax, latmax,
+                                                 fast=fast, ocean_color=ocean_color,
+                                                 land_color=land_color, land_zorder=land_zorder,
+                                                 lscale=lscale,
                                                  crs_plot=self.crs_plot,
                                                  crs_lonlat=self.crs_lonlat)
 

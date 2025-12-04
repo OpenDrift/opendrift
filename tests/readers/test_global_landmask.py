@@ -87,7 +87,7 @@ def test_plot_auto_scale(test_data, scale, fast, show_plot):
                     time=reader_nordic.start_time)
     oc.run(steps=2)
 
-    fig = oc.plot(buffer=5., lscale=scale, fast=fast, show=show_plot)[1]
+    fig = oc.plot(buffer=5., lscale=scale, fast=fast, show=show_plot, land_zorder=0)[1]
     print(fig)
     return fig
 

@@ -20,7 +20,7 @@ def test_fast_norkyst():
                     time=rn.start_time)
     o.run(steps=2)
 
-    return o.plot(fast=True, buffer=.2)[1]
+    return o.plot(fast=True, buffer=.2, land_zorder=0)[1]
 
 
 @pytest.mark.slow
@@ -38,4 +38,4 @@ def test_norkyst():
                     time=rn.start_time)
     o.run(steps=2)
 
-    return o.plot(fast=False, buffer=.2)[1]
+    return o.plot(fast=False, buffer=.2, land_zorder=0)[1]
