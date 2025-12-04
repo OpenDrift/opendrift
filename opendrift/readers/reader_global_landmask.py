@@ -168,7 +168,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast,
         cmap = colors.ListedColormap([ocean_color, land_color])
 
         ax.imshow(img, origin = 'lower',
-                  extent=extent, zorder=land_zorder, cmap=cmap,
+                  extent=extent, zorder=1, cmap=cmap,
                   transform=transform)
 
     if fast:

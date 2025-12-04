@@ -27,7 +27,7 @@ try:
     from dotenv import load_dotenv
     load_dotenv()
 except:
-    logger.warning('Cound not load dotenv')
+    logger.debug('Cound not load dotenv')
 
 import sys
 import os
