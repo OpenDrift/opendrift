@@ -2420,7 +2420,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def set_up_map(self,
                    corners=None,
-                   buffer=.1,
+                   buffer='auto',
                    delta_lat=None,
                    lscale=None,
                    fast=False,
@@ -2461,6 +2461,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 lonmax = np.nanmax(lons)
                 latmin = np.nanmin(lats)
                 latmax = np.nanmax(lats)
+            if buffer == 'auto':
+                buffer_fraction = 0.3  # 30% whitespace, to be updated
+                buffer = np.maximum((lonmax-lonmin)/2, latmax-latmin)*buffer_fraction
             lonmin = lonmin - buffer * 2
             lonmax = lonmax + buffer * 2
             latmin = latmin - buffer
@@ -2617,7 +2620,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
 
     def animation(self,
-                  buffer=.2,
+                  buffer='auto',
                   corners=None,
                   filename=None,
                   compare=None,
@@ -3347,7 +3350,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
     def plot(self,
              background=None,
-             buffer=.2,
+             buffer='auto',
              corners=None,
              linecolor=None,
              filename=None,
