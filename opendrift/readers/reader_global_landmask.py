@@ -123,7 +123,9 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         logger.debug(f"Adding GSHHG shapes from cartopy, scale: {scale}, extent: {extent}..")
         return super().intersecting_geometries(extent)
 
-def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', land_color = cfeature.COLORS['land'], lscale = 'auto', crs_plot=None, crs_lonlat=None):
+def plot_land(ax, lonmin, latmin, lonmax, latmax, fast,
+              ocean_color='white', land_color=cfeature.COLORS['land'], land_zorder=0,
+              lscale='auto', crs_plot=None, crs_lonlat=None):
     """
     Plot the landmask or the shapes from GSHHG.
     """
@@ -166,7 +168,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
         cmap = colors.ListedColormap([ocean_color, land_color])
 
         ax.imshow(img, origin = 'lower',
-                  extent=extent, zorder=0, cmap=cmap,
+                  extent=extent, zorder=land_zorder, cmap=cmap,
                   transform=transform)
 
     if fast:
@@ -190,7 +192,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast, ocean_color = 'white', l
 
         land = LandmaskFeature(scale=lscale, facecolor=land_color, globe=crs_lonlat.globe, levels=[1,5,6])
 
-        ax.add_feature(land, zorder=0,
+        ax.add_feature(land, zorder=land_zorder,
                        facecolor=land_color,
                        edgecolor='black')
 
