@@ -517,8 +517,7 @@ class OpenBerg(OpenDriftSimulation):
         if grounding:
             # Determine which icebergs are grounded
             if np.any(grounded):
-                logger.debug(f"Grounding condition: Icebergs grounded = {np.sum(grounded)}, "
-                            f"hwall = {np.round(hwall[grounded], 3)} meters")
+                logger.debug(f"Grounding condition: Icebergs grounded = {np.sum(grounded)}")
                 # Grounded icebergs stop moving
                 self.elements.moving[grounded] = 0
             else:
@@ -527,8 +526,7 @@ class OpenBerg(OpenDriftSimulation):
             # Check for Degrounding regardless of whether grounding occurred now
             degrounding = np.logical_and(self.elements.moving == 0, hwall < 0)
             if np.any(degrounding):
-                logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}, "
-                            f"hwall = {np.round(hwall[degrounding], 3)} meters")
+                logger.debug(f"Degrounding condition: Icebergs degrounded = {np.sum(degrounding)}")
                 # Degrounded icebergs start moving again
                 self.elements.moving[degrounding] = 1
         else:
