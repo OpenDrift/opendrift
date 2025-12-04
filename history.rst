@@ -1,6 +1,17 @@
 History
 =======
 
+2025-12-04 / Release v1.14.7
+----------------------------
+* OpenBerg: added min and max values for iceberg dimensions. Added default horizontal diffusivity of 100 m2/s
+* Default whitespace (buffer) on plots and animations is no longer fixed 0.1 or 0.2 degrees, but 30% of the geographical span of trajectories
+* Applying _FillVal to integer variables in netCDF exporter, to avoid cast warning and NaN values in output file
+* Added secret options to plot and animation methods: line_plot_options for custom line segments, and land_zorder to control whether e.g. vector landmask should be on top or below background fields
+* Method ``__on_land__`` of reader_shape and reader_global_landmask is renamed to ``_on_land`` to be used only internally. Externally to these classes, reader.get_variables() is now used instead
+* Forwarding simulation extent to environment.finalize, allowing readers setting appropriate buffer size
+* Fixed bug where config settings related to particle properties were not applied
+* ROMS reader now supports Vstretching = 5
+
 2025-10-31 / Release v1.14.6
 ----------------------------
 * Silencing debug logs from fiona
