@@ -45,6 +45,9 @@ def main():
     parser.add_argument('-vmin', dest='vmin',
                         default=None, nargs='?',
                         help='Minimum value for colorbar')
+    parser.add_argument('-lscale', dest='lscale',
+                        default='auto', nargs='?',
+                        help='Scale of landmask: f, h, i, l, c or auto (default)')
     parser.add_argument('-vmax', dest='vmax',
                         default=None, nargs='?',
                         help='Maximum value for colorbar')
@@ -100,7 +103,7 @@ def main():
 
     if args.variable != 'noplot':
         if args.variable is None:
-            r.plot()
+            r.plot(lscale=args.lscale)
         else:
             if args.vmin is None:
                 vmin = None
@@ -111,7 +114,7 @@ def main():
             else:
                 vmax = float(args.vmax)
 
-            r.plot(args.variable, vmin=vmin, vmax=vmax, time=time)
+            r.plot(args.variable, vmin=vmin, vmax=vmax, time=time, lscale=args.lscale)
 
 if __name__ == '__main__':
     main()
