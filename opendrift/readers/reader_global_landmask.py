@@ -124,7 +124,7 @@ class LandmaskFeature(cfeature.GSHHSFeature):
         return super().intersecting_geometries(extent)
 
 def plot_land(ax, lonmin, latmin, lonmax, latmax, fast,
-              ocean_color='white', land_color=cfeature.COLORS['land'], land_zorder=0,
+              ocean_color='white', land_color=cfeature.COLORS['land'], land_zorder=1.5,
               lscale='auto', crs_plot=None, crs_lonlat=None):
     """
     Plot the landmask or the shapes from GSHHG.
@@ -168,7 +168,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast,
         cmap = colors.ListedColormap([ocean_color, land_color])
 
         ax.imshow(img, origin = 'lower',
-                  extent=extent, zorder=1, cmap=cmap,
+                  extent=extent, zorder=-10, cmap=cmap,
                   transform=transform)
 
     if fast:
