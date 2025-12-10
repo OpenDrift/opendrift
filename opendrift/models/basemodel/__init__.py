@@ -3679,8 +3679,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            color=self.plot_comparison_colors[i + 1],
                            transform=self.crs_lonlat)
 
+        background_zorder = kwargs.pop('background_zorder', 0)
         if background is not None:
-            background_zorder = kwargs.pop('background_zorder', 0)
             if hasattr(self, 'time'):
                 time = self.time - self.time_step_output
             else:
