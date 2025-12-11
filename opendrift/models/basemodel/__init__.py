@@ -393,7 +393,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             'general:coastline_approximation_precision': {
                 'type': 'float',
                 'default': 0.001,
-                'min': 0.0001,
+                'min': 0.,
                 'max': 0.005,
                 'units': 'degrees',
                 'description': 'The precision of the particle position approximation to the coastline.',
