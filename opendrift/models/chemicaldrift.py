@@ -1950,6 +1950,7 @@ class ChemicalDrift(OceanDrift):
                                               smoothing_cells=0,
                                               reader_sea_depth=None,
                                               landmask_shapefile=None,
+                                              landmask_bathymetry_thr=None,
                                               origin_marker=None,
                                               elements_density=False,
                                               active_status=False,
@@ -1977,6 +1978,7 @@ class ChemicalDrift(OceanDrift):
             smoothing_cells:       int, number of cells for horizontal smoothing,
             reader_sea_depth:      string, path of bathimethy .nc file,
             landmask_shapefile:    string, path of bathimethylandmask .shp file
+            landmask_bathymetry_thr:   float32, if set the value is the threshold used to extract the landmask from reader_sea_depth
             elements_density:      boolean, add number of elements present in each grid cell to output
             origin_marker:         int, only elements with this value of "origin_marker" will be considered
             active_status:         boolean, only active elements will be considered
@@ -2205,7 +2207,13 @@ class ChemicalDrift(OceanDrift):
         lat_array = (lat_array[:-1,:-1] + lat_array[1:,1:])/2
 
         landmask = np.zeros_like(H[0,0,0,:,:])
-        if landmask_shapefile is not None:
+        if (landmask_bathymetry_thr is not None) and (reader_sea_depth is not None):
+            landmask = reader_sea_depth.get_variables_interpolated_xy(['sea_floor_depth_below_sea_level'],
+                x = np.clip(lon_array.flatten(),reader_sea_depth.xmin,reader_sea_depth.xmax),
+                y = np.clip(lat_array.flatten(),reader_sea_depth.ymin,reader_sea_depth.ymax),
+                time = reader_sea_depth.times[0] if reader_sea_depth.times is not None else None
+                )[0]['sea_floor_depth_below_sea_level'] <= landmask_bathymetry_thr #.reshape(self.conc_lon.shape)
+        elif landmask_shapefile is not None:
             landmask = self.env.readers['shape'].get_variables('land_binary_mask', x=lon_array,y=lat_array)['land_binary_mask']
         else:
             landmask = self.env.readers['global_landmask'].get_variables('land_binary_mask', x=lon_array,y=lat_array)['land_binary_mask']
