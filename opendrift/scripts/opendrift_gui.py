@@ -116,16 +116,18 @@ class OpenDriftGUI(tk.Tk):
         ##################
         self.n = ttk.Notebook(self.master)
         self.n.grid()
-        self.seed = ttk.Frame(self.n)
+        self.seed = tk.Frame(self.n)
         self.confignotebook = ttk.Notebook(self.n)
-        self.config = ttk.Frame(self.confignotebook)
-        self.forcing = ttk.Frame(self.n)
+        self.config = tk.Frame(self.confignotebook)
+        self.forcing = tk.Frame(self.n)
         self.n.add(self.seed, text='Seeding')
         self.n.add(self.confignotebook, text='Config')
         self.n.add(self.forcing, text='Forcing')
         self.confignotebook.add(self.config, text='SubConfig')
 
         # Top
+        self.logo = tk.Frame(self.seed, bg='white')
+        self.logo.grid(row=0, column=0, rowspan=1)
         self.top = tk.Frame(self.seed,
                             relief=tk.FLAT, pady=25, padx=25)
         self.top.grid(row=0, column=1, rowspan=1)
@@ -376,12 +378,18 @@ class OpenDriftGUI(tk.Tk):
 
         ##########################
         try:
-            img = ImageTk.PhotoImage(Image.open(
-                opendrift.test_data_folder +
-                                     '../../docs/opendrift_logo.png'))
-            panel = tk.Label(self.seed, image=img)
-            panel.image = img
-            panel.grid(row=0, column=0)
+            if datetime.now().month == 12 and datetime.now().day > 10:
+                img = ImageTk.PhotoImage(Image.open(
+                    opendrift.test_data_folder +
+                                         '../../docs/hohohOpenDrift.jpg').resize((200, 200)))
+                self.seed.configure(bg='lightblue')
+            else:
+                img = ImageTk.PhotoImage(Image.open(
+                    opendrift.test_data_folder +
+                                         '../../docs/opendrift_logo.png'))
+            self.logo_image=tk.Label(self.logo, image=img)
+            self.logo_image.image = img
+            self.logo_image.grid(row=0, column=0)
         except Exception as e:
             print(e)
             pass # Could not display logo
@@ -392,6 +400,13 @@ class OpenDriftGUI(tk.Tk):
         tk.Button(self.seed, text=startbutton, bg='green',
                   command=self.run_opendrift).grid(row=80, column=1,
                                               sticky=tk.W, pady=4)
+
+        try:
+            import opendrift_gui_conf
+            opendrift_gui_conf.customize(self)
+        except Exception as e:
+            print('No custom configuration')
+            #print(e)
 
     def copy_position(self, a, b, c):
         self.elat.delete(0, tk.END)
