@@ -2240,17 +2240,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         return self.result
 
-        # if export_buffer_length is None:
-        #     pass  # TODO - do this for self.result
-        # else:  # If output has been flushed to file during run, we
-        #     # need to reimport from file to get all data in memory
-        #     del self.environment
-        #     if hasattr(self, 'environment_profiles'):
-        #         del self.environment_profiles
-        #     self.result = xr.open_dataset(outfile)
-
-        # return self.result
-
     def increase_age_and_retire(self):
         """Increase age of elements, and retire if older than config setting."""
         # Increase age of elements
