@@ -729,13 +729,17 @@ class OpenDriftGUI(tk.Tk):
         else:
             cone = False
 
-        so = Leeway(loglevel=50)
+        so = OceanDrift(loglevel=50)
         for k,v in self.GUI_config.items():
             try:
                 so.set_config(k, v)
             except:
                 pass
-        so.seed_cone(lon=lon, lat=lat, radius=radius, time=start_time)
+        number = self.GUI_config['seed:number']['default']
+        if cone is True:
+            so.seed_cone(lon=lon, lat=lat, number=number, radius=radius, time=start_time)
+        else:
+            so.seed_elements(lon=lon, lat=lat, radius=radius, number=number, time=start_time)
         so.plot(buffer=.5, fast=True)
         del so
 
