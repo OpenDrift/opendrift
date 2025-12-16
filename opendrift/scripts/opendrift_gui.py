@@ -423,6 +423,8 @@ class OpenDriftGUI(tk.Tk):
 
     def handle_result(self, command):
 
+        mode = self.o.mode  # To be reset after plotting
+        self.o.mode = Mode.Result
         from os.path import expanduser
         homefolder = expanduser("~")
         filename = homefolder + '/' + self.simulationname
@@ -490,6 +492,8 @@ class OpenDriftGUI(tk.Tk):
             except Exception as e:
                 print('Could not copy file:')
                 print(e)
+
+        self.o.mode = mode  # resetting
 
     def validate_config(self, value_if_allowed, prior_value, key):
         """From config menu selection."""
