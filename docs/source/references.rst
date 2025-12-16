@@ -3,6 +3,134 @@ Publications
 
 Some papers using or mentioning OpenDrift:
 
+Román, D., Grande, J., Orellana, A., Mañuico, J., Acosta, V., & Alor, M. (2025). Numerical Simulation of Oil Spills in the Peruvian Sea: Analysis and Proposal for Containment Strategies.
+
+Bosi, S., Raffaetà, A., Simeoni, M., Bobchev, N., Berov, D., Barbanti, A., & Menegon, S. (2025). PMAR: A Lagrangian approach to the modelling of anthropogenic pressures for marine management. Environmental Modelling & Software, 106822.
+
+Ludynia, K., Stassen, M., Fearon, G., & Pichegru, L. (2026). Evaluation of risks of oil contamination in endangered seabirds in Algoa Bay, South Africa, linked to ship-to-ship bunkering and anthropogenic maritime activities. Marine Pollution Bulletin, 224, 119089.
+
+Fukui, N., Hirai, T., Iizuka, T., Endo, N., Yamamoto, R., Umemiya, Y., ... & Wakamiya, N. (2025). Interruption-aware Coverage Analysis of Buoy-to-Balloon Communications with Altitude Control in Maritime Sensor Network. Authorea Preprints.
+
+de Brito Borges, F. F., de Freitas, P. P., e Silva, W. K. L., Guerrero-Martin, C. A., Gomes, V. J. C., & Siegle, E. (2026). Assessing the risk of coastal oil strandings in the Brazilian equatorial margin: A numerical modeling approach. Marine Pollution Bulletin, 223, 119020.
+
+Luo, C., Wang, L., Jin, J., Du, Z., & Miao, W. (2025). Entropy-Based Incremental Coverage Path Planning for Multi-UAV Persistent Monitoring. IEEE Robotics and Automation Letters, 11(1), 378-385.
+
+Mugford, E., & Gammell, J. D. (2025). $\rm {A}^{\rm {SAR}} $: $\varepsilon $-Optimal Graph Search for Minimum Expected-Detection-Time Paths with Path Budget Constraints for Search and Rescue. arXiv preprint arXiv:2511.10792.
+
+Patanè, L., Maio, A., Faraci, C., Iuppa, C., Cavallaro, L., Roman, F., & Xibilia, M. G. Predicting oil spill diffusion through Generative Adversarial models. Available at SSRN 5733618.
+
+Wang, P. (2025). Guided Cooperation for Multi-Agent Teams (Doctoral dissertation, National University of Singapore (Singapore)).
+
+Pagowski, V., Cornwell, B., Hanson, E., Micheli, F., & Palumbi, S. (2025). Population Genomics of P. miniata along the Pacific Coastline Reveal Subtly Diverging Genomics Along an Extensive Range Gap. bioRxiv, 2025-10.
+
+Madduri, P., Oleynik, A., Clark, J. R., Avlesen, H., & Alendal, G. (2025). Modelling transboundary plastic pathways to Norwegian coastal and inland waters. Science of The Total Environment, 1003, 180582.
+
+Chen, Y., Chen, H., Jiang, Y., Wang, C., Wang, N., Zhang, F., & Zhang, Z. (2025). DriftNet: target-area differential attention mechanism for marine drifter trajectory prediction. Engineering Applications of Computational Fluid Mechanics, 19(1), 2563083.
+
+Scotto, B. M., Loarca, A. L., Novellino, A., & Besio, G. (2026). Dispersion monitoring services in the Mediterranean Sea: A multi-model statistical approach. Marine Pollution Bulletin, 222, 118574.
+
+Mørk, J. M., Nordam, T., Leirvik, F., Mostaani, A., Nepstad, R., Stevenson-Jones, R., ... & Breivik, Ø. (2026). A Lagrangian model of wave-induced beaching and resuspension of plastic particles. Marine Pollution Bulletin, 222, 118718.
+
+Riazi, M. R. (2025). An Overview of Oil Spill Modeling and Simulation for Surface and Subsurface Applications. Journal of Experimental and Theoretical Analyses, 3(4), 29.
+
+Minh, N. T. T., Chung, T. T., Hole, L. R., & Phuoc, V. L. H. (2025). Modeling the Trajectory of Microplastics in the Estuary of Hau River Using the Open‐Source OpenDrift Model. IEEJ Transactions on Electrical and Electronic Engineering, 20(11), 1914-1920.
+
+van der Werff, S. E. (2025). Merging Multiple Perspectives to Extend Views on Nautical Systems: Case studies on safety monitoring, allision risks, and shipping emissions from a Scales, Conditions, Behaviour, and Dependencies perspective.
+
+Miettunen, E., Forsblom, L., & Virtanen, E. A. (2026). Evaluating ecological connectivity of key benthic habitats in a dynamic, complex archipelago. Ecological Modelling, 511, 111385.
+
+Zhao, H., Zheng, P., Peng, S., Jia, J., Wang, Z., & Hu, J. (2026). Applying an improved object detection algorithm for operational oil spill detection and tracking in synthetic aperture radar images. Marine Pollution Bulletin, 222, 118608.
+
+Laiz Alonso, I. M., Chowdhury, M., Gonzalez-Nuevo, G., Velasco, F., & Baldó, F. (2025). Unraveling the environmental drivers of blue whiting recruitment: 20 years of observations.
+
+Roarty, H., Stolarz, T., & Handel, E. The Accuracy of Surface Current Estimates within the Mid Atlantic Bight.
+
+Kristiansen, T., Miller, J., & Butenschön, M. (2025). Dispersal tracking in the future ocean combining statistical downscaling and dynamic modeling approaches.
+
+Dialectaquiz, A., Silva, D. A., Sasaki, D. K., & Dottori, M. (2025). Microplastics hotspots on a tropical estuarine-bay system. Ocean and Coastal Research, 73, e25032.
+
+de Aguiar, V., Idžanović, M., Röhrs, J., & Johansson, M. (2025). Performance diagnostics for probabilistic Lagrangian drift prediction. Journal of Operational Oceanography, 1-16.
+
+Yang, Z., Chen, Z., & Lee, K. (2025). Development, Testing, and Application of an Enhanced Oil Spill Model for Ice-Covered Waters (OSMT-Ice) through Multiscale Field Experiments. Environmental Science & Technology, 59(35), 18870-18880.
+
+Montano, M., & Berthot, A. (2025, August). Drifting and tracking-where do floating things go?. In Australasian Coasts & Ports 2025 Conference (pp. 652-657). Adelaide: Engineers Australia.
+
+Laiz, I., Chowdhury, M., González-Nuevo, G., Velasco, F., & Baldó, F. (2025). Unraveling the environmental drivers of blue whiting recruitment: 20 years of observations. Frontiers in Marine Science, 12, 1535712.
+
+Konno, A., Saito, M., Oyama, M., & Matsuzawa, T. (2025). POAC’25.
+
+Tran, T. M. A., Do, T. P. T., Duong, A. Q., & Nghiem, V. T. (2025). Modeling river-to-sea plastic waste dynamics using OpenDrift: A case study in Thanh Hoa, Vietnam. Asian Journal of Water Environment and Pollution, 22(4), 75.
+
+Deoraj, V. A., Pringle, J. J., & Stretch, D. D. (2025). Drivers of physical connectivity between coral reefs along the Southeast African coastline. Scientific Reports, 15(1), 20964.
+
+James, B., Bezerra, L., Buhler, D., Cavalcante, R., Chacon, M., Chen, B., ... & Reddy, C. (2025). Long-range transport of oil by marine plastic debris: Evidence from an 8,500 km journey.
+
+Zacharias, D. C., & Lemos, A. T. (2025). Early Perspectives on the Planned Brazilian Program to Address Ship-Sourced Pollution. Journal of Marine Science and Engineering, 13(7), 1201.
+
+Zaborowski, P., Palma, R., Atkinson, R., Villar, A., Maso, J., Guerrero, Ò. G., ... & Taghavikish, S. (2025, June). Implementing Standards Suite for Ocean Digital Twins in Iliad. In OCEANS 2025 Brest (pp. 1-7). IEEE.
+
+Vasilijevic, A., Brönner, U., Nepstad, R., & Oliveira, M. A. (2025, June). Simulating Ocean Futures: A Digital Twin Pilot for Environmental Scenarios. In OCEANS 2025 Brest (pp. 1-6). IEEE.
+
+Bianucci, M., Paterni, M., Locritani, M., Tampucci, M., Volpini, F., Grande, D., ... & Merlino, S. Marine Litter Trackers: an original, innovative, low-cost way to track Marine Litter and understand its dynamics Environment.
+
+Ghaffari, P., Espenes, H., Børve, E., Hermansen, S., Leikvin, Ø., Rydsaa, J., ... & Haarr, M. L. (2025). Floating debris dynamics in a tidal strait: transport and retention in Sundklakkstraumen, Lofoten. Frontiers in Marine Science, 12, 1612395.
+
+Roach, C. J., Jeffs, A. G., van der Reis, A. L., de Souza, J. M. A. C., & Behrens, E. (2025). Deep-sea lobster shifts in distribution and population connectivity under future climate change. New Zealand Journal of Marine and Freshwater Research, 1-19.
+
+de Souza, N. G. S., Junior, J. L., Fernandes, A. M., de Jesus Neves, R. J., & da Silva Neto, A. J. (2025). Solução do problema inverso para a estimativa da área de emissão do microplástico: o estudo de caso da Baía de Sepetiba. Ciência e Natura, 47(esp. 2), e91586-e91586.
+
+Calgaro, L., Giubilato, E., Aghito, M., Jalkanen, J. P., Majamaki, E., Ferrarin, C., ... & Marcomini, A. (2025). Influence of shipping activities on air and water quality in the Northern Adriatic Sea: A high-resolution modelling study. Marine Pollution Bulletin, 217, 118102.
+
+Yang, P., Xu, Z., Gao, Y., Xu, J., Yang, Z., & Yang, Q. (2025, April). UAV Path Planning for Maritime Search and Rescue Based on Deep Reinforcement Learning. In 2025 6th International Conference on Computer Engineering and Application (ICCEA) (pp. 416-420). IEEE.
+
+Popa, C., Atodiresei, D., Toma, A., Dobref, V., & Vatamanu, J. (2025). Solutions for Modelling the Marine Oil Spill Drift. Environments, 12(4), 132.
+
+Orel, N. (2025). The response of microbes to anthropogenically induced perturbations in the Gulf of Trieste (northern Adriatic Sea) (Doctoral dissertation, University of Nova Gorica (Slovenia)).
+
+Zervakis, V., Kolovoyiannis, V., Calgaro, L., Giubilato, E., Marcomini, A., Mazioti, A. A., ... & Jalkanen, J. P. (2025). A novel method to assess the dilution of complex mixtures in the marine environment: Application to marine scrubber water effluents. Marine Pollution Bulletin, 216, 117956.
+
+Souza, N., Lugon Jr, J., Neves, R., Fernandes, A., Juliano, M., & Neto, A. S. (2025). The application of Lagrangian particle tracking techniques to modelling of contaminants in water resources. Boletim do Observatório Ambiental Alberto Ribeiro Lamego, 19(1), 3-28.
+
+Vodopivec, M., & Malej, A. (2025). Spatially explicit individual-based model reveals the mauve stinger jellyfish distribution in the Mediterranean Sea. Ecological Modelling, 505, 111109.
+
+Lee, S. T., Kim, Y. Y., Tak, Y. J., Chae, S., & Cho, Y. K. (2025). Seasonal and interannual variations in material transport in the Korea Strait originating from the Taiwan Strait. Scientific Reports, 15(1), 28282.
+
+Recabarren, T., Torres, M., Jacobsen, C., Pozo, K., Girones, L., Arias, A., ... & Pozo, K. (2025). Land-ocean export of microplastic in central Chile: The contribution of the Biobío River using a particle tracking model approach. Environmental Pollution, 374, 126196.
+
+Azmi, P. N., & Putri, M. R. (2025, April). Estimating the trajectory of macro-plastic particles in the Java Sea using numerical modeling. In IOP Conference Series: Earth and Environmental Science (Vol. 1472, No. 1, p. 012015). IOP Publishing.
+
+Haddaoui, H., Hakkou, M., Aangri, A., Souiri, S., Amari, Y. S., & Laghzal, A. (2025). Numerical simulation of oil spill dispersion along Morocco's Northern Atlantic coast using OpenOil: A case study near Asilah. Ecological Engineering & Environmental Technology (EEET), 26(5).
+
+Wei, C., Tang, X., Ge, K., Xu, A., Li, Y., Jiang, Y., ... & Yu, F. (2025). Observed seasonal evolution and origins of the western Yellow Sea Cold Water Mass. Frontiers in Marine Science, 12, 1556069.
+
+Mundaca, V., Echevin, V., Vergara, O. A., Artal, O., & Sepúlveda, H. H. (2025). Dynamics of the subtidal transport through the Guafo Mouth connecting the open ocean and the Chilean Inland Sea in southern Chile. Continental Shelf Research, 288, 105428.
+
+Simpkins, T., Van Der Mheen, M., Pedersen, M. F., Pessarrodona, A., Pattiaratchi, C., Wernberg, T., & Filbee‐Dexter, K. (2025). Macroalgae detritus decomposition and cross‐shelf carbon export from shallow and deep reefs. Limnology and Oceanography, 70(4), 1046-1058.
+
+da Luz, T. M., de Matos, L. P., & Malafaia, G. (2025). Tracing Plastic Origins: Unveiling the Role of Ocean Currents and Commercial Shipping in Plastic Pollution on Coqueirinho Beach, Brazil. Earth Systems and Environment, 1-20.
+
+Kelly, C., Ellingsen, I., Daae, R., & Alver, M. O. (2025). Modelling the Impact of Dominant Transport Pathways on Antarctic Krill Fishing Activity in the Southern Ocean. bioRxiv, 2025-02.
+
+Børve, E., Isachsen, P. E., Nøst, O. A., Ghaffari, P., & Falk-Petersen, S. (2025). Tidal effects on transport and dispersion of particles, cod eggs and larvae in the Lofoten and Vesterålen region, Norway. Frontiers in Marine Science, 12, 1541652.
+
+Jeong, M., Molinaro, C., Deb, T., Zhang, Y., Pugliese, A., Santos, E., ... & Li, A. Q. (2026). Multi-object active search and tracking by multiple agents in untrusted, dynamically changing environments. Autonomous Robots, 50(1), 1.
+
+Breivik, Ø., Moerman, B., Dagestad, K. F., Nordam, T., Hope, G., Hole, L. R., ... & Stone, L. D. (2025). The Bayesian backtracking problem in oceanic drift modelling. Ocean Modelling, 194, 102505.
+
+Rasmuson, L. K., Blume, M. T., Lawrence, K. A., Laughlin, B. M., Edwards, C. A., Terwilliger, M. R., ... & Chapple, T. K. (2025). Routine large-scale movements of the yelloweye rockfish (Sebastes ruberrimus). Frontiers in Marine Science, 12, 1539206.
+
+Garnier, S., Murray, R. O. H., Gillibrand, P. A., Gallego, A., Robins, P., & Moriarty, M. (2025). Particle tracking modelling in coastal marine environments: Recommended practices and performance limitations. Ecological Modelling, 501, 110999.
+
+Beiser, F., Holm, H. H., Lye, K. O., & Eidsvik, J. (2025). Multi-level data assimilation for ocean forecasting using the shallow-water equations. Journal of Computational Physics, 524, 113722.
+
+Papaioannou, V., Anagnostopoulos, C. G., Vlachos, K., Moumtzidou, A., Gialampoukidis, I., Vrochidis, S., & Kompatsiaris, I. (2025). OpenOil-Based Analysis of Oil Dispersion Dynamics: The Agia Zoni II Shipwreck Case. Water, 17(14), 2126.
+
+Pearman, W. S., Duffy, G. A., Smith, R. O., Currie, K. I., Gemmell, N. J., Morales, S. E., & Fraser, C. I. (2024). Host dispersal relaxes selective pressures in rafting microbiomes and triggers successional changes. Nature communications, 15(1), 10759.
+
+Siht, E., Väli, G., Liblik, T., Mishra, A., Buhhalko, N., & Lips, U. (2025). Modeling the pathways of microplastics in the Gulf of Finland, Baltic Sea–sensitivity of parametrizations. Ocean Dynamics, 75(1), 9.
+
+Gu, J., Zhang, Y., Sui, Y., & Chen, S. (2025). Lagrangian study of floating debris transport around the Pearl River Estuary in summer. Marine Pollution Bulletin, 211, 117494.
+
 Mohrmann Martin, Biddle Louise, Rehder Gregor, Bittig Henry & Queste Bastien (2025). Nord Stream methane leaks spread across 14% of Baltic waters. Nature Communications. 16. 10.1038/s41467-024-53779-0. 
 
 Simonsen, Magne & Berge, Erik & Klein, Heiko & Brown, Justin & Ulimoen, Magnus & Saetra, Øyvind & Hosseini, Ali & Lind, Ole Christian. (2025). Marine and atmospheric transport modeling supporting nuclear preparedness in Norway: Recent achievements and remaining challenges. The Science of The Total Environment. 961. 178161. 10.1016/j.scitotenv.2024.178161. 
