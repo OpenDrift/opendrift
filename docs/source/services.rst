@@ -18,6 +18,9 @@ Services using OpenDrift
    * - http://chonos.ifop.cl/partimosa
      - `Chilean Fisheries Service (IFOP) <https://www.ifop.cl/en/>`_ 
      - Particle tracking system in the Chilean inland sea, northern Patagonia
+   *  - https://github.com/CNR-ISMAR/pmar
+      - `CNR ISMAR <https://www.ismar.cnr.it/web-content/en/about-us/>`_
+      - A pipeline for modelling and assessing anthropogenic pressures to support marine management decisions
 
 
 Please take contact on `GitHub <https://github.com/OpenDrift/opendrift/issues>`_  or `Slack <https://join.slack.com/t/opendrift-dev/shared_invite/zt-ozansc5h-AzMOOS9jOs~3CBihRR37Lw>`_ if you would like to have your service or project listed.
