@@ -1,7 +1,9 @@
 Publications
 ============
 
-Some papers using or mentioning OpenDrift:
+Below are some papers using or mentioning OpenDrift. Se more recent citations on `Google Scholar <https://scholar.google.com/scholar?hl=en&as_sdt=2005&sciodt=0,5&cites=3864497897980910587&scipsc=&q=&scisbd=1>`_
+
+----
 
 Román, D., Grande, J., Orellana, A., Mañuico, J., Acosta, V., & Alor, M. (2025). Numerical Simulation of Oil Spills in the Peruvian Sea: Analysis and Proposal for Containment Strategies.
 
