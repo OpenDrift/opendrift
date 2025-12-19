@@ -2232,6 +2232,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             del self.environment
             if hasattr(self, 'environment_profiles'):
                 del self.environment_profiles
+            self.result = xr.open_dataset(outfile)
+
+        return self.result
 
     def increase_age_and_retire(self):
         """Increase age of elements, and retire if older than config setting."""
