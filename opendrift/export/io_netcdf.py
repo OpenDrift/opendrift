@@ -47,6 +47,10 @@ def write_buffer(self):
         self._netCDF_encoding = encoding
         return
 
+    if self.result.sizes['time'] == 0:
+        logger.debug('No new time steps to write')
+        return
+
     self.outfile = Dataset(self.outfile_name, 'a')  # Re-open file at each write
     numtimes = self.outfile['time'].shape[0]
 
