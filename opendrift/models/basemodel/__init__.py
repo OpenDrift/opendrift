@@ -1459,6 +1459,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         if number is None:
             number = self.get_config('seed:number')
 
+        lonpoints, latpoints = self.points_within_polygon(lons, lats, number)
+
+        # Finally seed at calculated positions
+        self.seed_elements(lonpoints, latpoints, number=number, **kwargs)
+
+    @staticmethod
+    def points_within_polygon(lons, lats, number):
+        """Return a number of positions (lon, lat) within given polygon.
+
+            Helper method for seed_within_polygon"""
         lons = np.asarray(lons)
         lats = np.asarray(lats)
         if len(lons) < 3:
@@ -1526,8 +1536,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             else:
                 break
 
-        # Finally seed at calculated positions
-        self.seed_elements(lonpoints, latpoints, number=number, **kwargs)
+        return lonpoints, latpoints
 
     @require_mode(mode=Mode.Ready)
     def seed_from_wkt(self, wkts, time, **kwargs):
@@ -1597,13 +1606,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         for e, (n, polygon) in enumerate(zip(number_per_polygon, g_lonlat.geometry.explode(index_parts=False))):
             logger.info(f'Seeding {n} elements within polygon number {e+1} of area {areas[e]/1e6} km2')
             lons, lats = polygon.exterior.coords.xy
-            all_lons = np.append(all_lons, lons)
-            all_lats = np.append(all_lats, lats)
-        self.seed_within_polygon(lons=all_lons,
-                                 lats=all_lats,
-                                 number=number,
-                                 time=time,
-                                 **kwargs)
+            lonpoints, latpoints = self.points_within_polygon(lons, lats, n)
+            all_lons = np.append(all_lons, lonpoints)
+            all_lats = np.append(all_lats, latpoints)
+
+        self.seed_elements(lon=all_lons, lat=all_lats, number=number, time=time, **kwargs)
 
     @require_mode(mode=Mode.Ready)
     def seed_letters(self, text, lon, lat, time, number, scale=1.2):

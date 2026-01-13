@@ -274,11 +274,13 @@ class TestRun(unittest.TestCase):
         g = g.iloc[[1, 3]]  # Selecting layers number 1 and 3
         o.seed_from_geopandas(g, number=1000, time=datetime.now())
         self.assertEqual(len(o.elements_scheduled), 1000)
-        o.seed_from_shapefile(tdf +
-                                  'shapefile_spawning_areas/Torsk.shp',
-                                  number=300, time=datetime.now())
+        age_seconds = np.arange(0, 300)  # Check that vector of seed property is preserved
+        o.seed_from_shapefile(tdf + 'shapefile_spawning_areas/Torsk.shp',
+                              number=300, time=datetime.now(), age_seconds=age_seconds)
         self.assertEqual(len(o.elements_scheduled), 1300)
-        self.assertAlmostEqual(o.elements_scheduled.lat[-1], 55.04, 2)
+        self.assertAlmostEqual(o.elements_scheduled.lat[-1], 51.74, 2)
+        self.assertAlmostEqual(o.elements_scheduled.age_seconds[-1], age_seconds[-1], 2)
+        self.assertAlmostEqual(o.elements_scheduled.age_seconds[-2], age_seconds[-2], 2)
 
     @unittest.skipIf(has_ogr is False,
                      'GDAL library needed to read shapefiles')
