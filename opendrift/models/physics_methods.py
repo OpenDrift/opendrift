@@ -828,7 +828,7 @@ class PhysicsMethods:
         if hasattr(self.environment, 'sea_surface_wave_from_direction') and \
                 self.environment.sea_surface_wave_from_direction.max() == 0:
             wave_direction = np.rad2deg(np.arctan2(self.environment.x_wind, self.environment.y_wind))
-            self.environment.sea_surface_wave_from_direction = wave_direction
+            self.environment.sea_surface_wave_from_direction = -wave_direction
             logger.warning('Setting wave direction equal to wind direction, min: %f, mean: %f, max: %f' %
                 (wave_direction.min(), wave_direction.mean(), wave_direction.max()))
 
