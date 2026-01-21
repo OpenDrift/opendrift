@@ -28,7 +28,6 @@ import logging; logger = logging.getLogger(__name__)
 from opendrift.elements import LagrangianArray
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.config import CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ESSENTIAL
-from opendrift.models.physics_methods import PhysicsMethods
 from scipy.integrate import solve_ivp
 import numpy as np
 
@@ -438,7 +437,6 @@ class OpenBerg(OpenDriftSimulation):
 
         T = self.environment.sea_water_temperature
         S = self.environment.sea_water_salinity
-        rho_water = PhysicsMethods.sea_water_density(T, S)
         sea_slope_x = self.environment.sea_surface_x_slope
         sea_slope_y = self.environment.sea_surface_y_slope
         sea_surface_height= self.environment.sea_surface_height
@@ -586,7 +584,6 @@ class OpenBerg(OpenDriftSimulation):
             return
         T = self.environment.sea_water_temperature
         S = self.environment.sea_water_salinity
-        rho_water = PhysicsMethods.sea_water_density(T, S)
         L = self.elements.length
         W = self.elements.width
         H = self.elements.draft + self.elements.sail
