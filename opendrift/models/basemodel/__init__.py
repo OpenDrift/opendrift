@@ -2232,14 +2232,18 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Remove any elements scheduled for deactivation during last step
         self.remove_deactivated_elements()
 
-        if export_buffer_length is None:
-            pass  # TODO - do this for self.result
-        else:  # If output has been flushed to file during run, we
-            # need to reimport from file to get all data in memory
-            del self.environment
-            if hasattr(self, 'environment_profiles'):
-                del self.environment_profiles
-            self.result = xr.open_dataset(outfile)
+        if outfile is not None:
+            ext = os.path.splitext(outfile)[1].lower()
+            if ext in [".nc", ".nc4", ".netcdf"]:
+                # NetCDF: open with xarray as before
+                self.result = xr.open_dataset(outfile)
+            elif ext == ".parquet":
+                # Parquet: let the parquet exporter set self.result in its close()
+                # (we do nothing here)
+                pass
+            else:
+                # Fallback: try normal xarray open
+                self.result = xr.open_dataset(outfile)
 
         return self.result
 
