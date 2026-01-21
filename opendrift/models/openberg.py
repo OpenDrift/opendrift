@@ -108,7 +108,7 @@ def ocean_force(iceb_vel, water_vel, Avo, Aho, rho_water, water_form_drag_coef, 
         water_vel : Ocean current velocity
         rho_water : Water density
         Avo : Vertical area of the iceberg in the ocean (length x draft)
-        Aho : Horizontal area of the iceberg in contact with the ocean (width x draft)
+        Aho : Horizontal area of the iceberg in contact with the ocean (width x length)
         water_form_drag_coef : Co is the ocean form drag coefficient
         water_skin_drag_coef : Cdo is the ocean skin drag coefficient
     """
@@ -129,7 +129,7 @@ def wind_force(iceb_vel, wind_vel, Ava, Aha, wind_form_drag_coef, wind_skin_drag
         iceb_vel : Iceberg's velocity at time t
         wind_vel : Wind velocity
         Ava : Vertical area of the iceberg in the air (length x sail)
-        Aha : Horizontal area of the iceberg in contact with the air (width x sail)
+        Aha : Horizontal area of the iceberg in contact with the air (width x length)
         wind_form_drag_coef : Ca is the air form drag coefficient
         wind_skin_drag_coef : Cda is the air skin drag coefficient
     """
@@ -154,8 +154,8 @@ def wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length):
         wave_direction : Wave direction
         iceb_length    : Iceberg's length
     """
-    F_wave_x = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad(wave_direction)))
-    F_wave_y = (0.5 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.cos(np.deg2rad(wave_direction)))
+    F_wave_x = (0.25 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad(wave_direction)))
+    F_wave_y = (0.25 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.cos(np.deg2rad(wave_direction)))
     return np.array([F_wave_x, F_wave_y])
 
 
@@ -447,10 +447,10 @@ class OpenBerg(OpenDriftSimulation):
         sea_ice_thickness = self.environment.sea_ice_thickness
         sea_ice_conc = self.environment.sea_ice_area_fraction
         water_depth = self.environment.sea_floor_depth_below_sea_level
-        Avo = length * abs(draft)
-        Aho = width * abs(draft)
+        Avo = length * draft
+        Aho = width * length
         Ava = length * sail
-        Aha = width * sail
+        Aha = width * length
         Ai = sea_ice_thickness * length
         
         mass = width * (Ava + Avo) * rho_iceb * weight_coef
