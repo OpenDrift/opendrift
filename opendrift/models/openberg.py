@@ -443,7 +443,7 @@ class OpenBerg(OpenDriftSimulation):
         sea_slope_y = self.environment.sea_surface_y_slope
         sea_surface_height= self.environment.sea_surface_height
         wave_height = self.environment.sea_surface_wave_significant_height
-        wave_direction = self.environment.sea_surface_wave_from_direction
+        wave_direction = -self.environment.sea_surface_wave_from_direction
         sea_ice_thickness = self.environment.sea_ice_thickness
         sea_ice_conc = self.environment.sea_ice_area_fraction
         water_depth = self.environment.sea_floor_depth_below_sea_level
