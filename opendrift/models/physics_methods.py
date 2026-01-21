@@ -814,6 +814,7 @@ class PhysicsMethods:
 
     def calculate_missing_environment_variables(self):
 
+        # TODO: we need a better mechanism to detect missing variables
         # Missing significant wave height
         if hasattr(self.environment,
                    'sea_surface_wave_significant_height') and \
@@ -822,7 +823,16 @@ class PhysicsMethods:
             logger.debug('Calculating Hs from wind, min: %f, mean: %f, max: %f' %
                           (Hs.min(), Hs.mean(), Hs.max()))
 
-        # Missing wave periode
+        # Missing wave direction related to previously calculated significant wave height.
+        # Set equal to wind direction. (Andrea Gierisch)
+        if hasattr(self.environment, 'sea_surface_wave_from_direction') and \
+                self.environment.sea_surface_wave_from_direction.max() == 0:
+            wave_direction = np.rad2deg(np.arctan2(self.environment.x_wind, self.environment.y_wind))
+            self.environment.sea_surface_wave_from_direction = wave_direction
+            logger.warning('Setting wave direction equal to wind direction, min: %f, mean: %f, max: %f' %
+                (wave_direction.min(), wave_direction.mean(), wave_direction.max()))
+
+        # Missing wave period
         if hasattr(self.environment,
                    'sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment') and \
                 self.environment.sea_surface_wave_mean_period_from_variance_spectral_density_second_frequency_moment.max() == 0:

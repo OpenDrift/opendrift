@@ -133,6 +133,8 @@ def wind_force(iceb_vel, wind_vel, Ava, Aha, wind_form_drag_coef, wind_skin_drag
         wind_form_drag_coef : Ca is the air form drag coefficient
         wind_skin_drag_coef : Cda is the air skin drag coefficient
     """
+
+    # TODO: wind_force seems to be more than 10 times smaller than wave_force. This should be checked.
     vxa, vya = wind_vel[0], wind_vel[1]
     x_vel, y_vel = iceb_vel[0], iceb_vel[1]
     rel_wind_x_vel = vxa - x_vel
@@ -452,7 +454,7 @@ class OpenBerg(OpenDriftSimulation):
         Ai = sea_ice_thickness * length
         
         mass = width * (Ava + Avo) * rho_iceb * weight_coef
-        k = (rho_air * wind_form_drag_coef * Ava / (rho_water * water_form_drag_coef * Avo))
+        k = (rho_air * wind_form_drag_coef * Ava) / (rho_water * water_form_drag_coef * Avo)
         f = np.sqrt(k) / (1 + np.sqrt(k)) # (f is the wind drift factor, only used in the no acceleration model)
 
         wave_rad = self.get_config('drift:wave_rad')
