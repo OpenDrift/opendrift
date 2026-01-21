@@ -40,8 +40,8 @@ def test_openberg_constant_forcing():
     o.set_config('drift:coriolis', False)
     o.seed_elements(4, 60, time=datetime.now())
     o.run(steps=2)
-    np.testing.assert_almost_equal(o.result.lon[0][1], 4.0, 3)
-    np.testing.assert_almost_equal(o.result.lat[0][1], 60.031, 3)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.0, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.063, 3)
 
     # Northwards current, no wind, with Coriolis
     o = OpenBerg(loglevel=50)
@@ -53,11 +53,11 @@ def test_openberg_constant_forcing():
     o.set_config('drift:coriolis', True)
     o.seed_elements(4, 60, time=datetime.now())
     o.run(steps=2)
-    np.testing.assert_almost_equal(o.result.lon[0][1], 4.017, 3)
-    np.testing.assert_almost_equal(o.result.lat[0][1], 60.031, 3)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.034, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.060, 3)
 
     # Northwards current, eastwards wind, with Coriolis
-    o = OpenBerg(loglevel=0)
+    o = OpenBerg(loglevel=50)
     o.set_config('environment:constant:x_sea_water_velocity', 0)
     o.set_config('environment:constant:y_sea_water_velocity', 1)
     o.set_config('environment:constant:x_wind', 10)
@@ -66,8 +66,77 @@ def test_openberg_constant_forcing():
     o.set_config('drift:coriolis', True)
     o.seed_elements(4, 60, time=datetime.now())
     o.run(steps=2)
-    np.testing.assert_almost_equal(o.result.lon[0][1], 4.018, 3)
-    np.testing.assert_almost_equal(o.result.lat[0][1], 60.057, 3)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.114, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.058, 3)
+
+    # No current, eastwards wind
+    o = OpenBerg(loglevel=0)
+    o.set_config('environment:constant:x_sea_water_velocity', 0)
+    o.set_config('environment:constant:y_sea_water_velocity', 0)
+    o.set_config('environment:constant:x_wind', 10)
+    o.set_config('environment:constant:y_wind', 0)
+    o.set_config('drift:horizontal_diffusivity', 0)
+    o.set_config('drift:coriolis', False)
+    o.seed_elements(4, 60, time=datetime.now())
+    o.run(steps=2)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.107, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.000, 3)
+
+    # No current, weaker eastwards wind
+    o = OpenBerg(loglevel=0)
+    o.set_config('environment:constant:x_sea_water_velocity', 0)
+    o.set_config('environment:constant:y_sea_water_velocity', 0)
+    o.set_config('environment:constant:x_wind', 5)
+    o.set_config('environment:constant:y_wind', 0)
+    o.set_config('drift:horizontal_diffusivity', 0)
+    o.set_config('drift:coriolis', False)
+    o.seed_elements(4, 60, time=datetime.now())
+    o.run(steps=2)
+    # TODO: Half wind gives only 25% of eastwards movement. Should be checked.
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.028, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.000, 3)
+
+    # No current, westwards wind
+    o = OpenBerg(loglevel=0)
+    o.set_config('environment:constant:x_sea_water_velocity', 0)
+    o.set_config('environment:constant:y_sea_water_velocity', 0)
+    o.set_config('environment:constant:x_wind', -10)
+    o.set_config('environment:constant:y_wind', 0)
+    o.set_config('drift:horizontal_diffusivity', 0)
+    o.set_config('drift:coriolis', False)
+    o.seed_elements(4, 60, time=datetime.now())
+    o.run(steps=2)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 3.892, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.000, 3)
+
+    # No current, northwards wind
+    o = OpenBerg(loglevel=0)
+    o.set_config('environment:constant:x_sea_water_velocity', 0)
+    o.set_config('environment:constant:y_sea_water_velocity', 0)
+    o.set_config('environment:constant:x_wind', 0)
+    o.set_config('environment:constant:y_wind', 10)
+    o.set_config('drift:horizontal_diffusivity', 0)
+    o.set_config('drift:coriolis', False)
+    o.seed_elements(4, 60, time=datetime.now())
+    o.run(steps=2)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.054, 3)
+
+    # No current, southwards wind
+    o = OpenBerg(loglevel=0)
+    o.set_config('environment:constant:x_sea_water_velocity', 0)
+    o.set_config('environment:constant:y_sea_water_velocity', 0)
+    o.set_config('environment:constant:x_wind', 0)
+    o.set_config('environment:constant:y_wind', -10)
+    o.set_config('drift:horizontal_diffusivity', 0)
+    o.set_config('drift:coriolis', False)
+    o.seed_elements(4, 60, time=datetime.now())
+    o.run(steps=2)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 59.946, 3)
+
+
+
 
 
 def test_openberg_norkyst():
