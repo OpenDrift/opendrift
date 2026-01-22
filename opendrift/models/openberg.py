@@ -40,8 +40,6 @@ rho_iceb = 900         # Density of iceberg (kg/m^3)
 g = 9.81               # Acceleration due to gravity in m/s²
 omega = 7.2921e-5      # Angular frequency (rad/s)
 csi = 1                # Sea ice coefficient of resistance
-wave_drag_coef = 0.3   # Wave drag coefficient
-
 
 
 class IcebergObj(LagrangianArray):
@@ -90,6 +88,9 @@ class IcebergObj(LagrangianArray):
         ('wind_skin_drag_coef', {'dtype': np.float32,  #Wind/Air skin drag coef. (Cda, IK)
                                  'units': '1',
                                  'default': 0.0022}),
+        ('wave_drag_coef', {'dtype': np.float32,  #Wave drag coef.
+                                 'units': '1',
+                                 'default': 0.3}),
         ("iceb_x_velocity", {'dtype': np.float32,     #Iceberg velocity in the x-direction
                              'units': "m/s",
                              'default': 0.0}),
@@ -145,12 +146,13 @@ def wind_force(iceb_vel, wind_vel, Ava, Aha, wind_form_drag_coef, wind_skin_drag
     return np.array([F_wind_x, F_wind_y])
 
 
-def wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length):
+def wave_radiation_force(rho_water, wave_height, wave_direction, wave_drag_coef, iceb_length):
     """ Wave radiation force
     Args:
         rho_water : Water density
         wave_height    : Wave significant height
         wave_direction : Wave direction
+        wave_drag_coef : Wave drag coefficient
         iceb_length    : Iceberg's length
     """
     F_wave_x = (0.25 * rho_water * wave_drag_coef * g * iceb_length * (wave_height / 2) ** 2 * np.sin(np.deg2rad(wave_direction)))
@@ -434,6 +436,7 @@ class OpenBerg(OpenDriftSimulation):
         water_skin_drag_coef = self.elements.water_skin_drag_coef
         wind_form_drag_coef = self.elements.wind_form_drag_coef
         wind_skin_drag_coef = self.elements.wind_skin_drag_coef
+        wave_drag_coef = self.elements.wave_drag_coef
 
         T = self.environment.sea_water_temperature
         S = self.environment.sea_water_salinity
@@ -487,13 +490,15 @@ class OpenBerg(OpenDriftSimulation):
 
 
         def dynamic(t,iceb_vel, water_vel, wind_vel, wave_height, wave_direction, Avo, Aho,
-                    Ava, Aha, rho_water, water_form_drag_coef,  water_skin_drag_coef, wind_form_drag_coef, wind_skin_drag_coef, iceb_length, mass,lat, sea_slope_x, sea_slope_y):
+                    Ava, Aha, rho_water, water_form_drag_coef,  water_skin_drag_coef,
+                    wind_form_drag_coef, wind_skin_drag_coef, wave_drag_coef, iceb_length, mass,
+                    lat, sea_slope_x, sea_slope_y):
             """ Function required by solve_ivp. The t and iceb_vel parameters are required by solve_ivp, shouldn't be deleted """
             iceb_vel = iceb_vel.reshape((2, -1))
             # Individual forces
             ocean_force_val = ocean_force(iceb_vel, water_vel, Avo, Aho, rho_water, water_form_drag_coef, water_skin_drag_coef)
             wind_force_val = wind_force(iceb_vel, wind_vel, Ava, Aha, wind_form_drag_coef, wind_skin_drag_coef)
-            wave_radiation_force_val = int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, iceb_length)
+            wave_radiation_force_val = int(wave_rad) * wave_radiation_force(rho_water, wave_height, wave_direction, wave_drag_coef, iceb_length)
             coriolis_force_val = int(coriolis) * coriolis_force(iceb_vel, mass, lat)
             sea_surface_slope_val = int(sea_surface_slope) * sea_surface_slope_force(sea_slope_x, sea_slope_y, mass)
             
@@ -533,8 +538,11 @@ class OpenBerg(OpenDriftSimulation):
             logger.debug("Grounding process disabled in configuration")
         
         sol = solve_ivp(dynamic, [0, self.time_step.total_seconds()], V0,
-                        args=(water_vel, wind_vel, wave_height, wave_direction, Avo, Aho, Ava, Aha, rho_water,
-                              water_form_drag_coef, water_skin_drag_coef, wind_form_drag_coef, wind_skin_drag_coef,length, mass, lat, sea_slope_x, sea_slope_y),
+                        args=(water_vel, wind_vel, wave_height, wave_direction,
+                              Avo, Aho, Ava, Aha, rho_water,
+                              water_form_drag_coef, water_skin_drag_coef, wind_form_drag_coef,
+                              wind_skin_drag_coef, wave_drag_coef, length, mass, lat,
+                              sea_slope_x, sea_slope_y),
                               vectorized=True,
                               t_eval=np.array([self.time_step.total_seconds()]))
         V = sol.y.reshape((2, -1))
