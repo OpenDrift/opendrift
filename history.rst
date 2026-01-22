@@ -1,6 +1,15 @@
 History
 =======
 
+2026-01-22 / Release v1.14.8
+----------------------------
+* OpenBerg: fixed several bugs, e.g. using wrong wave direction and some wrong parameters. wave_drag_coef is now an element property.
+* reader.plot() and readerinfo now takes lscale as input arguments to specify GSHHG coastline resolution
+* Fixed bug with legends below landmask on plots and animations
+* Adding two new versions of FVCOM-reader, to be generalised in the future (poplarShift, HvardE)
+* Fixed bug regarding writing buffer with no time steps to disk
+* Fixed bug in polygon/geopandas/shapefile seeding. Factored out method points_within_polygon from seed_within_polygon, allowing collecting points for several polygons before a final seed call
+
 2025-12-04 / Release v1.14.7
 ----------------------------
 * OpenBerg: added min and max values for iceberg dimensions. Added default horizontal diffusivity of 100 m2/s
