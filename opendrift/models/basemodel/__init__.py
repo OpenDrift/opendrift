@@ -3342,6 +3342,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             latmax = np.maximum(latmax, other.result.lat.max())
 
             # Find map coordinates of comparison simulations
+            cd['dataset'] = other.result
             cd['x_other'] = other.result.lon.copy()
             cd['y_other'] = other.result.lat.copy()
             cd['x_other_deactive'], cd['y_other_deactive'] = \
@@ -3383,6 +3384,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
              show_elements=True,
              show_trajectories=True,
              show_initial=True,
+             convex_hull=False,
              density_pixelsize_m=1000,
              lalpha=None,
              bgalpha=.8,
@@ -3523,6 +3525,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                             label='_nolegend_',
                             linewidth=linewidth,
                             transform=self.crs_lonlat)
+                    if convex_hull is True:
+                        self.result.isel(time=-1).traj.plot.convex_hull(color=linecolor)
                 else:
                     with np.errstate(invalid="ignore"):
                         ax.plot(x,
@@ -3531,6 +3535,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                 alpha=alpha,
                                 linewidth=linewidth,
                                 transform=self.crs_lonlat)
+                    if convex_hull is True:
+                        self.result.isel(time=-1).traj.plot.convex_hull(color=linecolor)
             else:
                 #colorbar = True
                 # Color lines according to given parameter
@@ -3583,7 +3589,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         else:
             label_initial = None
             label_active = None
-            color_initial = 'gray'
+            color_initial = self.status_colors['initial']
             color_active = 'gray'
         if show_elements is True:
             if show_initial is True:
@@ -3685,6 +3691,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                            linewidths=.2,
                            color=self.plot_comparison_colors[i + 1],
                            transform=self.crs_lonlat)
+                if convex_hull is True:
+                    c['dataset'].isel(time=-1).traj.plot.convex_hull(color=self.plot_comparison_colors[i + 1])
 
         background_zorder = kwargs.pop('background_zorder', 0)
         if background is not None:
