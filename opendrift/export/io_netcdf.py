@@ -104,12 +104,14 @@ def close(self):
     self.result = xr.open_dataset(self.outfile_name)
 
 def import_file(self, filename):
-    """Create OpenDrift object from imported file.
+    """Create OpenDrift object from imported file or from Xarray Dataset.
     """
 
-    logger.debug('Importing from ' + filename)
-
-    self.result = xr.open_dataset(filename)
+    if isinstance(filename, xr.Dataset):
+        self.result = filename
+    else:
+        logger.debug('Importing from ' + filename)
+        self.result = xr.open_dataset(filename)
 
     self.steps_output = self.result.sizes['time']
     self.start_time = datetime_from_datetime64(self.result.time[0])
