@@ -31,7 +31,7 @@ mpl.rcParams['mathtext.fontset'] = "dejavusans"
 
 #%%
 # This example shows how to use wind or currents measurments 
-# combined with an ocean model to improove the drift
+# combined with an ocean model to improve the drift
 # calculation arround the measurment station.
 
 
