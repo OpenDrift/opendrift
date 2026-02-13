@@ -38,4 +38,4 @@ dependencies:
   - pip
   - git
   - pip:
-    - git+http://github.com/OpenDrift/trajan.git
+    - trajan @ git+http://github.com/OpenDrift/trajan.git
