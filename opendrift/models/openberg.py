@@ -585,7 +585,11 @@ class OpenBerg(OpenDriftSimulation):
 
 
     def roll_over(self):
-        """ Iceberg's stability criterium """
+        """ Iceberg's stability criterium
+
+        From Wagner et al. (2017)
+        https://www.sciencedirect.com/science/article/pii/S1463500317301129
+        """
         if self.get_config('processes:roll_over') is False:
             logger.debug('Rollover is disabled')
             return
