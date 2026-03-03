@@ -345,8 +345,8 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Output box
         ##############
-        self.text = tk.Text(self.output, wrap="word", height=18)
-        self.text.grid(row=60, columnspan=6, sticky='nsw')
+        self.text = tk.Text(self.output, wrap="word", height=50)
+        self.text.grid(row=60, columnspan=10, sticky='nsw')
         self.text.tag_configure("stderr", foreground="#b22222")
         if os.getenv('OPENDRIFT_GUI_OUTPUT', 'gui') == 'gui':
             sys.stdout = TextRedirector(self.text, "stdout")
@@ -428,6 +428,8 @@ class OpenDriftGUI(tk.Tk):
         from os.path import expanduser
         homefolder = expanduser("~")
         filename = homefolder + '/' + self.simulationname
+        background_variable = self._background_fields[self.background_field.get()]['variable']
+        background_label = self._background_fields[self.background_field.get()]['label']
 
         if command[0:4] == 'save':
             plt.switch_backend('agg')
@@ -436,11 +438,11 @@ class OpenDriftGUI(tk.Tk):
 
         if command == 'saveanimation':
             filename = filename + '.mp4'
-            self.o.animation(filename=filename)
+            self.o.animation(filename=filename, background=background_variable, clabel=background_label)
             print('='*30 + '\nAnimation saved to file:\n'
                   + filename + '\n' + '='*30)
         elif command == 'showanimation':
-            self.o.animation()
+            self.o.animation(background=background_variable, clabel=background_label)
         elif command == 'saveplot':
             filename = filename + '.png'
             self.o.plot(filename=filename)
@@ -850,6 +852,20 @@ class OpenDriftGUI(tk.Tk):
         self.results = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
         self.results.grid(row=70, column=3, columnspan=1, sticky='ew')
+
+        self._background_fields = {
+            'No background': {'label': None, 'variable': None},
+            'Current': {'label': 'Surface current  [m/s]',
+                        'variable': ['x_sea_water_velocity', 'y_sea_water_velocity']},
+            'Wind': {'label': 'Wind speed  [m/s]',
+                     'variable': ['x_wind', 'y_wind']}
+            }
+        self.background_field = tk.StringVar()
+        self.background_field.set(list(self._background_fields)[0])
+        self.background_field_drop = tk.OptionMenu(self.results, self.background_field,
+            *(list(self._background_fields)))
+        self.background_field_drop.grid(row=5, column=1)
+
         tk.Button(self.results, text='Show animation',
                   command=lambda: self.handle_result(
                     'showanimation')).grid(row=10, column=1)
