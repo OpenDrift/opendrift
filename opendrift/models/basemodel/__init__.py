@@ -3885,8 +3885,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             variable = background[0]  # A vector is requested
         else:
             variable = background  # A scalar is requested
-        #for readerName in self.env.readers:
-        for readerName in self.env.priority_list[variable]:
+        readers = self.env.priority_list[variable] + list(self.env.readers)
+        for readerName in readers:
+            if readerName == 'global_landmask':
+                continue  # Not suitable for background field
             reader = self.env.readers[readerName]
             if variable in reader.variables:
                 if time is None or reader.start_time is None or (
