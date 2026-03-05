@@ -160,9 +160,9 @@ class LarvalFish(OceanDrift):
                  'description': 'Egg hatching method. temperature: use ambient temperature (Ellertsen et al. 1988). fixed_time: hatch after fixed duration.',
                  'level': CONFIG_LEVEL_BASIC},
             
-            'egg:hatch_time_hours':
-                {'type': 'float', 'default': 48.0,
-                 'min': 0.1, 'max': 10000, 'units': 'hours',
+            'egg:hatch_time_days':
+                {'type': 'float', 'default': 2.0,
+                 'min': 0.004, 'max': 416, 'units': 'days',
                  'description': 'Fixed time to hatching when hatching_method is fixed_time.',
                  'level': CONFIG_LEVEL_BASIC},
             })
@@ -627,11 +627,11 @@ class LarvalFish(OceanDrift):
                 
             elif hatching_method == 'fixed_time':
                 # Fixed-time hatching
-                hatch_time_hours = self.get_config('egg:hatch_time_hours')
-                hatch_time_seconds = hatch_time_hours * 3600
-                hours_in_timestep = self.time_step.total_seconds() / 3600
+                hatch_time_days = self.get_config('egg:hatch_time_days')
+                hatch_time_seconds = hatch_time_days * 86400
+                days_in_timestep = self.time_step.total_seconds() / 86400
                 # Use stage_fraction to track time: fraction = (time elapsed) / (hatch_time)
-                self.elements.stage_fraction[eggs] += hours_in_timestep / hatch_time_hours
+                self.elements.stage_fraction[eggs] += days_in_timestep / hatch_time_days
                 hatching = np.where(self.elements.stage_fraction[eggs]>=1)[0]
                 
             else:
