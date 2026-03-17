@@ -96,7 +96,11 @@ def test_set_oil_type_by_id():
     o = OpenOil(loglevel=50)
     o.set_oiltype_by_id('NO00108')
     assert o.oiltype.name == 'AASGARD A 2003'
-    print(o.oiltype)
+    # Check that oiltype is also used after actual seeding
+    o.set_config('environment:constant', {
+        'x_wind': 0, 'y_wind': 0, 'x_sea_water_velocity': 0, 'y_sea_water_velocity': 0})
+    o.seed_elements(lon=0, lat=0, time=datetime.now())
+    assert o.oiltype.name == 'AASGARD A 2003'
 
 def test_oil_type_alias():
     o = OpenOil(loglevel=50)

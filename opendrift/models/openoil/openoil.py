@@ -340,6 +340,7 @@ class OpenOil(OceanDrift):
             other_oiltypes = [o for o in self.oiltypes if o[0:7] != 'GENERIC']
             self.oiltypes = sorted([o for o in generic_oiltypes]) + sorted([o for o in other_oiltypes])
             self.oiltypes = [ot for ot in self.oiltypes if ot not in self.duplicate_oils]
+            self.oiltype = None
 
             # For Norwegian oils, max water fraction from Sintef is overriding NOAA value
             self.max_water_fraction = None
@@ -1544,6 +1545,8 @@ class OpenOil(OceanDrift):
                     f"{self.oiltype} is not a valid oil for Opendrift simulations"
                 )
                 raise ValueError()
+            self.__set_seed_config__('seed:oil_type', self.oil_name)
+            logger.info(f'setting oil_type to: {self.oil_name} (ID: {oiltypeid})')
         else:
             raise ValueError("unsupported oil weathering model")
 
@@ -1708,9 +1711,12 @@ class OpenOil(OceanDrift):
             else:  # Oil do not exist -> setting config to raise error and provide suggestions
                 self.set_config('seed:oil_type', kwargs['oil_type'])
         else:
-            logger.info('Oil type not specified, using default: ' +
-                        self.get_config('seed:oil_type'))
-            self.set_oiltype(self.get_config('seed:oil_type'))
+            if self.oiltype is None:
+                logger.info('Oil type not specified, using default: ' +
+                            self.get_config('seed:oil_type'))
+                self.set_oiltype(self.get_config('seed:oil_type'))
+            else:
+                logger.info(f'Oil type already set as {self.oiltype.name}')
 
         if self.oil_weathering_model == 'noaa':
             self.Density = Density(self.oiltype.oil)
