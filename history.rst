@@ -1,6 +1,22 @@
 History
 =======
 
+2026-03-17 / Release v1.14.9
+----------------------------
+
+* Fixed problem with oiltype set by id being overridden by new seeding
+* Added psutil to pyproject.toml dependencies
+* Horizontal_diffusivity is not anymore a config setting but an environment property.
+
+  * o.set_config('drift:horizontal_diffusivity', <diffusivity>) should be changed to o.set_config('environment:constant:horizontal_diffusivity', <diffusivity>)
+
+* It is now possible to provide element-specific environment configuration through dictionary *environment* as input to seed_elements. Made example_element_dependent_environment.py to illustrate.
+
+  * reader_constant is updated to take element_ID as optional argument to mapping to provide element_ID-dependent constant values (e.g. horizontal_diffusivity).
+
+* opendrift.open() can now also take Xarray dataset as input
+* Providing convex_hull=True to plot method will now plot a convex hull around final positions
+
 2026-01-22 / Release v1.14.8
 ----------------------------
 * OpenBerg: fixed several bugs, e.g. using wrong wave direction and some wrong parameters. wave_drag_coef is now an element property.
@@ -45,8 +61,10 @@ History
 * Added two new oils to OpenOil / ADIOS: RINGHORNE 2025 and BALDER BLEND 2025
 * Property opendrift.test_data_folder now replaces object method test_data_folder
 * reader_ROMS_native:
+
   * Fix for non-CF-compliant Croco files and corresponding GRD-files
   * Removed gls_tke functionality, now found in new file legacy.py
+
 * Several updates to OpenBerg module
 * Vertical advection and mixing is disabled by default in OceanDrift (e.g. to prevent sinking of simulated surface drifters), but enabled in some sub-modules.
 * General cleaning of main loop (run) in Basemodel class
