@@ -35,7 +35,7 @@ class WindBlow(OpenDriftSimulation):
 
     def __init__(self, *args, **kwargs):
         super(WindBlow, self).__init__(*args, **kwargs)
-        self._set_config_default('drift:max_speed', 12)
+        self._set_config_default('drift:max_speed', 25)
 
     def update(self):
 

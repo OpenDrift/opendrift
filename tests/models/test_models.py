@@ -70,7 +70,7 @@ class TestModels(unittest.TestCase):
         o.seed_elements(lon, lat, radius=5000, number=1000,
                         time=reader_arome.start_time)
         o.run(steps=24, time_step=3600)
-        self.assertAlmostEqual(o.elements.lon.max(), 15.864, 2)
+        self.assertAlmostEqual(o.elements.lon.max(), 15.881, 2)
 
     def test_shipdrift(self):
         """Sintef case study"""

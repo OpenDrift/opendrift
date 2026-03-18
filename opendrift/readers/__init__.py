@@ -25,6 +25,7 @@ import importlib
 import logging; logger = logging.getLogger(__name__)
 import glob
 import json
+import numpy as np
 import opendrift
 import xarray as xr
 import copernicusmarine
@@ -83,6 +84,40 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
                 ds = open_dataset_opendrift(source, zarr_storage_options=zarr_storage_options,
                                             open_mfdataset_options=open_mfdataset_options, chunks={dim: 1})
 
+    return ds
+
+def add_standard_name_for_surface_grib_variables(ds):
+    """Try to identify surface variables from GRIB datasets
+       and add standard_name attribute"""
+    mapping = {
+        'wind_speed': {'Grib2_Parameter': np.array([0, 2, 1])},
+        'x_wind': {'Grib2_Parameter': np.array([0, 2, 2])},
+        'y_wind': {'Grib2_Parameter': np.array([0, 2, 3])},
+        }
+
+    for var_name, var in ds.data_vars.items():
+        if any(forbidden.lower() in var_name.lower() for forbidden in ('percentile', 'pctl')):
+            logger.debug(f'Skipping percentile variable {var_name}')
+            continue
+        if 'standard_name' in var.attrs:
+            continue
+        if var.attrs.get('Grib2_Level_Type', None) != 103:
+            continue  # Not surface variable
+        for standard_name, maps in mapping.items():
+            if isinstance(maps, dict):
+                maps = [maps]
+            if any(
+                np.all(attval == var.attrs.get(att))  # attribute value is found in map
+                for ma in maps
+                for att, attval in ma.items()
+                if att in var.attrs  # variable has attribute
+            ):
+                # Must check that height is 10m or surface
+                for coordname, coordvar in var.coords.items():
+                    if coordvar.attrs.get('_CoordinateAxisType', None) == 'Height' and 10 in coordvar.values:
+                        logger.debug(f'Selecting GRIB variable {var_name} at 10m height and adding standard_name {standard_name}')
+                        ds[var_name] = var.sel({coordname: 10})
+                        ds[var_name].attrs['standard_name'] = standard_name
     return ds
 
 def datetime_from_variable(var):
