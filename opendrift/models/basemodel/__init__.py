@@ -452,15 +452,6 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'level': CONFIG_LEVEL_ADVANCED,
                 'description': 'Numerical advection scheme for ocean current advection'
             },
-            'drift:horizontal_diffusivity': {
-                'type': 'float',
-                'default': 0,
-                'min': 0,
-                'max': 100000,
-                'units': 'm2/s',
-                'description': 'Add horizontal diffusivity (random walk)',
-                'level': CONFIG_LEVEL_BASIC
-            },
             'drift:profiles_depth': {'type': 'float', 'default': 50, 'min': 0, 'max': None,
                 'level': CONFIG_LEVEL_ADVANCED, 'units': 'meters', 'description':
                 'Environment profiles will be retrieved from surface and down to this depth'},
