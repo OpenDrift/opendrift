@@ -16,7 +16,7 @@ def test_radio_nuclide(test_data):
     o.set_config('vertical_mixing:diffusivitymodel','environment')  # include settling without vertical turbulent mixing
     # Vertical mixing requires fast time step
     o.set_config('vertical_mixing:timestep', 600.) # seconds
-    o.set_config('drift:horizontal_diffusivity', 10)
+    o.set_config('environment:constant:horizontal_diffusivity', 10)
     o.set_config('radionuclide:particle_diameter',5.e-6)  # m
     o.set_config('radionuclide:isotope','137Cs')
     o.set_config('radionuclide:specie_setup','LMM + Rev')

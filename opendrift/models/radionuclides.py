@@ -85,6 +85,7 @@ class RadionuclideDrift(OceanDrift):
         'ocean_mixed_layer_thickness': {'fallback': 50},
         'sea_water_temperature': {'fallback': 10, 'profiles': True},
         'sea_water_salinity': {'fallback': 34, 'profiles': True},
+        'horizontal_diffusivity': {'fallback': 0},
 #        'surface_downward_x_stress': {'fallback': 0},
 #        'surface_downward_y_stress': {'fallback': 0},
 #        'turbulent_kinetic_energy': {'fallback': 0},

@@ -306,7 +306,7 @@ class OpenBerg(OpenDriftSimulation):
         # Since OpenBerg model is deterministic for given iceberg size,
         # (in contrast to the Leeway model), we use a default diffusivity
         # to yield some variability.
-        "horizontal_diffusivity": {"fallback": 0, "important": False},
+        "horizontal_diffusivity": {"fallback": 100, "important": False},
         "sea_surface_wave_significant_height": {"fallback": 0},
         "sea_surface_wave_from_direction": {"fallback": 0},
         "sea_surface_wave_stokes_drift_x_velocity": {"fallback": 0, 'important': False},
