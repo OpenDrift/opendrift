@@ -378,7 +378,26 @@ class OpenDriftGUI(tk.Tk):
 
         ##########################
         try:
-            if datetime.now().month == 12 and datetime.now().day > 10:
+            from dateutil.easter import easter
+            easter_sunday = easter(datetime.now().year)
+            easter = (datetime.now().date() > easter_sunday - timedelta(days=8) and
+                      datetime.now().date() < easter_sunday + timedelta(days=2))
+            christmas = datetime.now().month == 12 and datetime.now().day > 10
+            if easter:
+                self.output.configure(bg='#FFF9C4')
+                self.duration.configure(bg='#FFF9C4')
+                self.seed.configure(bg='#FFF9C4')
+                self.top.configure(bg='#FFD6E7')
+                self.start.configure(bg='#B3E5FC')
+                self.end.configure(bg='#B3E5FC')
+                self.end_t.configure(bg='#B3E5FC')
+                startlabel.configure(bg='#B3E5FC')
+                endlabel.configure(bg='#B3E5FC')
+                check_seed.configure(bg='#B3E5FC')
+                img = ImageTk.PhotoImage(Image.open(
+                    opendrift.test_data_folder +
+                    '../../docs/opendrift_logo_easter.png').resize((200, 200)))
+            elif christmas:
                 img = ImageTk.PhotoImage(Image.open(
                     opendrift.test_data_folder +
                                          '../../docs/hohohOpenDrift.jpg').resize((200, 200)))
@@ -387,7 +406,7 @@ class OpenDriftGUI(tk.Tk):
                 img = ImageTk.PhotoImage(Image.open(
                     opendrift.test_data_folder +
                                          '../../docs/opendrift_logo.png'))
-            self.logo_image=tk.Label(self.logo, image=img)
+            self.logo_image=tk.Label(self.logo, image=img, bd=0)
             self.logo_image.image = img
             self.logo_image.grid(row=0, column=0)
         except Exception as e:
