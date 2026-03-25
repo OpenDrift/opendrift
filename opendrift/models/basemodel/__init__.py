@@ -3040,6 +3040,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 drifter = [drifter]
             drifter_pos = [None] * len(drifter)
             drifter_line = [None] * len(drifter)
+            drifter = [d.copy() for d in drifter]  # Avoid modifying original
             for drnum, dr in enumerate(drifter):
                 # Interpolate drifter time series onto simulation times
                 sts = (self.result.time - self.result.time[0]) / np.timedelta64(1, 's')
