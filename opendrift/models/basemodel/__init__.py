@@ -337,6 +337,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         datefmt = '%H:%M:%S'
 
         if loglevel < 10:  # 0 is NOTSET, giving no output
+            print('WARNING: from next version (1.14.10), loglevel of 0 will give no logging, please change to 10 for DEBUG')
             loglevel = 10
         logger.setLevel(loglevel)
         logger.handlers.clear()
@@ -935,7 +936,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             reader_landmask = reader_global_landmask.Reader()
             seed_state = np.random.get_state(
             )  # Do not alter current random number generator
-            o = OceanDrift()
+            o = OceanDrift(loglevel=logger.level)
             np.random.set_state(seed_state)
             if hasattr(self, 'simulation_extent'):
                 o.simulation_extent = self.simulation_extent
