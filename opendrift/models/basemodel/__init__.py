@@ -2660,7 +2660,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                   vmax=None,
                   drifter=None,
                   shapefiles=None,
-                  skip=None,
+                  skip='auto',
                   scale=None,
                   color=False,
                   clabel=None,
@@ -2895,6 +2895,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                vmax=vmax,
                                cmap=cmap,
                                transform=self.crs_lonlat)
+            if skip == 'auto':  # We use a suitable number of vectors
+                ny, nx = scalar.shape
+                skip = max(1, max(nx, ny) // 30)
+
             if type(background) is list:
                 bg_quiv = ax.quiver(map_x[::skip, ::skip],
                                     map_y[::skip, ::skip],
