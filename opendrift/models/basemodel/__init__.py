@@ -335,7 +335,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Set up logging
         logformat = '%(asctime)s %(levelname)-7s %(name)s:%(lineno)d: %(message)s'
         datefmt = '%H:%M:%S'
-
+        
         if loglevel < 10:  # 0 is NOTSET, giving no output
             print('WARNING: from next version (1.14.10), loglevel of 0 will give no logging, please change to 10 for DEBUG')
             loglevel = 10
@@ -1667,6 +1667,72 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         elements = self.ElementType(lon=lon, lat=lat, z=-z)
 
         self.schedule_elements(elements, time)
+    
+    @require_mode(mode=Mode.Ready)
+    def seed_from_dataset(self, ds, trajectory_time_index=-1, time=None, keep_properties=True, **kwargs):
+        """Seed elements from OpenDrift dataset
+
+         Arguments:
+            ds                      (DataArray)         :   DataArray from previous OpenDrift run. 
+            trajectory_time_index   (int)               :   Time index from which to continue OpenDrift run. 
+            time                    (datenum or list)   :   Time to initiate particles. If None, uses time from trajectory_time_index. 
+            keep_properties         (bool)              :   Keep element properties from DataArray. If False, overrides properties with new ones. 
+        """
+        ds = ds.isel(time=trajectory_time_index)
+
+        # get seed time
+        if time is None:
+            time = pd.to_datetime(ds.time.values)
+
+        # Dropping trajectories which had not been initiated at selected time, e.g. for continuous release.
+        ds = ds.where(ds.age_seconds >= 0, drop=True)
+        
+        logger.info('Using positions from dataset at time %s' % (str(time)))
+        
+        try:
+            file_class = ds.opendrift_class
+            current_class = self.__class__.__name__
+
+            # check if model is the same
+            if file_class != current_class:
+                logger.warning('Current model %s is not equal to model used in provided dataset %s' % (current_class, file_class))
+        except:
+            logger.warning('Could not find opendrift_class in provided dataset')
+
+        if keep_properties:
+            # Making dictionary with previous properties
+            prop_dict = {}
+            for key in self.elements.variables.keys():
+                #omitting lon and lat since these are provided anyways
+                if key == 'lon' or key == 'lat':
+                    pass
+                else:
+                    if key in ds:
+                        prop_dict[key] = ds[key].values
+            
+            logger.info('Seeding %i particles from dataset' %(len(ds.lon)))
+            logger.info('Using values from dataset for element properties: ')
+            logger.info('%s' % (str([key for key in prop_dict.keys()])))
+            self.seed_elements(ds.lon, ds.lat, time=time, **prop_dict)
+        
+        else:
+            logger.info('Using only lon, lat from provided dataset. Omitting particle properties from previous run')
+            self.seed_elements(ds.lon, ds.lat, time=time, **kwargs)
+
+
+    @require_mode(mode=Mode.Ready)
+    def seed_from_file(self, filename, trajectory_time_index=-1, time=None, keep_properties=True, **kwargs):
+        """Seed elements from OpenDrift output netCDF file
+        
+        Arguments:
+            filename                (str)               :   Name of netCDF file with particle positions.
+            trajectory_time_index   (int)               :   Time index from which to continue OpenDrift run. 
+            time                    (datenum or list)   :   Time to initiate particles. If None, uses time from trajectory_time_index. 
+            keep_properties         (bool)              :   Keep element properties from file. If False, overrides properties with new ones. 
+        """
+        logger.info('Seeding elements from previous run in %s' %(filename))
+        ds = xr.open_dataset(filename)
+        self.seed_from_dataset(ds, trajectory_time_index=trajectory_time_index, time=time, keep_properties=keep_properties, **kwargs)
 
     def horizontal_diffusion(self):
         """Move elements with random walk according to given horizontal diffuivity."""
