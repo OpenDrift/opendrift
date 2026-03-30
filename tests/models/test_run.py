@@ -634,7 +634,7 @@ class TestRun(unittest.TestCase):
                         density=1000, oil_type='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
         self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -137.0, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -134.7, 1)  # After some rising
 
     def test_seed_above_seafloor(self):
         o = OpenOil(loglevel=30)
@@ -655,7 +655,7 @@ class TestRun(unittest.TestCase):
                         density=1000, oil_type='AASGARD A 2003')
         o.run(steps=3, time_step=300, time_step_output=300)
         self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -97.3, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -38.3, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -30.9, 1)  # After some rising
 
     def test_seed_below_reader_coverage(self):
         o = OpenOil(loglevel=20)
@@ -693,7 +693,7 @@ class TestRun(unittest.TestCase):
                         density=1000, oil_type='GENERIC BUNKER C')
         o.run(steps=3, time_step=300, time_step_output=300)
         self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=0).values, -147.8, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -141.6, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=0).values, -140.2, 1)  # After some rising
 
     def test_seed_below_seafloor_deactivating(self):
         o = OpenOil(loglevel=50)
@@ -717,7 +717,7 @@ class TestRun(unittest.TestCase):
         self.assertEqual(o.num_elements_active(), 1)
         self.assertEqual(o.num_elements_deactivated(), 1)
         self.assertAlmostEqual(o.result.z.isel(time=0, trajectory=1).values, -100.0, 1)  # Seeded at seafloor depth
-        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=1).values, -56.7, 1)  # After some rising
+        self.assertAlmostEqual(o.result.z.isel(time=-1, trajectory=1).values, -46.9, 1)  # After some rising
 
     def test_lift_above_seafloor(self):
         # See an element at some depth, and progapate towards coast

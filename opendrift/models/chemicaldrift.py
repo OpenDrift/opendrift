@@ -24,6 +24,7 @@ The initial version is based on Radionuclides module by Magne Simonsen
 import numpy as np
 import logging; logger = logging.getLogger(__name__)
 
+from opendrift.models.physics_methods import seawater_dynamic_viscosity
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 from opendrift.config import CONFIG_LEVEL_ESSENTIAL, CONFIG_LEVEL_BASIC, CONFIG_LEVEL_ADVANCED
 import pyproj
@@ -1187,7 +1188,7 @@ class ChemicalDrift(OceanDrift):
         dr = DENSw-DENSpart  # density difference
 
         # water viscosity
-        my_w = 0.001*(1.7915 - 0.0538*T0 + 0.007*(T0**(2.0)) - 0.0023*S0)
+        my_w = seawater_dynamic_viscosity(T0, S0)
         # ~0.0014 kg m-1 s-1
 
         # terminal velocity for low Reynolds numbers

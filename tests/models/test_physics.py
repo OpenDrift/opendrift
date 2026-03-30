@@ -28,11 +28,24 @@ import trajan
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.openoil import OpenOil
-from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983
+from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, seawater_dynamic_viscosity
 
 
 class TestPhysics(unittest.TestCase):
     """Tests for some physical parameterisations"""
+
+    #def test_seawater_viscosity(self):
+    #    temperatures = np.linspace(-1, 25)
+    #    salinities = [0, 30, 36]
+    #    import matplotlib.pyplot as plt
+    #    fig, ax = plt.subplots()
+    #    for S, color in zip(salinities, ['r', 'b', 'y']):
+    #        for model, lstyle in zip(['ladim', 'sharqawy'], ['-', '--']):
+    #            visc = seawater_dynamic_viscosity(temperatures, S, model=model)
+    #            ax.plot(temperatures, visc, linestyle=lstyle, color=color,
+    #                    label=f'{model}, Salinity {S} PSU')
+    #    plt.legend()
+    #    plt.show()
 
     def test_vertical_diffusivity(self):
         windspeeds = np.arange(0, 20, 5)
@@ -200,11 +213,11 @@ class TestPhysics(unittest.TestCase):
             o.run(duration=timedelta(hours=2), time_step=900)
 
             if scheme == 'environment':  # presently this is fallback
-                self.assertAlmostEqual(o.elements.z.min(), -48.9, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -47.8, 1)
             elif scheme == 'windspeed_Large1994':
-                self.assertAlmostEqual(o.elements.z.min(), -48.9, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -47.8, 1)
             elif scheme == 'windspeed_Sundby1983':
-                self.assertAlmostEqual(o.elements.z.min(), -51.75, 1)
+                self.assertAlmostEqual(o.elements.z.min(), -51.68, 1)
             elif scheme == 'constant':
                 self.assertAlmostEqual(o.elements.z.min(), -3.57, 1)
 

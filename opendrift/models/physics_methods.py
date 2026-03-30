@@ -136,6 +136,47 @@ def oil_wave_entrainment_rate_li2017(dynamic_viscosity, oil_density, interfacial
         entrainment_rate = (4.604e-10*we**1.805*oh**-1.023)*wave_breaking_fraction
     return entrainment_rate
 
+def seawater_dynamic_viscosity(T, S, model='sharqawy'):
+    if model == 'ladim':
+        return seawater_dynamic_viscosity_ladim(T, S)
+    elif model == 'sharqawy':
+        return seawater_dynamic_viscosity_sharqawy(T, S)
+    else:
+        raise ValueError(f'Model {model} not available')
+
+def seawater_dynamic_viscosity_ladim(T, S):
+    """
+    Dynamic viscosity of seawater (Pa·s).
+    T: temperature in degrees C
+    S: salinity in g/kg (PSU)
+
+    From Ladim code
+    """
+
+    return 0.001 * (1.7915 - 0.0538 * T +
+                    0.0007 * (T ** (2.0)) + 0.0023 * S)
+
+def seawater_dynamic_viscosity_sharqawy(T, S):
+    """
+    Dynamic viscosity of seawater (Pa·s).
+    T: temperature in degrees C
+    S: salinity in g/kg (PSU)
+
+    Sharqawy et al. (2010), Desalination and Water Treatment
+    Valid: 0-180°C, 0-150 g/kg
+    """
+
+    # Pure water viscosity
+    mu_w = (4.2844e-5 +
+            1.0 / (0.157 * (T + 64.993)**2 - 91.296))
+
+    # Salinity correction
+    A = 1.541 + 1.998e-2*T - 9.52e-5*T**2
+    B = 7.974 - 7.561e-2*T + 4.724e-4*T**2
+    mu = mu_w * (1 + A*(S/1000) + B*(S/1000)**2)
+
+    return mu
+
 def significant_wave_height_from_wind_neumann_pierson(wind_speed):
     # Neumann and Pierson, 1966
     # WMO 1998
