@@ -1683,6 +1683,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # get seed time
         if time is None:
             time = pd.to_datetime(ds.time.values)
+
+        # Dropping trajectories which had not been initiated at selected time, e.g. for continuous release.
+        ds = ds.where(ds.age_seconds >= 0, drop=True)
         
         logger.info('Using positions from dataset at time %s' % (str(time)))
         
