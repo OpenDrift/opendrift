@@ -23,6 +23,7 @@ _available_models = \
     ['leeway.Leeway',
      'openoil.OpenOil',
      'larvalfish.LarvalFish',
+     'larvalfish_extended.LarvalFishExtended',
      'plastdrift.PlastDrift',
      'shipdrift.ShipDrift',
      'openberg.OpenBerg']
