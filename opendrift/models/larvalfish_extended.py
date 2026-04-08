@@ -32,27 +32,13 @@ class LarvalFishExtendedElement(Lagrangian3DArray):
     """
 
     variables = Lagrangian3DArray.add_variables([
-        ('diameter', {'dtype': np.float32,
-                      'units': 'm',
-                      'default': 0.0014}),  # for NEA Cod
-        ('neutral_buoyancy_salinity', {'dtype': np.float32,
-                                       'units': 'PSU',
-                                       'default': 31.25}),  # for NEA Cod
         ('stage_fraction', {'dtype': np.float32,  # to track percentage of development time completed
                             'units': '',
                             'default': 0.}),
         ('hatched', {'dtype': np.uint8,  # 0 for eggs, 1 for larvae
                      'units': '',
                      'default': 0}),
-        ('length', {'dtype': np.float32,
-                    'units': 'mm',
-                    'default': 0}),
-        ('weight', {'dtype': np.float32,
-                    'units': 'mg',
-                    'default': 0.08}),
-        ('survival', {'dtype': np.float32,  # Not yet used
-                      'units': '',
-                      'default': 1.})])
+        ])
 
 
 class LarvalFishExtended(OceanDrift):
