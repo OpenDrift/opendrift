@@ -32,6 +32,7 @@ from opendrift.models.openoil import OpenOil
 from opendrift.models.windblow import WindBlow
 from opendrift.models.shipdrift import ShipDrift
 from opendrift.models.larvalfish import LarvalFish
+from opendrift.models.larvalfish_extended import LarvalFishExtended
 
 import opendrift
 print(opendrift.versions())
@@ -152,6 +153,10 @@ class TestModels(unittest.TestCase):
 
     def test_larvalfish(self):
         o = LarvalFish()
+        # Tests to be added
+
+    def test_larvalfishextended(self):
+        o = LarvalFishExtended()
         # Tests to be added
 
 if __name__ == '__main__':
