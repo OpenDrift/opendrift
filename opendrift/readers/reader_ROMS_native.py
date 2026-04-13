@@ -89,6 +89,7 @@ class Reader(BaseReader, StructuredReader):
         self.sea_floor_depth_below_sea_level = None
         self.z_rho_tot = None
         self.s2z_A = None
+		self.only_surface_fields = False
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -190,6 +191,7 @@ class Reader(BaseReader, StructuredReader):
 
         if 's_rho' not in self.Dataset.variables:
             dimensions = 2
+			self.only_surface_fields = True
         else:
             dimensions = 3
 
@@ -499,74 +501,75 @@ class Reader(BaseReader, StructuredReader):
         elif self.mask_rho.ndim == 3:
             imask = itxy
 
-        # Find depth levels covering all elements
-        if z.min() == 0 or self.hc is None:
-            indz = self.num_layers - 1  # surface layer
-            variables['z'] = 0
+		if not self.only_surface_fields:
+	        # Find depth levels covering all elements
+	        if z.min() == 0 or self.hc is None:
+	            indz = self.num_layers - 1  # surface layer
+	            variables['z'] = 0
 
-        else:
-            # Find the range of indices covering given z-values
-            if self.sea_floor_depth_below_sea_level is None:
-                logger.debug('Reading sea floor depth...')
-                self.sea_floor_depth_below_sea_level = \
-                    self.Dataset.variables['h'][:]
+	        else:
+	            # Find the range of indices covering given z-values
+	            if self.sea_floor_depth_below_sea_level is None:
+	                logger.debug('Reading sea floor depth...')
+	                self.sea_floor_depth_below_sea_level = \
+	                    self.Dataset.variables['h'][:]
+	
+	            if self.z_rho_tot is None:
+	                Htot = self.sea_floor_depth_below_sea_level
+	                zeta = self.zeta[indxTime]
+	                self.z_rho_tot = depth.sdepth(Htot, zeta, self.hc, self.Cs_r,
+	                                              Vtransform=self.Vtransform,
+						      Vstretching=self.Vstretching)
+	                # z_rho is positive relative to mean sea level but z is
+	                # 0 at the surface.
+	                # Transform z_rho to match convention of z.
+	                self.z_rho_tot -= np.asarray(zeta)[np.newaxis]
+	
+	            H = self.sea_floor_depth_below_sea_level[indy, indx]
+	            zeta = self.zeta[itxy]
+	            z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
+	                                 Vtransform=self.Vtransform,
+					 Vstretching=self.Vstretching)
 
-            if self.z_rho_tot is None:
-                Htot = self.sea_floor_depth_below_sea_level
-                zeta = self.zeta[indxTime]
-                self.z_rho_tot = depth.sdepth(Htot, zeta, self.hc, self.Cs_r,
-                                              Vtransform=self.Vtransform,
-					      Vstretching=self.Vstretching)
-                # z_rho is positive relative to mean sea level but z is
-                # 0 at the surface.
-                # Transform z_rho to match convention of z.
-                self.z_rho_tot -= np.asarray(zeta)[np.newaxis]
+	            # z_rho is positive relative to mean sea level but z is
+	            # 0 at the surface.
+	            # Transform z_rho to match convention of z.
+	            z_rho -= np.asarray(zeta)[np.newaxis]
+	
+	            # Check for positive values in z_rho
+	            # if there are any, nan them out since they are above
+	            # the surface and therefore the cell is dry
+	            # this should only come up for wet/dry simulations
+	            if (np.nanmax(z_rho) > 0).any():
+	                logger.info(f'z_rho had positive values that are now nans.')
+	                z_rho[z_rho>0] = np.nan
 
-            H = self.sea_floor_depth_below_sea_level[indy, indx]
-            zeta = self.zeta[itxy]
-            z_rho = depth.sdepth(H, zeta, self.hc, self.Cs_r,
-                                 Vtransform=self.Vtransform,
-				 Vstretching=self.Vstretching)
-
-            # z_rho is positive relative to mean sea level but z is
-            # 0 at the surface.
-            # Transform z_rho to match convention of z.
-            z_rho -= np.asarray(zeta)[np.newaxis]
-
-            # Check for positive values in z_rho
-            # if there are any, nan them out since they are above
-            # the surface and therefore the cell is dry
-            # this should only come up for wet/dry simulations
-            if (np.nanmax(z_rho) > 0).any():
-                logger.info(f'z_rho had positive values that are now nans.')
-                z_rho[z_rho>0] = np.nan
-
-            # Element indices must be relative to extracted subset
-            indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
-            indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
-
-            # Loop to find the layers covering the requested z-values
-            indz_min = 0
-            indz_max = self.num_layers
-            for i in range(self.num_layers):
-                if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
-                    indz_min = i
-                if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
-                    indz_max = i
-            indz = range(np.maximum(0, indz_min-self.verticalbuffer),
-                         np.minimum(self.num_layers,
-                                    indz_max + 1 + self.verticalbuffer))
-            z_rho = z_rho[indz, :, :]
-            # Determine the z-levels to which to interpolate
-            zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
-                                            -z.max()) - self.verticalbuffer)
-            zi2 = np.minimum(len(self.zlevels),
-                             bisect_right(-np.array(self.zlevels),
-                                          -z.min()) + self.verticalbuffer)
-            variables['z'] = np.array(self.zlevels[zi1:zi2])
+	            # Element indices must be relative to extracted subset
+	            indx_el = np.clip(indx_el - indx.min(), 0, z_rho.shape[2]-1)
+	            indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
+	
+	            # Loop to find the layers covering the requested z-values
+	            indz_min = 0
+	            indz_max = self.num_layers
+	            for i in range(self.num_layers):
+	                if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
+	                    indz_min = i
+	                if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
+	                    indz_max = i
+	            indz = range(np.maximum(0, indz_min-self.verticalbuffer),
+	                         np.minimum(self.num_layers,
+	                                    indz_max + 1 + self.verticalbuffer))
+	            z_rho = z_rho[indz, :, :]
+	            # Determine the z-levels to which to interpolate
+	            zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
+	                                            -z.max()) - self.verticalbuffer)
+	            zi2 = np.minimum(len(self.zlevels),
+	                             bisect_right(-np.array(self.zlevels),
+	                                          -z.min()) + self.verticalbuffer)
+	            variables['z'] = np.array(self.zlevels[zi1:zi2])
         
-        # define another set of indices
-        itzxy = (indxTime, indz, indy, indx)
+	        # define another set of indices
+	        itzxy = (indxTime, indz, indy, indx)
             
         def get_mask(mask_name, imask, masks_store):
             if mask_name in masks_store:
