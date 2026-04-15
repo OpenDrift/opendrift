@@ -1610,6 +1610,8 @@ class OpenOil(OceanDrift):
                         self.add_metadata('seed_time', val)
                 elif isinstance(val, str):
                     self.add_metadata('seed_' + s, val)
+                elif val is None and s in ('lat', 'lon'):
+                    pass
                 else:
                     self.add_metadata('seed_' + s, np.atleast_1d(val).mean())
         if not 'seed_oiltype' in self.metadata_dict:
