@@ -1611,6 +1611,9 @@ class OpenOil(OceanDrift):
                 elif isinstance(val, str):
                     self.add_metadata('seed_' + s, val)
                 elif val is None:
+                    logger.debug(
+                        f'Skip seed metadata for None value with variable: {s}'
+                    )
                     pass
                 else:
                     self.add_metadata('seed_' + s, np.atleast_1d(val).mean())
