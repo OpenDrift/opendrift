@@ -89,21 +89,28 @@ def open_dataset_opendrift(source, zarr_storage_options=None, open_mfdataset_opt
 def add_standard_name_for_surface_grib_variables(ds):
     """Try to identify surface variables from GRIB datasets
        and add standard_name attribute"""
-    mapping = {
+    GRIB_parameters = {
         'wind_speed': {'Grib2_Parameter': np.array([0, 2, 1])},
         'x_wind': {'Grib2_Parameter': np.array([0, 2, 2])},
         'y_wind': {'Grib2_Parameter': np.array([0, 2, 3])},
         }
+    surface_variables = {'u10': 'x_wind', 'v10': 'y_wind'}
 
     for var_name, var in ds.data_vars.items():
         if any(forbidden.lower() in var_name.lower() for forbidden in ('percentile', 'pctl')):
             logger.debug(f'Skipping percentile variable {var_name}')
             continue
-        if 'standard_name' in var.attrs:
+        if 'standard_name' in var.attrs and var.attrs['standard_name'] != 'unknown':
             continue
+        if var_name in surface_variables:
+            standard_name = surface_variables[var_name]
+            logger.debug(f'Selecting GRIB variable {var_name} at 10m height and adding standard_name {standard_name}')
+            ds[var_name].attrs['standard_name'] = standard_name
+            continue
+
         if var.attrs.get('Grib2_Level_Type', None) != 103:
             continue  # Not surface variable
-        for standard_name, maps in mapping.items():
+        for standard_name, maps in GRIB_parameters.items():
             if isinstance(maps, dict):
                 maps = [maps]
             if any(
