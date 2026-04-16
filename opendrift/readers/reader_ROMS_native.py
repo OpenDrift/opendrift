@@ -89,6 +89,7 @@ class Reader(BaseReader, StructuredReader):
         self.sea_floor_depth_below_sea_level = None
         self.z_rho_tot = None
         self.s2z_A = None
+        self.hc = None
 
         if filename is None:
             raise ValueError('Need filename as argument to constructor')
@@ -221,16 +222,9 @@ class Reader(BaseReader, StructuredReader):
                 self.Cs_r = self.Dataset.variables[csr][:]
 
             try:
+                self.hc = self.Dataset.variables['hc'].values
+            except AttributeError:
                 self.hc = self.Dataset.variables['hc'][:]
-            except:
-                try:
-                    self.hc = self.Dataset.variables['hc'].data  # scalar
-                except:
-                    self.hc = None
-            try:
-                self.hc = self.hc.values
-            except:
-                pass
 
             self.num_layers = len(self.sigma)
         else:
