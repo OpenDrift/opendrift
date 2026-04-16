@@ -91,10 +91,10 @@ def add_standard_name_for_surface_grib_variables(ds):
        and add standard_name attribute"""
     GRIB_parameters = {
         'wind_speed': {'Grib2_Parameter': np.array([0, 2, 1])},
-        'x_wind': {'Grib2_Parameter': np.array([0, 2, 2])},
-        'y_wind': {'Grib2_Parameter': np.array([0, 2, 3])},
+        'eastward_wind': {'Grib2_Parameter': np.array([0, 2, 2])},
+        'northward_wind': {'Grib2_Parameter': np.array([0, 2, 3])},
         }
-    surface_variables = {'u10': 'x_wind', 'v10': 'y_wind'}
+    surface_variables = {'u10': 'eastward_wind', 'v10': 'northward_wind'}
 
     for var_name, var in ds.data_vars.items():
         if any(forbidden.lower() in var_name.lower() for forbidden in ('percentile', 'pctl')):
