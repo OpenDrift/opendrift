@@ -413,8 +413,10 @@ class Reader(StructuredReader, BaseReader):
 
         if hasattr(self, 'z') and (z is not None):
             # Find z-index range
-            # NB: may need to flip if self.z is ascending
-            indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
+            if self.z[0] > self.z[-1]:  # descending
+                indices = np.searchsorted(-self.z, [-z.min(), -z.max()])
+            else:  # ascending
+                indices = np.searchsorted(self.z, [z.min(), z.max()])
             indz = np.arange(np.maximum(0, indices.min() - 1 -
                                         self.verticalbuffer),
                              np.minimum(len(self.z), indices.max() + 1 +
