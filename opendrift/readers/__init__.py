@@ -20,8 +20,11 @@ The `ContinuousReader` is suited for data that can be defined at any point withi
     See :class:`.basereader.BaseReader` for how readers work internally.
 """
 
+import os
 from datetime import datetime, timedelta
+import pkgutil
 import importlib
+from urllib.parse import urlparse, parse_qsl
 import logging; logger = logging.getLogger(__name__)
 import glob
 import json
@@ -152,6 +155,24 @@ def open_mfdataset_overlap(url_base, time_series=None, start_time=None, end_time
                    compat='override', combine_attrs='override', join='override', coords='minimal', data_vars='minimal')
     return ds
 
+def all_readers():
+    '''Return a list of all readers in subpackage opendrift.readers'''
+    # Import the sub-package
+    subpackage_name = 'opendrift.readers'
+    subpackage = importlib.import_module(subpackage_name)
+
+    # Get the path of the sub-package
+    package_path = subpackage.__path__
+
+    # List all modules in the sub-package
+    modules = []
+    for _, module_name, is_pkg in pkgutil.iter_modules(package_path):
+        if module_name.startswith('reader_'):
+            #full_module_name = f"{subpackage_name}.{module_name}"
+            modules.append(module_name)
+
+    return modules
+
 def applicable_readers(url):
     '''Return a list of readers that are possible candidates for a given URL, filename or product ID'''
 
@@ -168,35 +189,87 @@ def applicable_readers(url):
         except :
             return []
 
-def reader_from_url(url, timeout=10):
-    '''Make readers from URLs or paths to datasets'''
+#def reader_from_url(url, timeout=10):
+#    '''Make readers from URLs or paths to datasets'''
+#
+#    if isinstance(url, list):
+#        return [reader_from_url(u) for u in url]
+#
+#    try:  # Initialise reader from JSON string
+#        j = json.loads(url)
+#        try:
+#            reader_module = importlib.import_module(
+#                    'opendrift.readers.' + j['reader'])
+#            reader = getattr(reader_module, 'Reader')
+#            del j['reader']
+#            reader = reader(**j)
+#            return reader
+#        except Exception as e:
+#            logger.warning('Creating reader from JSON failed:')
+#            logger.warning(e)
+#    except:
+#        pass
+#
+#    reader_modules = applicable_readers(url)
+#
+#    for reader_module in reader_modules:
+#        try:
+#            logger.debug(f'Testing reader {reader_module}')
+#            r = reader_module.Reader(url)
+#            return r
+#        except Exception as e:
+#            logger.debug('Could not open %s with %s' % (url, reader_module))
+#
+#    return None  # No readers worked
 
-    if isinstance(url, list):
-        return [reader_from_url(u) for u in url]
+def reader_from_urlpath(urlpath):
 
-    try:  # Initialise reader from JSON string
-        j = json.loads(url)
+    if isinstance(urlpath, list):
+        return [reader_from_urlpath(u) for u in urlpath]
+
+    available_readers = all_readers()
+    
+    parsed = urlparse(urlpath.strip())
+
+    if len(parsed.path.split('://')) > 1:
+        requested_reader = parsed.path.split('://')[0]
+        path = parsed.path.split('://')[1]
+    else:
+        requested_reader = None
+        path = parsed.path
+
+    query = parse_qsl(parsed.query)
+    if len(query) == 0:
+        options = {}
+    else:
+        options = dict(query)
+
+    if requested_reader is not None:
         try:
-            reader_module = importlib.import_module(
-                    'opendrift.readers.' + j['reader'])
-            reader = getattr(reader_module, 'Reader')
-            del j['reader']
-            reader = reader(**j)
-            return reader
-        except Exception as e:
-            logger.warning('Creating reader from JSON failed:')
-            logger.warning(e)
-    except:
-        pass
+            reader_module = importlib.import_module(f'opendrift.readers.{requested_reader}')
+        except:
+            logger.debug(f'Cannot import reader {requested_reader}')
+            return None
 
-    reader_modules = applicable_readers(url)
+        if path == '':
+            reader = reader_module.Reader(**options)
+        else:
+            reader = reader_module.Reader(path, **options)
+        return reader
 
-    for reader_module in reader_modules:
-        try:
-            logger.debug(f'Testing reader {reader_module}')
-            r = reader_module.Reader(url)
-            return r
-        except Exception as e:
-            logger.debug('Could not open %s with %s' % (url, reader_module))
+    if os.path.exists(urlpath) or path != '':  # URL or filename, no reader specified
+        # We try different readers, returning first successful
+        reader_modules = applicable_readers(path)
 
-    return None  # No readers worked
+        for reader_module in reader_modules:
+            try:
+                logger.debug(f'Testing reader {reader_module}')
+                reader = reader_module.Reader(path)
+                return reader
+            except Exception as e:
+                logger.debug('Could not open %s with %s' % (urlpath, reader_module))
+
+        return None  # No readers worked
+
+
+
