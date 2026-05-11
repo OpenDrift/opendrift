@@ -259,12 +259,12 @@ def reader_from_urlpath(urlpath):
 
     if os.path.exists(urlpath) or path != '':  # URL or filename, no reader specified
         # We try different readers, returning first successful
-        reader_modules = applicable_readers(path)
+        reader_modules = applicable_readers(urlpath)
 
         for reader_module in reader_modules:
             try:
                 logger.debug(f'Testing reader {reader_module}')
-                reader = reader_module.Reader(path)
+                reader = reader_module.Reader(urlpath)
                 return reader
             except Exception as e:
                 logger.debug('Could not open %s with %s' % (urlpath, reader_module))
