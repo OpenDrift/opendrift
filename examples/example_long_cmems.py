@@ -28,7 +28,7 @@ lon = 123; lat = -16.3  # Australia
 
 o = OceanDrift()
 
-o.add_readers_from_list(['cmems_mod_glo_phy_anfc_merged-uv_PT1H-i'])
+o.add_readers_from_list(['reader_copernicusmarine://cmems_mod_glo_phy_anfc_merged-uv_PT1H-i'])
 
 o.seed_elements(lon=lon, lat=lat, number=5000, radius=1000, time=datetime.utcnow())
 o.run(duration=timedelta(days=3))
