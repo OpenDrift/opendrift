@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class Reader(Reader_CF_generic):
     '''A wrapper around reader_netCDF_CF_generic for CMEMS datasets'''
 
-    def __init__(self, dataset_id, username=None, password=None, cache_dir=None):
+    def __init__(self, dataset_id, username=None, password=None):
 
         try:
             import copernicusmarine

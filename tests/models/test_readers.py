@@ -31,7 +31,7 @@ from opendrift.readers import reader_ROMS_native
 from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_constant
 from opendrift.readers import reader_lazy
-from opendrift.readers import reader_from_url
+from opendrift.readers import reader_from_urlpath
 from opendrift.models.pelagicegg import PelagicEggDrift
 from opendrift.readers import reader_current_from_track
 from opendrift.errors import OutsideSpatialCoverageError, WrongMode
@@ -78,8 +78,8 @@ class TestReaders(unittest.TestCase):
                          [tdf +
             '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc'])
 
-    def test_reader_from_url(self):
-        readers = reader_from_url(reader_list)
+    def test_reader_from_urlpath(self):
+        readers = reader_from_urlpath(reader_list)
         self.assertIsNone(readers[0])
         self.assertTrue(isinstance(readers[1],
                                    reader_ROMS_native.Reader))

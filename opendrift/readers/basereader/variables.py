@@ -171,6 +171,7 @@ class ReaderDomain(Timeable):
         """String representation of the current reader."""
         outStr = '===========================\n'
         outStr += 'Reader: ' + self.name + '\n'
+        outStr += 'Reader type: ' + self.__class__.__module__ + '\n'
         outStr += 'Projection: \n  ' + self.proj4 + '\n'
         outStr += 'Coverage: [%s]\n' % self._coverage_unit_()
         shape = self.shape
