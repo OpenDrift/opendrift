@@ -1094,6 +1094,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         lat = np.atleast_1d(lat).ravel()
         radius = np.atleast_1d(radius).ravel()
         time = np.atleast_1d(time)
+        time = pd.to_datetime(time).to_pydatetime()
 
         if lat.max() > 90 or lat.min() < -90:
             raise ValueError('Latitude must be between -90 and 90 degrees')
