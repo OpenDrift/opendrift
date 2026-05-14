@@ -90,6 +90,7 @@ def open(filename):
 def versions():
     def version(package):
         try:
+            from importlib.metadata import version
             return importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             return "N/A"
