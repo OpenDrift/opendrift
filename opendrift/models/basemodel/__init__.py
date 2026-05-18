@@ -37,6 +37,7 @@ from typing import Union, List
 import traceback
 import inspect
 import psutil
+from importlib.resources import files
 
 from opendrift.models.basemodel.environment import Environment
 from opendrift.readers import reader_global_landmask
@@ -621,6 +622,13 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def add_readers_from_file(self, *args, **kwargs):
         '''Make readers from a file containing list of URLs or paths to netCDF datasets'''
         self.env.add_readers_from_file(*args, **kwargs)
+
+    def default_readers(self):
+        '''Return list of default readers from opendrift.scripts.data_sources.txt'''
+        with open(files('opendrift.scripts').joinpath('data_sources.txt')) as fd:
+            default_readers = fd.readlines()
+        default_readers = [r.strip() for r in default_readers if not r.startswith('#')]
+        return default_readers
 
     # To be overloaded by sublasses, but this parent method must be called
     def prepare_run(self):
