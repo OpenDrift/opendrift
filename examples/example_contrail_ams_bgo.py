@@ -4,11 +4,13 @@ AMS → BGO contrail drift with NOAA GFS
 =======================================
 
 Contrail segments are seeded continuously along a flight from Amsterdam
-Schiphol (AMS) to Bergen Airport Flesland (BGO) at **5 km altitude**.
+Schiphol (AMS) to Bergen Airport Flesland (BGO) at **10 km altitude**.
 Wind and temperature are taken from the NOAA GFS forecast (UCAR Thredds
 OPeNDAP). Because GFS stores data on pressure levels, the isobaric level
-nearest to 5 km (~550 hPa) is pre-selected with xarray before handing
+nearest to 10 km (~250 hPa) is pre-selected with xarray before handing
 the 2-D field to the OpenDrift reader. A ✈ icon follows the flight route.
+Elements where the Schmidt-Appleman Criterion (SAC) is not met are shown
+in orange; sublimated elements are shown in gray.
 """
 
 import numpy as np
@@ -22,20 +24,20 @@ from opendrift.models.contrail import ContrailDrift
 # ── Flight parameters ─────────────────────────────────────────────────────────
 LON_AMS, LAT_AMS = 4.76,  52.31   # Amsterdam Schiphol (AMS)
 LON_BGN, LAT_BGN = 5.22,  60.29   # Bergen Airport Flesland (BGO)
-ALTITUDE_M       = 5_000           # 5 km ≈ 550 hPa
+ALTITUDE_M       = 10_000          # 10 km ≈ 250 hPa
 # Use current UTC time so the GFS Best dataset is always valid
 T_DEPART  = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
 FLIGHT_DUR = timedelta(minutes=90)
 
-# ── Load NOAA GFS at 5 km from UCAR Thredds OPeNDAP ──────────────────────────
+# ── Load NOAA GFS at 10 km from UCAR Thredds OPeNDAP ─────────────────────────
 # The GFS "Best" dataset always reflects the most recent available forecast.
 # Wind and temperature are stored on isobaric (pressure) levels in Pa.
-# We pre-select the level closest to 5 km so the reader sees a simple
+# We pre-select the level closest to 10 km so the reader sees a simple
 # 2-D (time × lat × lon) field without a vertical dimension.
 GFS_URL = ('https://thredds.ucar.edu/thredds/dodsC/'
            'grib/NCEP/GFS/Global_0p25deg/Best')
 
-# ISA pressure at 5 km: p = 101325 * (1 - 2.2557e-5 * z)^5.2559 ≈ 54 050 Pa
+# ISA pressure at 10 km: p = 101325 * (1 - 2.2557e-5 * z)^5.2559 ≈ 26 500 Pa
 _isa_pa = 101325.0 * (1.0 - 2.2557e-5 * ALTITUDE_M) ** 5.2559
 
 print(f'Opening GFS dataset: {GFS_URL}')
@@ -99,8 +101,8 @@ c.add_reader(reader_gfs)
 # Fallback values for variables not provided by this GFS level
 c.set_config('environment:fallback:specific_humidity',      2e-4)   # kg kg-1
 c.set_config('environment:fallback:horizontal_diffusivity',   50)   # m2 s-1
-# At 5 km the air is typically subsaturated → contrails are short-lived
-c.set_config('contrail:sublimation_timescale', 1800)   # 30-min timescale [s]
+# At 10 km the air is cold and often ice-supersaturated → longer-lived contrails
+c.set_config('contrail:sublimation_timescale', 3600)   # 60-min timescale [s]
 
 # ── Seed contrail segments continuously along the flight path ─────────────────
 fracs      = np.linspace(0, 1, N_SEEDS)
@@ -180,7 +182,7 @@ n_times = lons_t.shape[1]
 def animate(i):
     t_str = str(np.datetime_as_string(out_times[i], unit='m')).replace('T', ' ')
     title_obj.set_text(f'AMS \u2192 BGO  \u2502  {t_str} UTC\n'
-                       f'Contrail drift at 5 km (NOAA GFS wind)')
+                       f'Contrail drift at 10 km (NOAA GFS wind)')
 
     # Active particles: not NaN at this time step
     active = ~np.isnan(lons_t[:, i])
@@ -224,4 +226,4 @@ ani.save('example_contrail_ams_bgo.gif', writer='pillow', fps=6,
 # Static plot of all trajectories
 c.plot(fast=True, ocean_color='aliceblue', land_color='wheat',
        corners=corners, show_elements=True,
-       title='AMS → BGO contrail drift at 5 km – NOAA GFS')
+       title='AMS → BGO contrail drift at 10 km – NOAA GFS')

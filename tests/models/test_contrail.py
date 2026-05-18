@@ -234,3 +234,74 @@ def test_saturation_pressure_increases_with_temperature():
     T = np.array([200., 220., 240., 260.])
     e = ContrailDrift._saturation_pressure_over_ice(T)
     assert np.all(np.diff(e) > 0), 'e_sat should increase with temperature'
+
+
+# ------------------------------------------------------------------ #
+# Schmidt-Appleman Criterion                                           #
+# ------------------------------------------------------------------ #
+
+def test_sac_critical_temperature_physical_range():
+    """T_SAC at 10 km (~26 500 Pa) should be ~230 K (physically reasonable)."""
+    # Mixing-line slope at 10 km with default parameters
+    eta, EI_H2O, Q = 0.30, 1.25, 43.2e6
+    p = 101325.0 * (1.0 - 2.2557e-5 * 10_000) ** 5.2559  # ≈ 26 500 Pa
+    G = 1004.0 * p * EI_H2O / (0.622 * Q * (1.0 - eta))
+    T_SAC = ContrailDrift._sac_critical_temperature(np.array([G]))
+    # T_SAC should be around 226-238 K for typical cruise conditions
+    assert 220.0 <= T_SAC[0] <= 245.0, f'T_SAC={T_SAC[0]:.1f} K out of range'
+
+
+def test_sac_critical_temperature_increases_with_pressure():
+    """Higher pressure → larger G → higher T_SAC → contrails harder to form."""
+    G_low  = 1004.0 * 20_000.0 * 1.25 / (0.622 * 43.2e6 * 0.7)
+    G_high = 1004.0 * 50_000.0 * 1.25 / (0.622 * 43.2e6 * 0.7)
+    T_low  = ContrailDrift._sac_critical_temperature(np.array([G_low]))
+    T_high = ContrailDrift._sac_critical_temperature(np.array([G_high]))
+    assert T_high[0] > T_low[0], 'T_SAC should increase with pressure/G'
+
+
+def test_sac_deactivates_warm_elements():
+    """Elements in warm air (T > T_SAC) should be deactivated with 'no_contrail'."""
+    c = ContrailDrift(loglevel=50)
+    # Warm air: at 5 km, G is large and T_SAC ≈ 245 K; 270 K >> T_SAC
+    c.set_config('environment:constant:x_wind', 0)
+    c.set_config('environment:constant:y_wind', 0)
+    c.set_config('environment:constant:air_temperature', 270)   # very warm
+    c.set_config('environment:constant:specific_humidity', 1e-5)
+    c.set_config('environment:constant:horizontal_diffusivity', 0)
+    c.seed_elements(
+        lon=np.linspace(0, 5, 10),
+        lat=np.full(10, 50.),
+        z=5_000,    # 5 km – T_SAC ≈ 245 K < 270 K → no contrails
+        time=datetime(2024, 1, 1),
+        ice_water_path=1e-4)
+    # All elements deactivate on the first step → OpenDrift raises ValueError
+    with pytest.raises(ValueError, match='stopped'):
+        c.run(duration=timedelta(minutes=5), time_step=60)
+
+    assert c.num_elements_active() == 0, (
+        'All elements should be deactivated: T=270 K > T_SAC at 5 km')
+    assert 'no_contrail' in c.status_categories
+
+
+def test_sac_keeps_cold_elements():
+    """Elements in cold air (T < T_SAC) should NOT be deactivated by SAC."""
+    c = ContrailDrift(loglevel=50)
+    # Cold air: typical 10 km temperature ≈ 220 K; T_SAC ≈ 232 K → 220 K < T_SAC
+    c.set_config('environment:constant:x_wind', 0)
+    c.set_config('environment:constant:y_wind', 0)
+    c.set_config('environment:constant:air_temperature', 215)   # well below T_SAC
+    # Saturated w.r.t. ice so no sublimation: q ≈ 2e-5 at 215 K, 26 500 Pa
+    c.set_config('environment:constant:specific_humidity', 2e-5)
+    c.set_config('environment:constant:horizontal_diffusivity', 0)
+    c.seed_elements(
+        lon=np.linspace(0, 5, 10),
+        lat=np.full(10, 50.),
+        z=10_000,   # 10 km – T_SAC ≈ 232 K > 215 K → contrails persist
+        time=datetime(2024, 1, 1),
+        ice_water_path=1e-4)
+    c.run(duration=timedelta(minutes=10), time_step=60)
+
+    # At least some elements should remain active (SAC satisfied)
+    assert c.num_elements_active() > 0, (
+        'Elements should survive SAC check when T < T_SAC')
