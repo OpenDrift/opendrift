@@ -1,45 +1,106 @@
 #!/usr/bin/env python
 """
-AMS → BGO contrail drift
-========================
+AMS → BGO contrail drift with NOAA GFS
+=======================================
 
 Contrail segments are seeded continuously along a flight from Amsterdam
-Schiphol (AMS) to Bergen Airport Flesland (BGO) at cruise altitude
-(10 500 m). The segments then drift eastward on the upper-tropospheric
-jet stream and slowly sublimate. A ✈ icon follows the flight route.
+Schiphol (AMS) to Bergen Airport Flesland (BGO) at **5 km altitude**.
+Wind and temperature are taken from the NOAA GFS forecast (UCAR Thredds
+OPeNDAP). Because GFS stores data on pressure levels, the isobaric level
+nearest to 5 km (~550 hPa) is pre-selected with xarray before handing
+the 2-D field to the OpenDrift reader. A ✈ icon follows the flight route.
 """
 
 import numpy as np
 from datetime import datetime, timedelta
-import matplotlib
+import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.animation as mplanim
+from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.contrail import ContrailDrift
 
 # ── Flight parameters ─────────────────────────────────────────────────────────
 LON_AMS, LAT_AMS = 4.76,  52.31   # Amsterdam Schiphol (AMS)
 LON_BGN, LAT_BGN = 5.22,  60.29   # Bergen Airport Flesland (BGO)
-CRUISE_ALT_M     = 10_500          # cruise altitude [m]
-T_DEPART         = datetime(2024, 6, 15, 10, 0)   # UTC
-FLIGHT_DUR       = timedelta(minutes=90)
+ALTITUDE_M       = 5_000           # 5 km ≈ 550 hPa
+# Use current UTC time so the GFS Best dataset is always valid
+T_DEPART  = datetime.utcnow().replace(minute=0, second=0, microsecond=0)
+FLIGHT_DUR = timedelta(minutes=90)
+
+# ── Load NOAA GFS at 5 km from UCAR Thredds OPeNDAP ──────────────────────────
+# The GFS "Best" dataset always reflects the most recent available forecast.
+# Wind and temperature are stored on isobaric (pressure) levels in Pa.
+# We pre-select the level closest to 5 km so the reader sees a simple
+# 2-D (time × lat × lon) field without a vertical dimension.
+GFS_URL = ('https://thredds.ucar.edu/thredds/dodsC/'
+           'grib/NCEP/GFS/Global_0p25deg/Best')
+
+# ISA pressure at 5 km: p = 101325 * (1 - 2.2557e-5 * z)^5.2559 ≈ 54 050 Pa
+_isa_pa = 101325.0 * (1.0 - 2.2557e-5 * ALTITUDE_M) ** 5.2559
+
+print(f'Opening GFS dataset: {GFS_URL}')
+ds_gfs = xr.open_dataset(GFS_URL, engine='netcdf4')
+
+
+def _select_level(ds, var_name, target_pa):
+    """Return the DataArray for *var_name* at the isobaric level nearest to
+    *target_pa* (Pascals), handling both Pa and hPa coordinate units."""
+    var = ds[var_name]
+    # Identify the pressure dimension (not time / lat / lon)
+    iso_dim = next(
+        d for d in var.dims
+        if d not in {'time', 'time1', 'lat', 'lon', 'latitude', 'longitude'})
+    iso_vals = ds[iso_dim].values.astype(float)
+    # Detect Pa vs hPa by magnitude
+    target = target_pa if iso_vals.max() > 2000.0 else target_pa / 100.0
+    idx = int(np.argmin(np.abs(iso_vals - target)))
+    print(f'  {var_name}: selecting {iso_dim}={iso_vals[idx]:.0f} '
+          f'({"Pa" if iso_vals.max() > 2000 else "hPa"})')
+    return var.isel({iso_dim: idx})
+
+
+# Assemble a 2-D (time, lat, lon) xarray Dataset at the chosen level.
+# Variable names that carry CF standard_name attributes are recognised and
+# mapped automatically by reader_netCDF_CF_generic:
+#   eastward_wind  → x_wind
+#   northward_wind → y_wind
+#   air_temperature → air_temperature
+#   specific_humidity → specific_humidity
+gfs_vars = {
+    'u-component_of_wind_isobaric': 'u-component_of_wind_isobaric',
+    'v-component_of_wind_isobaric': 'v-component_of_wind_isobaric',
+    'Temperature_isobaric':         'Temperature_isobaric',
+}
+# specific_humidity is not always available; try to include it
+try:
+    gfs_vars['Specific_humidity_isobaric'] = 'Specific_humidity_isobaric'
+    _ = ds_gfs['Specific_humidity_isobaric']
+except KeyError:
+    print('  Specific_humidity_isobaric not found in dataset – using fallback')
+    gfs_vars.pop('Specific_humidity_isobaric', None)
+
+ds_level = xr.Dataset(
+    {name: _select_level(ds_gfs, name, _isa_pa) for name in gfs_vars})
+
+reader_gfs = reader_netCDF_CF_generic.Reader(ds_level)
+print(reader_gfs)
 
 # ── Simulation parameters ─────────────────────────────────────────────────────
-SIM_DURATION = timedelta(hours=6)
+SIM_DURATION = timedelta(hours=4)
 TIME_STEP    = 300     # calculation step [s]
 OUTPUT_STEP  = 600     # output / animation step [s]
 N_SEEDS      = 18      # seeding events along route (≈ every 5 minutes)
 N_PER_SEED   = 4       # elements per seeding event
 
-# ── Build model with constant upper-tropospheric forcing ──────────────────────
-c = ContrailDrift(loglevel=30)
+# ── Build contrail model ───────────────────────────────────────────────────────
+c = ContrailDrift(loglevel=20)
+c.add_reader(reader_gfs)
 
-# Constant environment – replace with a real NWP reader for a realistic run
-c.set_config('environment:constant:x_wind',             22)     # jet stream [m s-1]
-c.set_config('environment:constant:y_wind',              2)     # slight northward
-c.set_config('environment:constant:air_temperature',   220)     # [K]
-c.set_config('environment:constant:specific_humidity', 8.5e-5)  # near ice-saturation [kg kg-1]
-c.set_config('environment:constant:horizontal_diffusivity', 80) # [m2 s-1]
-c.set_config('contrail:sublimation_timescale',        5400)     # 1.5-h lifetime [s]
+# Fallback values for variables not provided by this GFS level
+c.set_config('environment:fallback:specific_humidity',      2e-4)   # kg kg-1
+c.set_config('environment:fallback:horizontal_diffusivity',   50)   # m2 s-1
+# At 5 km the air is typically subsaturated → contrails are short-lived
+c.set_config('contrail:sublimation_timescale', 1800)   # 30-min timescale [s]
 
 # ── Seed contrail segments continuously along the flight path ─────────────────
 fracs      = np.linspace(0, 1, N_SEEDS)
@@ -49,7 +110,7 @@ times_seed = [T_DEPART + timedelta(seconds=float(f) * FLIGHT_DUR.total_seconds()
               for f in fracs]
 
 for lon, lat, t in zip(lons_seed, lats_seed, times_seed):
-    c.seed_elements(lon=lon, lat=lat, z=CRUISE_ALT_M,
+    c.seed_elements(lon=lon, lat=lat, z=ALTITUDE_M,
                     radius=2_000, number=N_PER_SEED, time=t)
 
 # ── Run the simulation ────────────────────────────────────────────────────────
@@ -119,7 +180,7 @@ n_times = lons_t.shape[1]
 def animate(i):
     t_str = str(np.datetime_as_string(out_times[i], unit='m')).replace('T', ' ')
     title_obj.set_text(f'AMS \u2192 BGO  \u2502  {t_str} UTC\n'
-                       f'Contrail drift (constant 22 m s\u207b\u00b9 westerly)')
+                       f'Contrail drift at 5 km (NOAA GFS wind)')
 
     # Active particles: not NaN at this time step
     active = ~np.isnan(lons_t[:, i])
@@ -163,4 +224,4 @@ ani.save('example_contrail_ams_bgo.gif', writer='pillow', fps=6,
 # Static plot of all trajectories
 c.plot(fast=True, ocean_color='aliceblue', land_color='wheat',
        corners=corners, show_elements=True,
-       title='AMS → BGO contrail drift (6 h)')
+       title='AMS → BGO contrail drift at 5 km – NOAA GFS')
