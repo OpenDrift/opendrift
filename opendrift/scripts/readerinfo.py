@@ -26,7 +26,7 @@ import sys
 import argparse
 from datetime import datetime
 import numpy as np
-from opendrift.readers import applicable_readers
+from opendrift.readers import reader_from_urlpath
 
 try:
     from dotenv import load_dotenv
@@ -62,26 +62,12 @@ def main():
 
     args = parser.parse_args()
 
-    readers = applicable_readers(args.filename)
-    if len(readers) == 0:
-        raise ValueError(f'No applicable readers for {args.filename}')
+    r = reader_from_urlpath(args.filename, print_errors=args.e)
 
-    for reader in readers:
-        try:
-            print('Testing %s...' % reader.__file__)
-            r = reader.Reader(args.filename)
-            print(r)
-            break
-        except Exception as me:
-            if args.e is True:
-                print(me)
-                import traceback
-                print(traceback.format_exc())
-                print('---------------------------------------')
-            print('...not applicable.')
+    if r is None:
+        raise ValueError('No readers applicable for ' + args.filename)
 
-    if not 'r' in locals():
-        sys.exit('No readers applicable for ' + args.filename)
+    print(r)
 
     if args.time is None:
         time = r.start_time

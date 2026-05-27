@@ -222,7 +222,7 @@ def applicable_readers(url):
 #
 #    return None  # No readers worked
 
-def reader_from_urlpath(urlpath):
+def reader_from_urlpath(urlpath, print_errors=False):
 
     if isinstance(urlpath, list):
         return [reader_from_urlpath(u) for u in urlpath]
@@ -260,6 +260,9 @@ def reader_from_urlpath(urlpath):
     if os.path.exists(urlpath) or path != '':  # URL or filename, no reader specified
         # We try different readers, returning first successful
         reader_modules = applicable_readers(urlpath)
+        if len(reader_modules) == 0:
+            logger.debug(f'No applicable readers found for {urlpath}')
+            return None
 
         for reader_module in reader_modules:
             try:
@@ -267,9 +270,10 @@ def reader_from_urlpath(urlpath):
                 reader = reader_module.Reader(urlpath)
                 return reader
             except Exception as e:
-                logger.debug('Could not open %s with %s' % (urlpath, reader_module))
+                if print_errors is True:
+                    import traceback
+                    print(traceback.format_exc())
+                    print('---------------------------------------')
+                logger.debug(f'Could not open {urlpath} with {reader_module}')
 
         return None  # No readers worked
-
-
-
