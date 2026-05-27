@@ -4932,6 +4932,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Presently assuming that key is a config key
         return self.get_config(key, 'not_implemented')
 
+    def _set_mode(self, mode):
+
+        mode = getattr(Mode, mode.capitalize(), None)
+
+        if mode is None:
+            raise ValueError(f'Available modes are {list(Mode.__members__.keys())}')
+
+        self.mode = mode
+
 def evaluate_conditional(key, operator, value, self=None):
     """Evaluate a condition as True or False
 
