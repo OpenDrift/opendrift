@@ -3776,6 +3776,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 ax.plot(c['x_other'].T,
                         c['y_other'].T,
                         color=self.plot_comparison_colors[i + 1],
+                        alpha=alpha,
                         linestyle='-',
                         label='_nolegend_',
                         linewidth=linewidth,
