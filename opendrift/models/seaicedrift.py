@@ -31,6 +31,7 @@ class SeaIceDrift(OpenDriftSimulation):
     required_variables = {
             'sea_ice_x_velocity': {'fallback': None},
             'sea_ice_y_velocity': {'fallback': None},
+            'sea_ice_area_fraction': {'fallback': None},
             'land_binary_mask': {'fallback': None}
         }
 
