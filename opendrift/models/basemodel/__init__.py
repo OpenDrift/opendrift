@@ -336,7 +336,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Set up logging
         logformat = '%(asctime)s %(levelname)-7s %(name)s:%(lineno)d: %(message)s'
         datefmt = '%H:%M:%S'
-        
+
         if loglevel < 10:  # 0 is NOTSET, giving no output
             print('WARNING: from next version (1.14.10), loglevel of 0 will give no logging, please change to 10 for DEBUG')
             loglevel = 10
@@ -1676,16 +1676,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         elements = self.ElementType(lon=lon, lat=lat, z=-z)
 
         self.schedule_elements(elements, time)
-    
+
     @require_mode(mode=Mode.Ready)
     def seed_from_dataset(self, ds, trajectory_time_index=-1, time=None, keep_properties=True, **kwargs):
         """Seed elements from OpenDrift dataset
 
          Arguments:
-            ds                      (DataArray)         :   DataArray from previous OpenDrift run. 
-            trajectory_time_index   (int)               :   Time index from which to continue OpenDrift run. 
-            time                    (datenum or list)   :   Time to initiate particles. If None, uses time from trajectory_time_index. 
-            keep_properties         (bool)              :   Keep element properties from DataArray. If False, overrides properties with new ones. 
+            ds                      (DataArray)         :   DataArray from previous OpenDrift run.
+            trajectory_time_index   (int)               :   Time index from which to continue OpenDrift run.
+            time                    (datenum or list)   :   Time to initiate particles. If None, uses time from trajectory_time_index.
+            keep_properties         (bool)              :   Keep element properties from DataArray. If False, overrides properties with new ones.
         """
         ds = ds.isel(time=trajectory_time_index)
 
@@ -1695,9 +1695,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         # Dropping trajectories which had not been initiated at selected time, e.g. for continuous release.
         ds = ds.where(ds.age_seconds >= 0, drop=True)
-        
+
         logger.info('Using positions from dataset at time %s' % (str(time)))
-        
+
         try:
             file_class = ds.opendrift_class
             current_class = self.__class__.__name__
@@ -1718,12 +1718,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 else:
                     if key in ds:
                         prop_dict[key] = ds[key].values
-            
+
             logger.info('Seeding %i particles from dataset' %(len(ds.lon)))
             logger.info('Using values from dataset for element properties: ')
             logger.info('%s' % (str([key for key in prop_dict.keys()])))
             self.seed_elements(ds.lon, ds.lat, time=time, **prop_dict)
-        
+
         else:
             logger.info('Using only lon, lat from provided dataset. Omitting particle properties from previous run')
             self.seed_elements(ds.lon, ds.lat, time=time, **kwargs)
@@ -1732,12 +1732,12 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     @require_mode(mode=Mode.Ready)
     def seed_from_file(self, filename, trajectory_time_index=-1, time=None, keep_properties=True, **kwargs):
         """Seed elements from OpenDrift output netCDF file
-        
+
         Arguments:
             filename                (str)               :   Name of netCDF file with particle positions.
-            trajectory_time_index   (int)               :   Time index from which to continue OpenDrift run. 
-            time                    (datenum or list)   :   Time to initiate particles. If None, uses time from trajectory_time_index. 
-            keep_properties         (bool)              :   Keep element properties from file. If False, overrides properties with new ones. 
+            trajectory_time_index   (int)               :   Time index from which to continue OpenDrift run.
+            time                    (datenum or list)   :   Time to initiate particles. If None, uses time from trajectory_time_index.
+            keep_properties         (bool)              :   Keep element properties from file. If False, overrides properties with new ones.
         """
         logger.info('Seeding elements from previous run in %s' %(filename))
         ds = xr.open_dataset(filename)
@@ -2614,6 +2614,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         gl = ax.gridlines(self.crs_lonlat, draw_labels=True, xlocs=xlocs, ylocs=ylocs)
         gl.top_labels = None
+
+        # Cartopy's _draw_gridliner can fail with Shapely 2.x when the map
+        # boundary path is not a closed ring.  Wrap it so rendering never
+        # crashes, even on older Cartopy builds.
+        _original_draw_gridliner = gl._draw_gridliner
+        def _safe_draw_gridliner(*args, **kwargs):
+            try:
+                return _original_draw_gridliner(*args, **kwargs)
+            except Exception:
+                pass
+        gl._draw_gridliner = _safe_draw_gridliner
 
         if 'ocean_color' in kwargs:
             ax.patch.set_facecolor(kwargs['ocean_color'])
