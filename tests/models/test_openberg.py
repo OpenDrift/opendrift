@@ -45,6 +45,21 @@ def test_openberg_constant_forcing():
     np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.055, 3)
     np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.0, 3)
 
+    # No current and wind, waves from south
+    o = OpenBerg(loglevel=50)
+    o.set_config('environment:constant:x_sea_water_velocity', 0)
+    o.set_config('environment:constant:y_sea_water_velocity', 0)
+    o.set_config('environment:constant:x_wind', 0)
+    o.set_config('environment:constant:y_wind', 0)
+    o.set_config('environment:constant:sea_surface_wave_significant_height', 2)
+    o.set_config('environment:constant:sea_surface_wave_from_direction', 180)
+    o.set_config('environment:constant:horizontal_diffusivity', 0)
+    o.set_config('drift:coriolis', False)
+    o.seed_elements(4, 60, time=datetime.now())
+    o.run(steps=2)
+    np.testing.assert_almost_equal(o.result.lon.isel(time=-1), 4.0, 3)
+    np.testing.assert_almost_equal(o.result.lat.isel(time=-1), 60.027, 3)
+
     # No current and wind, waves from east
     o = OpenBerg(loglevel=50)
     o.set_config('environment:constant:x_sea_water_velocity', 0)
