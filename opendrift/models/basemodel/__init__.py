@@ -2626,6 +2626,17 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 pass
         gl._draw_gridliner = _safe_draw_gridliner
 
+        # Cartopy's gridliner.get_tightbbox can raise AttributeError when label
+        # artists have no bbox (e.g. after _draw_gridliner silently failed).
+        # Returning None is valid for matplotlib – it means "no visible bbox".
+        _original_get_tightbbox = gl.get_tightbbox
+        def _safe_get_tightbbox(*args, **kwargs):
+            try:
+                return _original_get_tightbbox(*args, **kwargs)
+            except (AttributeError, ValueError):
+                return None
+        gl.get_tightbbox = _safe_get_tightbbox
+
         if 'ocean_color' in kwargs:
             ax.patch.set_facecolor(kwargs['ocean_color'])
             ocean_color = kwargs['ocean_color']
