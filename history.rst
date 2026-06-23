@@ -1,9 +1,26 @@
 History
 =======
 
+2026-06-23 / Release v1.14.10
+-----------------------------
+* Bugfix in OpenBerg - north-south-component of waves was flipped. Thanks to Shovon Jubair.
+* Expecting now axis dimensions (y, x) (was x, y) for unprojected datasets with 2D arrays of lon and lat. 
+* New internal helper method _set_mode()
+* Added new method default_readers() to list default readers
+* Converting time to python datetime in seed_elements, to allow using other time formats for seeding
+* Added reader_earthaccess as wrapper around NASA earthaccess client
+* reader_from_url renamed to reader_from_urlpath, now accepting URI syntax like fsspec: <reader_name>://path?query  E.g. reader_copenicusmarine://cmems_mod_glo_phy_anfc_merged-uv_PT1H-i or reader_constant://?x_wind=3&y_wind=0
+* Fix for ascending z-coordinate (typically atompsheric transport) in reader_netCDF_CF_generic by BenSpin.
+* Made ROMS reader more robust wrt 2D CROCO files
+* Fixed bug in water vicosity formulation, and implemented new method (Sharqawy) which is now default. Thanks to Loris Calgaro
+* Better automatic density of vectors on animations
+* New method seed_from_dataset, to continue from saved simulation
+* Added method to identify and select (add standard_name attribute) surface variables (wind) from GRIB datasets (e.g. https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/GFS/Global_0p25deg/Best)
+
+  * Update to support GRIB files from cdsapi, without GRIB codes.
+
 2026-03-17 / Release v1.14.9
 ----------------------------
-
 * Fixed problem with oiltype set by id being overridden by new seeding
 * Added psutil to pyproject.toml dependencies
 * Horizontal_diffusivity is not anymore a config setting but an environment property.
