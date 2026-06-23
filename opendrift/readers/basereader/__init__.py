@@ -289,8 +289,7 @@ class BaseReader(Variables, Combine, Filter):
             facecolor=cfeature.COLORS['land'],
             edgecolor='black')
 
-        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=True, x_inline=False, y_inline=False)
-        gl.top_labels = False
+        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=['left', 'bottom'], x_inline=False, y_inline=False)
 
         # Get boundary
         if self.global_coverage():

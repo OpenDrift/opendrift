@@ -778,8 +778,7 @@ class Reader(BaseReader,UnstructuredReader):
             facecolor=cfeature.COLORS['land'],
             edgecolor='black')
 
-        gl = ax.gridlines(ccrs.PlateCarree())
-        gl.xlabels_top = False
+        gl = ax.gridlines(ccrs.PlateCarree(), draw_labels=['left', 'bottom'])
 
         # Get boundary
         npoints = 10  # points per side
