@@ -288,8 +288,8 @@ class Reader(StructuredReader, BaseReader):
                     if self.proj4 is None:
                         self.proj4 = '+proj=latlong'
                 else:
-                    self.dimensions['x'] = lon_var.dims[0]
-                    self.dimensions['y'] = lat_var.dims[1]
+                    self.dimensions['x'] = lon_var.dims[1]
+                    self.dimensions['y'] = lat_var.dims[0]
                     self.projected = False
                     self.proj = None
                     self.proj4 = None
