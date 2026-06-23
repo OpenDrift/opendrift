@@ -115,5 +115,4 @@ class RegularGrid:
     im = ax.imshow(self.grid, origin = 'lower', transform = self.ccrs, extent = self.extent_xy, cmap = 'inferno')
     plt.colorbar(im, ax=ax, orientation = 'horizontal')
     ax.coastlines()
-    ax.gridlines(draw_labels = True)
-
+    ax.gridlines(draw_labels=['left', 'bottom'], x_inline=False, y_inline=False)
