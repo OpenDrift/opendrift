@@ -2612,30 +2612,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             lonmax -= .1  # To avoid problem with Cartopy
         ax.set_extent([lonmin, lonmax, latmin, latmax], crs=self.crs_lonlat)
 
-        gl = ax.gridlines(self.crs_lonlat, draw_labels=True, xlocs=xlocs, ylocs=ylocs)
-        gl.top_labels = None
-
-        # Cartopy's _draw_gridliner can fail with Shapely 2.x when the map
-        # boundary path is not a closed ring.  Wrap it so rendering never
-        # crashes, even on older Cartopy builds.
-        _original_draw_gridliner = gl._draw_gridliner
-        def _safe_draw_gridliner(*args, **kwargs):
-            try:
-                return _original_draw_gridliner(*args, **kwargs)
-            except Exception:
-                pass
-        gl._draw_gridliner = _safe_draw_gridliner
-
-        # Cartopy's gridliner.get_tightbbox can raise AttributeError when label
-        # artists have no bbox (e.g. after _draw_gridliner silently failed).
-        # Returning None is valid for matplotlib – it means "no visible bbox".
-        _original_get_tightbbox = gl.get_tightbbox
-        def _safe_get_tightbbox(*args, **kwargs):
-            try:
-                return _original_get_tightbbox(*args, **kwargs)
-            except (AttributeError, ValueError):
-                return None
-        gl.get_tightbbox = _safe_get_tightbbox
+        gl = ax.gridlines(self.crs_lonlat, draw_labels=['left', 'bottom'], xlocs=xlocs, ylocs=ylocs)
 
         if 'ocean_color' in kwargs:
             ax.patch.set_facecolor(kwargs['ocean_color'])
