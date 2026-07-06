@@ -16,6 +16,7 @@ dependencies = [
   "scipy>=1.9",
   "netCDF4>=1.6.1",
   "pyproj>=2.3",
+  "proj<9.8",
   "xarray>=2022.6.0",
   "geopandas>=0.14",
   "cmocean>=2.0",
