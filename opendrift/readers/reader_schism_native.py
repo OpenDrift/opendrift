@@ -45,12 +45,12 @@ from netCDF4 import num2date
 from scipy.interpolate import LinearNDInterpolator
 from scipy.spatial import cKDTree #cython-based KDtree for quick nearest-neighbor search
 import pyproj
-from opendrift.readers.basereader import BaseReader, UnstructuredReader
+from opendrift.readers.basereader.unstructured import UnstructuredReader
 from opendrift.readers.basereader.consts import *
 import xarray as xr
 
 
-class Reader(BaseReader,UnstructuredReader):
+class Reader(UnstructuredReader):
     """
     A reader for unstructured (irregularily gridded) `SCHISM` files.
 

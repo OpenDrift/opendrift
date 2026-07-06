@@ -14,10 +14,10 @@
 #
 # Copyright 2023, Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     '''A reader for testing discarding after failure'''
 
     def __init__(self):

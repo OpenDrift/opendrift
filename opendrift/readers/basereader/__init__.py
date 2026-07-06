@@ -28,9 +28,9 @@ from matplotlib.patches import Polygon
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-from .structured import StructuredReader
-from .unstructured import UnstructuredReader
-from .continuous import ContinuousReader
+#from .structured import StructuredReader
+#from .unstructured import UnstructuredReader
+#from .continuous import ContinuousReader
 from .variables import Variables
 from .consts import *
 from ..operators.ops import Combine, Filter

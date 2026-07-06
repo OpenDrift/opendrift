@@ -19,10 +19,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import pyproj
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
 
     def __init__(self, lons, lats, times, waves=None, z=0,

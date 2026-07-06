@@ -1,11 +1,11 @@
 from abc import abstractmethod
 import numpy as np
-from .variables import Variables
+from . import BaseReader
 from .consts import vector_pairs_xy
 import logging
 logger = logging.getLogger(__name__)
 
-class ContinuousReader(Variables):
+class ContinuousReader(BaseReader):
     """
     A continuous (in space and time) reader, able to provide
     exact values at any desired point (within bounds). This reader type is

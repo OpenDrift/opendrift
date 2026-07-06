@@ -25,7 +25,7 @@ except:
     raise ImportError('PyGrib library is needed for GRIB files: '
                       'https://jswhit.github.io/pygrib/docs/index.html')
 
-from opendrift.readers.basereader import BaseReader, StructuredReader
+from opendrift.readers.basereader.structured import StructuredReader
 
 # Hardcoded "GRIB-tables" for now.
 grib_variable_mapping = {
@@ -60,7 +60,7 @@ grib_variable_mapping = {
      }
 
 
-class Reader(BaseReader, StructuredReader):
+class Reader(StructuredReader):
 
     def __init__(self, filename=None, name=None):
 

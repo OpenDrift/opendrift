@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 import pandas as pd
 import xarray as xr
-from opendrift.readers.basereader import BaseReader, StructuredReader
+from opendrift.readers.basereader.structured import StructuredReader
 from opendrift.readers import open_dataset_opendrift, datetime_from_variable, \
                               add_standard_name_for_surface_grib_variables
 
 
-class Reader(StructuredReader, BaseReader):
+class Reader(StructuredReader):
     """
     A reader for `CF-compliant <https://cfconventions.org/>`_ netCDF files. It can take a single file, a file pattern, a URL or an xarray Dataset.
 

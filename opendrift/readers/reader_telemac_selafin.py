@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 import sys, os, logging
 
 logger = logging.getLogger(__name__)
-from opendrift.readers.basereader import BaseReader, UnstructuredReader
+from opendrift.readers.basereader.unstructured import UnstructuredReader
 
 try:
     from data_manip.formats.selafin import Selafin
@@ -39,7 +39,7 @@ except ImportError:
         )
 
 
-class Reader(BaseReader, UnstructuredReader):
+class Reader(UnstructuredReader):
     """
     A reader for unstructured (irregularily gridded) `Telemac3D` files.
     Args:
