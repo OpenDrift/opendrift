@@ -14,10 +14,10 @@
 #
 # Copyright 2015, Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 import numpy as np
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     '''A very simple reader that always give the same value for its variables'''
 
     def __init__(self, *args, **kwargs):

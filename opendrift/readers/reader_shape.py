@@ -14,7 +14,7 @@
 #
 # Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 
 import pyproj
 import shapely
@@ -30,7 +30,7 @@ from typing import Iterable
 
 logger = logging.getLogger(__name__)
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     """
     The shape reader can be used to load generic shapes as the 'landmask' variable.
 

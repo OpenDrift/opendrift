@@ -17,10 +17,10 @@
 from datetime import datetime, timedelta
 import numpy as np
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     '''Returning values oscillating in time with given amplitude and period'''
 
     def __init__(self, variable, amplitude, period=timedelta(hours=24), period_seconds=None,

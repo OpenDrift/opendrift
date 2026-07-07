@@ -20,12 +20,12 @@ from scipy.interpolate import LinearNDInterpolator
 import scipy, scipy.spatial
 import pyproj
 import logging
-from opendrift.readers.basereader import BaseReader, UnstructuredReader
+from opendrift.readers.basereader.unstructured import UnstructuredReader
 
 logger = logging.getLogger(__name__)
 
 
-class Reader(BaseReader, UnstructuredReader):
+class Reader(UnstructuredReader):
     """
     A reader for unstructured (irregularily gridded) `CF compliant
     <https://cfconventions.org/>`_ netCDF files.

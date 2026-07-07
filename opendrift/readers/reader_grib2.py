@@ -21,11 +21,10 @@ import numpy as np
 import xarray as xr
 from datetime import datetime
 
-from .basereader import BaseReader
 from .basereader.structured import StructuredReader
 
 
-class Reader(BaseReader, StructuredReader):
+class Reader(StructuredReader):
     dataset = None
     variables = None
 

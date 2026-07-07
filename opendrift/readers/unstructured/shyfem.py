@@ -20,10 +20,10 @@ from netCDF4 import Dataset, MFDataset
 import logging
 logger = logging.getLogger(__name__)
 
-from opendrift.readers.basereader import BaseReader, UnstructuredReader
+from opendrift.readers.basereader.unstructured import UnstructuredReader
 
 
-class Reader(BaseReader, UnstructuredReader):
+class Reader(UnstructuredReader):
     """
     A reader for unstructured SHYFEM (irregularily gridded) `CF compliant
     <https://cfconventions.org/>`_ netCDF files.

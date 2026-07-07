@@ -14,10 +14,10 @@
 #
 # Copyright 2020, Knut-Frode Dagestad, MET Norway
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 import numpy as np
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     '''Reader providing the nearest value in time from a given time series.'''
 
     def __init__(self, parameter_value_map):

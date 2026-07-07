@@ -14,7 +14,7 @@
 #
 # Copyright 2020, Gaute Hope, MET Norway
 
-from opendrift.readers.basereader import BaseReader, ContinuousReader
+from opendrift.readers.basereader.continuous import ContinuousReader
 
 import pyproj
 import numpy as np
@@ -198,7 +198,7 @@ def plot_land(ax, lonmin, latmin, lonmax, latmax, fast,
 
 
 
-class Reader(BaseReader, ContinuousReader):
+class Reader(ContinuousReader):
     """
     The global landmask reader is based on the coastline data from
     GSHHG (https://www.ngdc.noaa.gov/mgg/shorelines/) optimized for

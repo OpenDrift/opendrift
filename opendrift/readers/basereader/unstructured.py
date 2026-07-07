@@ -4,10 +4,10 @@ import scipy
 import logging
 logger = logging.getLogger(__name__)
 
-from .variables import Variables
+from . import BaseReader
 
 
-class UnstructuredReader(Variables):
+class UnstructuredReader(BaseReader):
     """
     An unstructured reader. Data is gridded irregularily.
 

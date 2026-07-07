@@ -6,13 +6,13 @@ from abc import abstractmethod
 from pathlib import Path
 
 from opendrift.readers.interpolation.structured import ReaderBlock
-from .variables import Variables
+from . import BaseReader
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class StructuredReader(Variables):
+class StructuredReader(BaseReader):
     """
     A structured reader. Data is gridded on a regular grid. Used by e.g.:
     :class:`opendrift.readers.reader_netCDF_CF_generic.Reader`.

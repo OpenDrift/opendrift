@@ -25,11 +25,12 @@ from netCDF4 import num2date
 import xarray as xr
 
 from opendrift.readers import open_dataset_opendrift
-from opendrift.readers.basereader import BaseReader, vector_pairs_xy, StructuredReader
+from opendrift.readers.basereader import vector_pairs_xy
+from opendrift.readers.basereader.structured import StructuredReader
 from opendrift.readers.roppy import depth
 
 
-class Reader(BaseReader, StructuredReader):
+class Reader(StructuredReader):
     """
     A reader for ROMS Output files. It can take a single file, a file pattern, a URL or an xarray Dataset.
 
