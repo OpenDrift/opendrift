@@ -4,7 +4,6 @@ import scipy
 import logging
 logger = logging.getLogger(__name__)
 
-#from .variables import Variables
 from . import BaseReader
 
 
