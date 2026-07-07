@@ -187,7 +187,10 @@ class BaseReader(Variables, Combine, Filter):
             self.activate_environment_mapping(m)
 
     def y_is_north(self):
-        if (self.proj.crs.is_geographic and 'ob_tran' not in self.proj4) or '+proj=merc' in self.proj.srs:
+        if self.proj is None and self.proj4 is not None:
+            if '+proj=merc' in self.proj4 or '+proj=latlon' in self.proj4:
+                return True
+        elif (self.proj.crs.is_geographic and 'ob_tran' not in self.proj4) or '+proj=merc' in self.proj.srs:
             return True
         else:
             return False

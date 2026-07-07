@@ -2595,7 +2595,10 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 lscale = 'auto'
 
         meanlat = (latmin + latmax) / 2
-        aspect_ratio = float(latmax - latmin) / (float(lonmax - lonmin))
+        if lonmax == lonmin:
+            aspect_ratio = 1
+        else:
+            aspect_ratio = float(latmax - latmin) / (float(lonmax - lonmin))
         aspect_ratio = aspect_ratio / np.cos(np.radians(meanlat))
         if 'figsize' in kwargs:
             figsize = kwargs['figsize']
