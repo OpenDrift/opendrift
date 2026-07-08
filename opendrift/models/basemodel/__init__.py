@@ -3205,6 +3205,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
     def __save_or_plot_animation__(self, figure, plot_timestep, filename,
                                    frames, fps, interval, blit):
 
+        figure.canvas.draw()
+        figure.set_layout_engine('none')
         if filename is not None or 'sphinx_gallery' in sys.modules:
             logger.debug("Saving animation..")
             self.__save_animation__(figure,
