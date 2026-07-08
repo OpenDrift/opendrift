@@ -16,7 +16,7 @@ COPY environment.yml .
 RUN micromamba install -n base -f environment.yml
 
 # Cache cartopy maps - temporary solution until Cartopy is updated
-RUN /bin/bash -c "echo -e \"import cartopy\ncartopy.io.shapereader.GSHHSShpDownloader._GSHHS_URL_TEMPLATE = (f'https://www.ngdc.noaa.gov/mgg/shorelines/data/gshhs/latest/gshhg-shp-{gshhs_version}.zip')\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
+RUN /bin/bash -c "echo -e \"import cartopy\ncartopy.io.shapereader.GSHHSShpDownloader._GSHHS_URL_TEMPLATE = ('https://github.com/GenericMappingTools/gshhg-gmt/releases/download/2.3.7/gshhg-shp-2.3.7.zip')\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
 
 ## Cache cartopy maps
 #RUN /bin/bash -c "echo -e \"import cartopy\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
