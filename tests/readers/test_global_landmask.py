@@ -6,11 +6,6 @@ from opendrift.readers import reader_global_landmask
 from opendrift.readers import reader_ROMS_native
 from opendrift.models.oceandrift import OceanDrift
 
-snooze_time = datetime(2026, 7, 1)
-snooze_graphical = datetime.now() < snooze_time
-snooze_message = f'Snoozing graphical tests until {snooze_time}'
-
-
 def test_global_setup(benchmark):
     benchmark(reader_global_landmask.Reader)
 
@@ -74,7 +69,6 @@ def test_plot(tmpdir):
     # plt.show()
     plt.savefig('%s/cartplot.png' % tmpdir)
 
-@pytest.mark.skipif(snooze_graphical is True, reason=snooze_message)
 @pytest.mark.slow
 @pytest.mark.parametrize("fast", [False, True])
 @pytest.mark.parametrize("scale", ["auto", "c", "f"])
