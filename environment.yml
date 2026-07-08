@@ -11,7 +11,7 @@ dependencies:
   - proj<9.8
   - libgdal>=3.1
   - gdal>=3.1
-  - xarray<=2025.9.0
+  - xarray
   - dask
   - geopandas
   - cfgrib
