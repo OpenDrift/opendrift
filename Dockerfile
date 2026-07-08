@@ -15,8 +15,11 @@ COPY environment.yml .
 # Install opendrift environment into base micromamba environment
 RUN micromamba install -n base -f environment.yml
 
-# Cache cartopy maps
-RUN /bin/bash -c "echo -e \"import cartopy\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
+# Cache cartopy maps - temporary solution until Cartopy is updated
+RUN /bin/bash -c "echo -e \"import cartopy\ncartopy.io.shapereader.GSHHSShpDownloader._GSHHS_URL_TEMPLATE = (f'https://www.ngdc.noaa.gov/mgg/shorelines/data/gshhs/latest/gshhg-shp-{gshhs_version}.zip')\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
+
+## Cache cartopy maps
+#RUN /bin/bash -c "echo -e \"import cartopy\nfor s in ('c', 'l', 'i', 'h', 'f'): cartopy.io.shapereader.gshhs(s)\" | python"
 
 # Install opendrift
 ADD . .
