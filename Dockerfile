@@ -17,9 +17,9 @@ RUN micromamba install -n base -f environment.yml
 
 # Download cartopy GSHHS shoreline - temporary solution until Cartopy is updated
 SHELL ["/bin/bash", "-c"]
+USER root
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y unzip wget && \
-    rm -rf /var/lib/apt/lists/* && \
     source activate opendrift && \
     mkdir -p /root/.local/share/cartopy/shapefiles/ && \
     cd /root/.local/share/cartopy/shapefiles/ && \
