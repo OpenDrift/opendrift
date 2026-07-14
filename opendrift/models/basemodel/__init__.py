@@ -2353,12 +2353,25 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Deacticate any elements outside validity domain set by user
         if self.validity_domain is not None:
             W, E, S, N = self.validity_domain
+            lon = self.elements.lon
+            if E is not None and E > 180 and np.any(lon < 0):
+                # Elements have crossed the dateline and wrapped to the
+                # native -180..180 convention (lon<0), while E>180 indicates
+                # that drift:deactivate_east_of was given in 0-360 convention.
+                # Convert wrapped longitudes back to 0-360 before comparing
+                # against either boundary, so that the west boundary check
+                # below does not misinterpret wrapped (now negative) values
+                # as having moved too far west.
+                logger.info(
+                    'Some elements have crossed the dateline (lon<0), while '
+                    'drift:deactivate_east_of=%s is given in 0-360 convention. '
+                    'Converting wrapped longitudes to 0-360 convention before '
+                    'checking against deactivate_east_of/west_of.' % E)
+                lon = np.where(lon < 0, lon + 360, lon)
             if W is not None:
-                self.deactivate_elements(self.elements.lon < W,
-                                         reason='outside')
+                self.deactivate_elements(lon < W, reason='outside')
             if E is not None:
-                self.deactivate_elements(self.elements.lon > E,
-                                         reason='outside')
+                self.deactivate_elements(lon > E, reason='outside')
             if S is not None:
                 self.deactivate_elements(self.elements.lat < S,
                                          reason='outside')
