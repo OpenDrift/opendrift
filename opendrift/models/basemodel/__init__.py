@@ -1961,6 +1961,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         ########################
         # Simulation duration
         ########################
+        if hasattr(end_time, 'values'):
+            end_time = pd.Timestamp(end_time.values).to_pydatetime()
         if time_step.days < 0:
             logger.info(
                 'Backwards simulation, starting from last seeded element')
@@ -3569,6 +3571,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             kwargs.update(compare_args)
 
         if drifter is not None:
+            if isinstance(drifter, xr.Dataset):  # Temporary - should use TrajAn
+                drifter = {'time': drifter.time.squeeze(), 'lon': drifter.lon.squeeze(), 'lat': drifter.lat.squeeze()}
             # Extend map coverage to cover provided trajectory
             # TODO: drifter should be list of dictionaries
             ttime = np.array(drifter['time'], dtype=self.result.time.dtype)
