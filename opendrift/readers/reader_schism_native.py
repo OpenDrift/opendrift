@@ -107,14 +107,22 @@ class Reader(UnstructuredReader):
         try:
             # Open file, check that everything is ok
             logger.info('Opening dataset: ' + filestr)
+            # One dask chunk per time step, whole slice otherwise. Listing only
+            # 'time' would make xarray fall back to the file's on-disk chunks for
+            # the other dimensions, splitting each slice into many small reads,
+            # while get_variables() always loads the full slice anyway.
             if ('*' in filestr) or ('?' in filestr) or ('[' in filestr):
                 logger.info('Opening files with MFdataset')
                 # self.dataset = MFdataset(filename)
-                self.dataset = xr.open_mfdataset(filename,chunks={'time': 1}, decode_times=False)
+                with xr.open_mfdataset(filename, decode_times=False) as ds:
+                    chunks = {d: (1 if d == 'time' else -1) for d in ds.dims}
+                self.dataset = xr.open_mfdataset(filename, chunks=chunks, decode_times=False)
             else:
                 logger.info('Opening file with dataset')
                 # self.dataset = dataset(filename, 'r')
-                self.dataset = xr.open_dataset(filename,chunks={'time': 1}, decode_times=False)
+                with xr.open_dataset(filename, decode_times=False) as ds:
+                    chunks = {d: (1 if d == 'time' else -1) for d in ds.dims}
+                self.dataset = xr.open_dataset(filename, chunks=chunks, decode_times=False)
         except Exception as e:
             raise ValueError(e)
 
@@ -400,12 +408,19 @@ class Reader(UnstructuredReader):
         '''
 
         try:
-            vertical_levels = self.dataset.variables['zcor'][id_time,:,:]
-            # depth are negative down consistent with convention used in OpenDrift
-            # if using the netCDF4 library, vertical_levels is masked array where "masked" levels are those below seabed  (= 9.9692100e+36)
-            # if using the xarray library, vertical_levels is nan for levels are those below seabed
-            # convert to masked array to be consistent with what netCDF4 lib returns
-            vertical_levels = np.ma.array(vertical_levels, mask = np.isnan(vertical_levels.data))
+            # zcor is the same for every variable of a given time step, but this
+            # function is called once per variable: read it once and cache it.
+            if getattr(self, '_zcor_cache_time', None) != id_time:
+                # load once into memory: building the masked array straight from the
+                # lazy xarray object evaluated the dask graph twice (values + mask)
+                vertical_levels = np.asarray(self.dataset.variables['zcor'][id_time,:,:])
+                # depth are negative down consistent with convention used in OpenDrift
+                # if using the netCDF4 library, vertical_levels is masked array where "masked" levels are those below seabed  (= 9.9692100e+36)
+                # if using the xarray library, vertical_levels is nan for levels are those below seabed
+                # convert to masked array to be consistent with what netCDF4 lib returns
+                vertical_levels = np.ma.array(vertical_levels, mask = np.isnan(vertical_levels))
+                self._zcor_cache_time, self._zcor_cache = id_time, vertical_levels
+            vertical_levels = self._zcor_cache
             data = np.asarray(data)
             # vertical_levels.mask = np.isnan(vertical_levels.data) # masked using nan's when using xarray
         except:
