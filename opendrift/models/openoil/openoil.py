@@ -181,13 +181,13 @@ class Oil(Lagrangian3DArray):
                  'description': 'Biodegradation half time in days for surface oil slick'}),
         ('fraction_evaporated', {
             'dtype': np.float32,
-            'units': '%',  # TODO: should be fraction and not percent
+            'units': '1',
             'seed': False,
             'default': 0
         }),
         ('water_fraction', {
             'dtype': np.float32,
-            'units': '%',
+            'units': '1',
             'seed': False,
             'default': 0
         }),
