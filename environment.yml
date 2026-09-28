@@ -8,7 +8,7 @@ dependencies:
   - netcdf4
   - ffmpeg
   - pyproj>=2.3
-  - proj<9.8
+  - proj>=9.8
   - libgdal>=3.1
   - gdal>=3.1
   - xarray
@@ -23,7 +23,7 @@ dependencies:
   - pytest-cov
   - pytest-benchmark
   - pytest-mpl
-  - cartopy>=0.20
+  - cartopy>=0.26
   - nc-time-axis
   - geojson
   - pynucos>=2.12
@@ -31,9 +31,9 @@ dependencies:
   - coloredlogs
   - cmocean
   - utm
-  - roaring-landmask>=0.7
+  - roaring-landmask>=0.11
   - adios_db>=1.2,<1.2.7
-  - copernicusmarine>=2.0
+  - copernicusmarine>=2.4
   - bottleneck
   - python-dotenv
   - pip
