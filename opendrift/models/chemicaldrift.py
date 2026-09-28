@@ -22,6 +22,7 @@ The initial version is based on Radionuclides module by Magne Simonsen
 """
 
 import numpy as np
+import pandas as pd
 import logging; logger = logging.getLogger(__name__)
 
 from opendrift.models.physics_methods import seawater_dynamic_viscosity
@@ -490,15 +491,12 @@ class ChemicalDrift(OceanDrift):
 
 
         if 'specie' in kwargs:
-            print('num_elements', num_elements)
-            try:
-                print('len specie:',len(kwargs['specie']))
-            except:
-                print('specie:',kwargs['specie'])
-
-            init_specie = np.ones(num_elements,dtype=int)
-            init_specie[:] = kwargs['specie']
-
+            init_specie = np.asarray(kwargs['specie'], dtype=int).ravel()
+            if init_specie.size != num_elements:
+                raise ValueError(
+                    f"specie length {init_specie.size} != number {num_elements}"
+                )
+            kwargs['specie'] = init_specie
 
         else:
 
@@ -537,15 +535,14 @@ class ChemicalDrift(OceanDrift):
             logger.debug( '{:>9} {:>3} {:24} '.format(  np.sum(init_specie==i), i, sp ) )
 
         # Set initial particle size
-        if 'diameter' in kwargs:
-            diameter = kwargs['diameter']
+        diam_in = kwargs.get('diameter')
+        if diam_in is not None and np.ndim(diam_in) > 0 and np.size(diam_in) == num_elements:
+            init_diam = np.asarray(diam_in, dtype=float).ravel()
         else:
-            diameter = self.get_config('chemical:particle_diameter')
-
-        std = self.get_config('chemical:particle_diameter_uncertainty')
-
-        init_diam = np.zeros(num_elements,float)
-        init_diam[init_specie==self.num_prev] = diameter + np.random.normal(0, std, sum(init_specie==self.num_prev))
+            diameter = diam_in if diam_in is not None else self.get_config('chemical:particle_diameter')
+            std = self.get_config('chemical:particle_diameter_uncertainty')
+            init_diam = np.zeros(num_elements,float)
+            init_diam[init_specie==self.num_prev] = diameter + np.random.normal(0, std, sum(init_specie==self.num_prev))
         kwargs['diameter'] = init_diam
 
 
@@ -2986,65 +2983,95 @@ class ChemicalDrift(OceanDrift):
         # TODO: Add emission uncertainty based on 95% confidence interval
 
     def seed_from_DataArray(self, steam, lowerbound=0, higherbound=np.inf, radius=0, scrubber_type="open_loop", chemical_compound="Copper", mass_element_ug=100e3, number_of_elements=None, **kwargs):
-            """Seed elements based on a dataarray with STEAM emission data
+        """Seed elements based on a dataarray with STEAM emission data.
 
-            Arguments:
-                steam: dataarray with steam emission data, with coordinates
-                    * latitude   (latitude) float32
-                    * longitude  (longitude) float32
-                    * time       (time) datetime64[ns]
+        Arguments:
+            steam: dataarray with steam emission data, with coordinates
+                * latitude   (latitude) float32
+                * longitude  (longitude) float32
+                * time       (time) datetime64[ns]
 
+            radius:      scalar, unit: meters
+            lowerbound:  scalar, elements with lower values are discarded
+        """
 
-                radius:      scalar, unit: meters
-                lowerbound:  scalar, elements with lower values are discarded
-            """
+        if chemical_compound is None:
+            chemical_compound = self.get_config('chemical:compound')
 
-            if chemical_compound is None:
-                chemical_compound = self.get_config('chemical:compound')
+        sel = np.where((steam > lowerbound) & (steam < higherbound))
+        if sel[0].size == 0:
+            logger.info('seed_from_DataArray: no emission cells above lowerbound')
+            return
 
-            #mass_element_ug=1e3      # 1e3 - 1 element is 1mg chemical
-            #mass_element_ug=20e3      # 100e3 - 1 element is 100mg chemical
-            #mass_element_ug=100e3      # 100e3 - 1 element is 100mg chemical
-            #mass_element_ug=1e6     # 1e6 - 1 element is 1g chemical
+        t = steam.time[sel[0]].data
+        la = np.asarray(steam.latitude[sel[1]].data)
+        lo = np.asarray(steam.longitude[sel[2]].data)
+        vol = np.asarray(np.array(steam.data)[sel], dtype=float)
 
-            sel=np.where((steam > lowerbound) & (steam < higherbound))
-            t=steam.time[sel[0]].data
-            la=steam.latitude[sel[1]].data
-            lo=steam.longitude[sel[2]].data
+        emission_factor = self.emission_factors(scrubber_type, chemical_compound)
+        mass_ug = vol * emission_factor
 
-            data=np.array(steam.data)
+        times_pt = pd.to_datetime(t).to_pydatetime()
+        if isinstance(times_pt, datetime):
+            times_pt = np.array([times_pt], dtype=object)
+        else:
+            times_pt = np.asarray(times_pt, dtype=object)
 
-            if number_of_elements is not None:
-                total_volume = np.sum(data[sel])
-                total_mass = total_volume * self.emission_factors(scrubber_type, chemical_compound)
-                mass_element_ug = total_mass / number_of_elements
-                mass_element_ug_0 = total_mass / number_of_elements
+        if number_of_elements is not None:
+            total_mass = float(np.sum(mass_ug))
+            if total_mass <= 0 or number_of_elements <= 0:
+                logger.info('seed_from_DataArray: zero total mass / elements')
+                return
+            mass_element_ug_0 = total_mass / float(number_of_elements)
+            numbers = np.ceil(mass_ug / mass_element_ug_0).astype(np.int64)
+            mass_per = np.zeros_like(mass_ug)
+            pos = numbers > 0
+            mass_per[pos] = mass_ug[pos] / numbers[pos]
 
-            for i in range(0,t.size):
-                scrubberwater_vol_l=data[sel][i]
-                mass_ug=scrubberwater_vol_l * self.emission_factors(scrubber_type, chemical_compound)
+            idx = np.repeat(np.arange(numbers.size), numbers)
+            lon_e = lo[idx]
+            lat_e = la[idx]
+            time_e = times_pt[idx]
+            mass_e = mass_per[idx]
+        else:
+            numbers = (mass_ug / mass_element_ug).astype(np.int64)
+            residuals = mass_ug - numbers * mass_element_ug
 
-                if number_of_elements is None:
-                    number=np.array(mass_ug / mass_element_ug).astype('int')
-                else:
-                    number=np.ceil(np.array(mass_ug / mass_element_ug_0)).astype('int')
-                    mass_element_ug=mass_ug/number
+            idx = np.repeat(np.arange(numbers.size), numbers)
+            lon_e = lo[idx]
+            lat_e = la[idx]
+            time_e = times_pt[idx]
+            mass_e = np.full(idx.size, float(mass_element_ug), dtype=float)
 
-                time = datetime.utcfromtimestamp((t[i] - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's'))
+            rmask = residuals > 0
+            if np.any(rmask):
+                lon_e = np.concatenate([lon_e, lo[rmask]])
+                lat_e = np.concatenate([lat_e, la[rmask]])
+                time_e = np.concatenate([time_e, times_pt[rmask]])
+                mass_e = np.concatenate([mass_e, residuals[rmask]])
 
-                if number>0:
-                    z = -1*np.random.uniform(0, 1, number)
-                    self.seed_elements(lon=lo[i]*np.ones(number), lat=la[i]*np.ones(number),
-                                radius=radius, number=number, time=time,
-                                mass=mass_element_ug,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
+        n_tot = lon_e.size
+        if n_tot == 0:
+            logger.info('seed_from_DataArray: no elements to seed')
+            return
 
-                mass_residual = mass_ug - number*mass_element_ug
-
-                if mass_residual>0 and number_of_elements is None:
-                    z = -1*np.random.uniform(0, 1, 1)
-                    self.seed_elements(lon=lo[i], lat=la[i],
-                                radius=radius, number=1, time=time,
-                                mass=mass_residual,mass_degraded=0,mass_volatilized=0, z=z, origin_marker=1)
+        logger.info(
+            f'seed_from_DataArray: {sel[0].size} emission cells -> '
+            f'{n_tot} elements (single seed_elements call)'
+        )
+        z = -np.random.uniform(0, 1, n_tot)
+        self.seed_elements(
+            lon=lon_e,
+            lat=lat_e,
+            radius=radius,
+            number=n_tot,
+            time=time_e,
+            mass=mass_e,
+            mass_degraded=0,
+            mass_volatilized=0,
+            z=z,
+            origin_marker=1,
+        )
 
     seed_from_STEAM = seed_from_DataArray
     ''' Alias of seed_from_DataArray method for backward compatibility

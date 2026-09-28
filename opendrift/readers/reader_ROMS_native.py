@@ -433,6 +433,22 @@ class Reader(StructuredReader):
                 raise ValueError('No angle between xi and east found')
         return self._angle
 
+    def _ensure_s2z_coefficients(self):
+        """Whole-domain s2z A,C from multi_zslice, once per Dataset."""
+        if self.s2z_A is not None:
+            return
+        logger.debug('Calculating sigma2z-coefficients for whole domain')
+        starttime = datetime.now()
+        M = self.sea_floor_depth_below_sea_level.shape[0]
+        N = self.sea_floor_depth_below_sea_level.shape[1]
+        O = len(self.z_rho_tot)
+        dummyvar = np.ones((O, M, N))
+        dummy, self.s2z_A, self.s2z_C, self.s2z_I, self.s2z_kmax = depth.multi_zslice(
+            dummyvar, self.z_rho_tot, self.zlevels)
+        self.s2z_A = self.s2z_A.reshape(len(self.zlevels), M, N)
+        self.s2z_C = self.s2z_C.reshape(len(self.zlevels), M, N)
+        logger.info('Time: ' + str(datetime.now() - starttime))
+
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, testing=False):
         start_time = datetime.now()
@@ -478,10 +494,12 @@ class Reader(StructuredReader):
         buffer = self.buffer
         # Avoiding the last pixel in each dimension, since there are
         # several grids which are shifted (rho, u, v, psi)
-        indx = np.arange(np.max([0, indx.min()-buffer]),
-                            np.min([indx.max()+buffer, self.lon.shape[1]-1]))
-        indy = np.arange(np.max([0, indy.min()-buffer]),
-                            np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+        xi1 = int(np.max([0, indx.min()-buffer]))
+        xi2 = int(np.min([indx.max()+buffer, self.lon.shape[1]-1]))
+        yi1 = int(np.max([0, indy.min()-buffer]))
+        yi2 = int(np.min([indy.max()+buffer, self.lon.shape[0]-1]))
+        indx = np.arange(xi1, xi2)
+        indy = np.arange(yi1, yi2)
 
         # define indices
         ixy = (indy,indx)
@@ -496,7 +514,7 @@ class Reader(StructuredReader):
 
         # Find depth levels covering all elements
         if z.min() == 0 or self.hc is None:
-            indz = self.num_layers - 1  # surface layer
+            inds = self.num_layers - 1  # surface layer
             variables['z'] = 0
 
         else:
@@ -541,17 +559,16 @@ class Reader(StructuredReader):
             indy_el = np.clip(indy_el - indy.min(), 0, z_rho.shape[1]-1)
 
             # Loop to find the layers covering the requested z-values
-            indz_min = 0
-            indz_max = self.num_layers
+            inds_min = 0
+            inds_max = self.num_layers
             for i in range(self.num_layers):
                 if np.min(z-z_rho[i, indy_el, indx_el]) > 0:
-                    indz_min = i
+                    inds_min = i
                 if np.max(z-z_rho[i, indy_el, indx_el]) > 0:
-                    indz_max = i
-            indz = range(np.maximum(0, indz_min-self.verticalbuffer),
+                    inds_max = i
+            inds = range(np.maximum(0, inds_min-self.verticalbuffer),
                          np.minimum(self.num_layers,
-                                    indz_max + 1 + self.verticalbuffer))
-            z_rho = z_rho[indz, :, :]
+                                    inds_max + 1 + self.verticalbuffer))
             # Determine the z-levels to which to interpolate
             zi1 = np.maximum(0, bisect_left(-np.array(self.zlevels),
                                             -z.max()) - self.verticalbuffer)
@@ -561,7 +578,7 @@ class Reader(StructuredReader):
             variables['z'] = np.array(self.zlevels[zi1:zi2])
         
         # define another set of indices
-        itzxy = (indxTime, indz, indy, indx)
+        itsxy = (indxTime, inds, indy, indx)
             
         def get_mask(mask_name, imask, masks_store):
             if mask_name in masks_store:
@@ -571,6 +588,7 @@ class Reader(StructuredReader):
             return mask, mask_name
 
         masks_store = {}  # To store masks for various grids
+        s2z_inds_finalized = False
         for par in requested_variables:
             varname = self.standard_name_mapping[par]
             var = self.Dataset.variables[varname]
@@ -584,7 +602,41 @@ class Reader(StructuredReader):
             elif var.ndim == 3:
                 variables[par] = var[itxy]
             elif var.ndim == 4:
-                variables[par] = var[itzxy]
+                # 4D fields F are read on sigma layers, then interpolated to
+                # z-levels by R = (1-A)*F[C-1] + A*F[C], where C and C-1 are
+                # the sigma layers above and below the required z. With
+                # precalculate_s2z_coefficients == True, C comes from the
+                # whole-domain table as a full-column index, 0 = seabed to
+                # num_layers-1 = surface.
+                #
+                # To save I/O we read F only for a subset of layers:
+                # inds -> itsxy -> variables[par] -> F. So F[0] is layer
+                # si_bottom, not layer 0. Before C can be used,
+                # inds must contain every layer C and C-1 over
+                # [zi1:zi2, yi1:yi2, xi1:xi2], so it is expanded to cover
+                # [C_bottom-1 .. C_top]. C is then shifted to F numbering
+                # by C = C - si_bottom (below).
+                #
+                # Done once, on the first 4D field; later fields reuse it.
+                if not s2z_inds_finalized:
+                    if (self.precalculate_s2z_coefficients is True and
+                            len(np.atleast_1d(inds)) > 1):
+                        si_bottom, si_top = int(min(inds)), int(max(inds))
+                        self._ensure_s2z_coefficients()
+                        C = np.asarray(self.s2z_C[zi1:zi2, yi1:yi2, xi1:xi2])
+                        # multi_zslice always returns finite clipped ints;
+                        # this guard is only for a degenerate empty slice.
+                        if C.size:
+                            C_bottom = int(C.min())
+                            C_top = int(C.max())
+                            si_bottom = int(min(si_bottom, max(0, C_bottom - 1)))
+                            si_top = int(max(si_top, min(self.num_layers - 1, C_top)))
+                            inds = range(si_bottom, si_top + 1)
+                        itsxy = (indxTime, inds, indy, indx)
+                    if not np.isscalar(inds):
+                        z_rho = z_rho[inds, :, :]
+                    s2z_inds_finalized = True
+                variables[par] = var[itsxy]
             else:
                 raise Exception('Wrong dimension of variable: ' +
                                 self.ROMS_variable_mapping[par])
@@ -616,36 +668,20 @@ class Reader(StructuredReader):
 
             if var.ndim == 4:
                 # Regrid from sigma to z levels
-                if len(np.atleast_1d(indz)) > 1:
+                if len(np.atleast_1d(inds)) > 1:
                     logger.debug('sigma to z for ' + varname)
                     if self.precalculate_s2z_coefficients is True:
-                        M = self.sea_floor_depth_below_sea_level.shape[0]
-                        N = self.sea_floor_depth_below_sea_level.shape[1]
-                        O = len(self.z_rho_tot)
-                        if self.s2z_A is None:
-                            logger.debug('Calculating sigma2z-coefficients for whole domain')
-                            starttime = datetime.now()
-                            dummyvar = np.ones((O, M, N))
-                            dummy, self.s2z_A, self.s2z_C, self.s2z_I, self.s2z_kmax = depth.multi_zslice(dummyvar, self.z_rho_tot, self.zlevels)
-                            # Store arrays/coefficients
-                            self.s2z_A = self.s2z_A.reshape(len(self.zlevels), M, N)
-                            self.s2z_C = self.s2z_C.reshape(len(self.zlevels), M, N)
-                            #self.s2z_I = self.s2z_I.reshape(M, N)
-                            logger.info('Time: ' + str(datetime.now() - starttime))
+                        self._ensure_s2z_coefficients()
                         if 'A' not in locals():
                             logger.debug('Re-using sigma2z-coefficients')
                             # Select relevant subset of full arrays
                             zle = np.arange(zi1, zi2)  # The relevant depth levels
-                            A = self.s2z_A.copy()  # Awkward subsetting to prevent losing one dimension
-                            A = A[:,:,indx]
-                            A = A[:,indy,:]
-                            A = A[zle,:,:]
-                            C = self.s2z_C.copy()
-                            C = C[:,:,indx]
-                            C = C[:,indy,:]
-                            C = C[zle,:,:]
-                            C = C - C.max() + variables[par].shape[0] - 1
-                            C[C<1] = 1
+                            A = np.asarray(self.s2z_A[zi1:zi2, yi1:yi2, xi1:xi2])
+                            # Old (commit 0c734bf5): C - C.max() + N - 1 was
+                            # right only when C.max() == si_top; otherwise it
+                            # used the wrong sigma layers from F.
+                            C = C - si_bottom
+                            C[C<1] = 1  # keep C-1 >= 0 at the seabed
                             A = A.reshape(len(zle), len(indx)*len(indy))
                             C = C.reshape(len(zle), len(indx)*len(indy))
                             I = np.arange(len(indx)*len(indy))

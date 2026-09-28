@@ -3,6 +3,9 @@ History
 
 2026-08-28 / Release v1.14.12
 -----------------------------
+* Bugfix in reader_ROMS_native: sigma-to-z interpolation could select the wrong
+  sigma layers (with precalculate_s2z_coefficients=True) when the fetched data
+  area spanned deeper water than the particles, giving wrong sub-surface fields.
 * remove proj dependeny (this is not a python package).
 
 2026-08-28 / Release v1.14.11
