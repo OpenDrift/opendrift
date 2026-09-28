@@ -133,9 +133,9 @@ class Oil(Lagrangian3DArray):
             'wind_drift_factor',
             {
                 'dtype':
-                np.float32,  # TODO: inherit from
+                np.float32,  # TODO: inherit from OceanDrift
                 'units':
-                '%',  # OceanDrift
+                '1',
                 'description':
                 'Elements at the ocean surface are moved by '
                 'this fraction of the wind vector, in addition to '
