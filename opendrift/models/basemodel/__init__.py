@@ -76,7 +76,7 @@ import roaring_landmask
 from roaring_landmask import RoaringLandmask
 
 Mode = Enum('Mode', ['Config', 'Ready', 'Run', 'Result'])
-rl = roaring_landmask.RoaringLandmask.new()
+rl = roaring_landmask.RoaringLandmask.new_with_provider(roaring_landmask.LandmaskProvider.Osm)
 
 def coastline_crossing(lon1, lat1, lon2, lat2, step_degrees, land_side=True):
     """Return the coastline crossing points between positions in water (lon1,lat1) and positions on land (lon2, lat2).
