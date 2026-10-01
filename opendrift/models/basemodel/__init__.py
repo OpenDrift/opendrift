@@ -474,6 +474,16 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'If True, wind drift is calculated for absolute wind (wind vector minus ocean surface current vector).',
                 'level': CONFIG_LEVEL_ADVANCED
             },
+            'drift:wind_drift_angle': {
+                'type': 'float',
+                'default': 0,
+                'min': -45,
+                'max': 45,
+                'units': 'degrees',
+                'description':
+                'Angle by which the wind vector is rotated before wind drift is calculated. Positive values turn the wind to the right in the Northern Hemisphere and to the left in the Southern Hemisphere.',
+                'level': CONFIG_LEVEL_ADVANCED
+            },
             'drift:deactivate_north_of': {
                 'type': 'float',
                 'default': None,

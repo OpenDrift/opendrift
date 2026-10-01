@@ -747,6 +747,42 @@ class PhysicsMethods:
                     factor*ice_velocity_x,
                     factor*ice_velocity_y)
 
+    def _wind_deflection_sign_per_element(self):
+        """Sign of the wind rotation for each element, depending on hemisphere.
+
+        The Coriolis effect turns wind-driven drift to the right in the
+        Northern Hemisphere and to the left in the Southern Hemisphere.
+        Elements that fall on the equator are treated as Northern Hemisphere.
+        """
+        latitudes = self.elements.lat
+        sign_per_element = np.where(latitudes >= 0, 1.0, -1.0)
+        return sign_per_element
+
+    def _rotate_wind_components(self, x_wind, y_wind, angle_degrees):
+        """Rotate wind vectors clockwise by a (possibly per-element) angle.
+
+        A positive angle turns the wind to the right of its direction. The
+        wind speed is not changed by the rotation.
+
+        Uses the rotation matrix of Reed et al. (1994), Spill Science &
+        Technology Bulletin, 1(2), 143-157, doi:10.1016/1353-2561(94)90009-4,
+        with theta positive to the right of the wind:
+
+            [x_rotated]   [ cos(theta)   sin(theta)] [x_wind]
+            [y_rotated] = [-sin(theta)   cos(theta)] [y_wind]
+
+        This follows from the angle-difference identities for cos(phi - theta)
+        and sin(phi - theta), where phi is the wind direction.
+        """
+        angle_radians = np.radians(angle_degrees)
+        cosine_of_angle = np.cos(angle_radians)
+        sine_of_angle = np.sin(angle_radians)
+        # Both new components must be calculated from the original
+        # velocity components, so that neither is overwritten before it is used again.
+        rotated_x_wind = x_wind * cosine_of_angle + y_wind * sine_of_angle
+        rotated_y_wind = -x_wind * sine_of_angle + y_wind * cosine_of_angle
+        return rotated_x_wind, rotated_y_wind
+
     def advect_wind(self, factor=1):
         # Elements at/near ocean surface (z>wind_drift_depth) are advected with given percentage
         # of wind speed. NB: Only basic Euler scheme is implemented
@@ -825,6 +861,14 @@ class PhysicsMethods:
                           % (np.sum(surface), self.num_elements_active(),
                              wind_drift_depth[0],
                              speed.min(), speed.max()))
+
+        wind_drift_angle = self.get_config('drift:wind_drift_angle')
+        if wind_drift_angle != 0:
+            # Rotate only the local copies of the wind, so that other
+            # processes reading self.environment are not affected
+            signed_angle_per_element = wind_drift_angle * self._wind_deflection_sign_per_element()
+            x_wind, y_wind = self._rotate_wind_components(
+                x_wind, y_wind, signed_angle_per_element)
 
         self.update_positions(x_wind*wdf*factor, y_wind*wdf*factor)
 
