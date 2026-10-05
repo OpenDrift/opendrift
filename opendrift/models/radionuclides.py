@@ -1174,7 +1174,7 @@ class RadionuclideDrift(OceanDrift):
         if landmask_shapefile is not None:
             landmask = self.env.readers['shape'].get_variables('land_binary_mask', x=lon_array,y=lat_array)['land_binary_mask']
         else:
-            landmask = self.env.readers['global_landmask'].get_variables('land_binary_mask', lon_array,lat_array)['land_binary_mask']
+            landmask = self.env.readers['global_landmask'].get_variables('land_binary_mask', x=lon_array,y=lat_array)['land_binary_mask']
 
 
         print('landmask.shape: ', landmask.shape)
@@ -1568,8 +1568,8 @@ class RadionuclideDrift(OceanDrift):
         homefolder = expanduser("~")
         filename = homefolder+'/conc_radio_gui.nc'
 
-
-        self.guipp_saveconcfile(filename)
+        logger.info('Saving of netCDF concentration file is deactivated')
+        #self.guipp_saveconcfile(filename)
 
     """
         zlayer   = [-1,-2]

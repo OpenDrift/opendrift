@@ -11,15 +11,13 @@ from datetime import timedelta, datetime
 import numpy as np
 
 
-o = RadionuclideDrift(loglevel=0, seed=0)  # Set loglevel to 0 for debug information
+o = RadionuclideDrift(loglevel=20)  # Set loglevel to 0 for debug information
 
 # Norkyst
 #reader_norkyst = reader_netCDF_CF_generic.Reader(tdf + '/14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
 reader_norkyst = reader_netCDF_CF_generic.Reader('https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be')
 
 o.add_reader([reader_norkyst])
-
-
 
 # Adjusting some configuration
 o.set_config('drift:vertical_mixing', True)
@@ -28,49 +26,33 @@ o.set_config('vertical_mixing:diffusivitymodel','environment')  # apply vertical
 # Vertical mixing requires fast time step
 o.set_config('vertical_mixing:timestep', 600.) # seconds
 o.set_config('environment:constant:horizontal_diffusivity', 10)
-
 #%%
 o.set_config('radionuclide:particle_diameter',5.e-6)  # m
-
 o.set_config('radionuclide:sediment:resuspension_depth',2.)
 o.set_config('radionuclide:sediment:resuspension_depth_uncert',0.1)
 o.set_config('radionuclide:sediment:resuspension_critvel',0.15)
-
-
-#
 o.set_config('radionuclide:isotope', '137Cs')
 o.set_config('radionuclide:specie_setup','LMM + Rev')
-
 # By default, radionuclides do not strand towards coastline
 o.set_config('general:coastline_action', 'previous')
 o.set_config('general:seafloor_action','lift_to_seafloor')
-
-
 o.set_config('seed:LMM_fraction',.45)
 o.set_config('seed:particle_fraction',.55)
 
-o.list_configspec()
-
-
 
 # SEEDING
-
 td=datetime.today()
 time = datetime(td.year, td.month, td.day, 0)
 
-latseed= 60.0;   lonseed= 4.5 
-
+lat = 59.825673
+lon = 10.724714
 ntraj=5000
 iniz=np.random.rand(ntraj) * -10. # seeding the radionuclides in the upper 10m
-
-o.seed_elements(lonseed, latseed, z=iniz, radius=1000,number=ntraj,
-                time=time, 
-                )
-
+o.seed_elements(lon, lat, z=iniz, radius=10, number=ntraj, time=time)
 
 #%%
 # Running model
-o.run(steps=24*2, time_step=1800, time_step_output=3600)
+o.run(duration=timedelta(hours=48), time_step=1800, time_step_output=3600)
 
 
 #%%
@@ -88,7 +70,6 @@ o.animation(color='specie',
             vmin=0,vmax=o.nspecies-1,
             colorbar=False,
             legend=[o.specie_num2name(i) for i in range(o.nspecies)],
-            fast = True
             )
 #%%
 # .. image:: /gallery/animations/example_radionuclides_0.gif
@@ -104,9 +85,6 @@ o.animation_profile(color='specie',
 #%%
 # .. image:: /gallery/animations/example_radionuclides_1.gif
 
-o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,fast=True,)
-
-
 
 # # Postprocessing: write to concentration netcdf file
 
@@ -114,16 +92,16 @@ o.plot(linecolor='specie',vmin=0,vmax=o.nspecies-1,fast=True,)
 #
 # .. code:
 #
-o.write_netcdf_radionuclide_density_map('radio_conc.nc', pixelsize_m=500.,
-                                      zlevels=[-2.],
-                                      activity_unit='Bq',
-                                      horizontal_smoothing=True,
-                                      smoothing_cells=1,
-                                      time_avg_conc=True,
-                                      deltat=2., # hours
+#o.write_netcdf_radionuclide_density_map('radio_conc.nc', pixelsize_m=500.,
+#                                      zlevels=[-2.],
+#                                      activity_unit='Bq',
+#                                      horizontal_smoothing=True,
+#                                      smoothing_cells=1,
+#                                      time_avg_conc=True,
+#                                      deltat=2., # hours
 #                                      llcrnrlon=4.4, llcrnrlat=59.9,
 #                                      urcrnrlon=4.8, urcrnrlat=60.2,
-                                     )
+#                                     )
 
 
 
