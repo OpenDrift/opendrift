@@ -40,8 +40,8 @@ def get_mask():
     global __roaring_mask__
 
     if __roaring_mask__ is None:
-        from roaring_landmask import RoaringLandmask
-        __roaring_mask__ = RoaringLandmask.new()
+        from roaring_landmask import RoaringLandmask, LandmaskProvider
+        __roaring_mask__ = RoaringLandmask.new_with_provider(LandmaskProvider.Osm)
 
     return __roaring_mask__
 
@@ -72,7 +72,7 @@ class LandmaskFeature(cfeature.GSHHSFeature):
                     geoms = cfeature.GSHHSFeature._geometries_cache.get('ROARING')
                     if geoms is None:
                         logger.debug('Getting fullres shapes from roaring landmask')
-                        provider = roaring_landmask.LandmaskProvider.Gshhg
+                        provider = roaring_landmask.LandmaskProvider.Osm
                         shapes = roaring_landmask.Shapes.new(provider)
                         polys = roaring_landmask.Shapes.wkb(provider)
                         __polys__ = wkb.loads(polys)
