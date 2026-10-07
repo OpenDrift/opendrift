@@ -111,8 +111,8 @@ def import_file(self, filename):
         self.result = xr.open_dataset(filename)
 
     self.steps_output = self.result.sizes['time']
-    self.start_time = self.result.time[0].astype('datetime64[us]').astype(datetime)
-    self.time = self.result.time[-1].astype('datetime64[us]').astype(datetime)
+    self.start_time = pd.Timestamp(self.result.time.values[0]).to_pydatetime()
+    self.time = pd.Timestamp(self.result.time.values[-1]).to_pydatetime()
     self.status_categories = self.result.status.flag_meanings.split()
 
     num_elements = self.result.sizes['trajectory']
