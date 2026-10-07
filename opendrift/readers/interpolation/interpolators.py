@@ -29,8 +29,9 @@ class Nearest2DInterpolator():
     def __init__(self, xgrid, ygrid, x, y):
         self.x = x
         self.y = y
-        self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*len(xgrid)
-        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*len(ygrid)
+        # N points span (N-1) cell gaps, not N.
+        self.xi = (x - xgrid.min())/(xgrid.max()-xgrid.min())*(len(xgrid)-1)
+        self.yi = (y - ygrid.min())/(ygrid.max()-ygrid.min())*(len(ygrid)-1)
         self.xi = np.round(self.xi).astype(np.uint32)
         self.yi = np.round(self.yi).astype(np.uint32)
         self.xi[self.xi >= len(xgrid)] = len(xgrid)-1

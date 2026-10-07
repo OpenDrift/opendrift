@@ -40,6 +40,21 @@ o = OceanDrift()
 class TestInterpolation(unittest.TestCase):
     """Tests spatial interpolation"""
 
+    def test_nearest2d_interpolator_grid_node_exactness(self):
+        """Nearest2DInterpolator must return the exact grid value when
+        queried exactly at a grid node."""
+        xgrid = np.array([0., 1., 2., 3., 4.])
+        ygrid = np.array([0., 1.])
+        array2d = np.array([
+            [10., 11., 12., 13., 14.],
+            [10., 11., 12., 13., 14.],
+        ])
+        x = xgrid.copy()
+        y = np.zeros_like(xgrid)
+        interp = Nearest2DInterpolator(xgrid, ygrid, x, y)
+        result = interp(array2d)
+        np.testing.assert_array_equal(result, array2d[0, :])
+
     def test_dateline(self):
 
         # Make synthetic netCDF file with currents from 0 to 360 deg longitude
@@ -324,7 +339,7 @@ class TestInterpolation(unittest.TestCase):
         self.assertAlmostEqual(env['x_sea_water_velocity'][100],
                                0.075019, 3)
         self.assertAlmostEqual(prof['sea_water_temperature'][0,11],
-                               7.549999, 3)
+                               7.669999, 3)
         self.assertAlmostEqual(prof['sea_water_temperature'][-1,11],
                                8.389999, 3)
         self.assertEqual(prof['z'][-1], b.z[-1])
@@ -450,7 +465,7 @@ class TestInterpolation(unittest.TestCase):
                                   profiles=variables,
                                   profiles_depth=[-30, 0])
         self.assertEqual(
-            np.sum(~np.isfinite(env['x_sea_water_velocity'])), 31)
+            np.sum(~np.isfinite(env['x_sea_water_velocity'])), 25)
 
     def test_expand_array(self):
         reader = reader_ROMS_native.Reader(tdf +
