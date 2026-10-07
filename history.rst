@@ -1,6 +1,10 @@
 History
 =======
 
+Not sure what to do with this...
+----------
+* New config option *drift:wind_drift_angle* to rotate the wind before wind drift is calculated (to the right in the Northern Hemisphere, to the left in the Southern Hemisphere). Default is kept to 0, i.e. no change in this case.
+
 2026-08-28 / Release v1.14.12
 -----------------------------
 * Bugfix in reader_ROMS_native: sigma-to-z interpolation could select the wrong
