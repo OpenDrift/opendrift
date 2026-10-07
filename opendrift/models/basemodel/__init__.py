@@ -3190,6 +3190,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                               transform=self.crs_lonlat)[0]
             plt.legend()
 
+        # Set the (two-line) title now, so that tight layout reserves space for it
+        _title = self._figure_title() if title == 'auto' else title
+        ax.set_title('%s\n%s UTC' % (_title,
+                     np.datetime_as_string(self.result.time[0], unit='s')))
+
         fig.canvas.draw()
         fig.set_layout_engine('tight')
         if colorbar is True:
