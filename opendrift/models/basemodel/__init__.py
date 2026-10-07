@@ -3234,14 +3234,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         for a in fig.axes:
             a.apply_aspect()  # make positions reflect the fixed map aspect
         bb = fig.get_tightbbox(fig.canvas.get_renderer())  # inches
-        W, H = fig.get_size_inches()
+        W, HE = fig.get_size_inches()
         newW, newH = bb.width + 2*pad_inches, bb.height + 2*pad_inches
         for a in fig.axes:
             p = a.get_position()
             a.set_position([(p.x0*W - bb.x0 + pad_inches) / newW,
-                            (p.y0*H - bb.y0 + pad_inches) / newH,
+                            (p.y0*HE - bb.y0 + pad_inches) / newH,
                             p.width*W/newW,
-                            p.height*H/newH], which='both')
+                            p.height*HE/newH], which='both')
         fig.set_size_inches(newW, newH)
         fig.canvas.draw()
 
