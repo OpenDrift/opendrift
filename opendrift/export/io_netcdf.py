@@ -15,9 +15,6 @@ from opendrift.models.basemodel import Mode
 # Follows netCDF CF-convention on trajectories:
 # https://cfconventions.org/Data/cf-conventions/cf-conventions-1.12/cf-conventions.html#_multidimensional_array_representation_of_trajectories
 
-def datetime_from_datetime64(dt64):
-    t = (dt64 - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1, 's')
-    return datetime.fromtimestamp(float(t))
 
 def init(self, filename):
 
@@ -114,8 +111,8 @@ def import_file(self, filename):
         self.result = xr.open_dataset(filename)
 
     self.steps_output = self.result.sizes['time']
-    self.start_time = datetime_from_datetime64(self.result.time[0])
-    self.time = datetime_from_datetime64(self.result.time[-1])
+    self.start_time = self.result.time[0].astype('datetime64[us]').astype(datetime)
+    self.time = self.result.time[-1].astype('datetime64[us]').astype(datetime)
     self.status_categories = self.result.status.flag_meanings.split()
 
     num_elements = self.result.sizes['trajectory']
