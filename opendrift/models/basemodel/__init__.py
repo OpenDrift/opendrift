@@ -3645,8 +3645,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         start_time = datetime.now()
 
-        period_start = self.result.time.values[0]
-        period_end = self.result.time.values[-1]
+        if self.result is not None:
+            period_start = self.result.time.values[0]
+            period_end = self.result.time.values[-1]
         if compare is not None:
             # Extend map coverage to cover comparison simulations
             cd, compare_args = self._get_comparison_xy_for_plots(compare)
