@@ -2818,6 +2818,38 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             compare_list, compare_args = self._get_comparison_xy_for_plots(
                 compare)
             kwargs.update(compare_args)
+        else:
+            compare_list = []
+
+        # Common time axis (frames) spanning all simulations
+        main_times = self.result.time.values
+        if compare is None:
+            frame_times = main_times
+            main_frame_index = np.arange(len(main_times))
+        else:
+            sims_times = [main_times] + [cd['time_other'] for cd in compare_list]
+            steps = [t[1] - t[0] for t in sims_times if len(t) > 1]
+            frame_step = min(steps)   # finest time step of all simulations
+            frame_times = np.arange(min(t[0] for t in sims_times),
+                                    max(t[-1] for t in sims_times) + frame_step,
+                                    frame_step)
+
+            def _index_on_frames(times):
+                # index into `times` for each frame; -1 outside the simulation period
+                tol = pd.Timedelta(times[1] - times[0] if len(times) > 1
+                                   else frame_step) / 2
+                return pd.Index(times).get_indexer(frame_times,
+                                                   method='nearest',
+                                                   tolerance=tol)
+
+            main_frame_index = _index_on_frames(main_times)
+            for cd in compare_list:
+                cd['frame_index'] = _index_on_frames(cd['time_other'])
+        main_valid = main_frame_index >= 0
+        # Main-simulation index per frame; frozen at first/last step when outside
+        main_index_clipped = np.where(
+            main_valid, main_frame_index,
+            np.where(frame_times < main_times[0], 0, len(main_times) - 1))
 
         background_zorder = kwargs.pop('background_zorder', 0)
 
@@ -2870,10 +2902,11 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             self.set_up_map(buffer=buffer, corners=corners, lscale=lscale,
                             fast=fast, hide_landmask=hide_landmask, xlocs = xlocs, ylocs = ylocs, **kwargs)
 
-        def plot_timestep(i):
+        def plot_timestep(frame):
             """Sub function needed for matplotlib animation."""
 
-            time_string = np.datetime_as_string(self.result.time[i], unit='s')
+            i = main_index_clipped[frame]   # index into this simulation
+            time_string = np.datetime_as_string(frame_times[frame], unit='s')
             ret = [points, points_deactivated
                    ]  # list of elements to return for blitting
             if title == 'auto':
@@ -2911,7 +2944,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 ret.append(pm)
 
             # Move points
-            if show_elements is True:
+            if show_elements is True and main_valid[frame]:
                 points.set_offsets(np.c_[x[i, range(x.shape[1])],
                                          y[i, range(x.shape[1])]])
                 points_deactivated.set_offsets(
@@ -2929,12 +2962,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     if (isinstance(color, str) or hasattr(color, '__len__')) and len(index_of_last_deactivated)>0:
                         points_deactivated.set_array(colorarray_deactivated[
                             index_of_last_deactivated < i])
+            elif show_elements is True:
+                points.set_offsets(np.empty((0, 2)))
+                points_deactivated.set_offsets(np.empty((0, 2)))
 
             if drifter is not None:
                 for drnum, dr in enumerate(drifter):
-                    drifter_pos[drnum].set_offsets(np.c_[dr['lon'][i],
-                                                         dr['lat'][i]])
-                    drifter_line[drnum].set_data(dr['lon'][0:i+1], dr['lat'][0:i+1])
+                    drifter_pos[drnum].set_offsets(np.c_[dr['lon'][frame],
+                                                         dr['lat'][frame]])
+                    drifter_line[drnum].set_data(dr['lon'][0:frame+1], dr['lat'][0:frame+1])
                     ret.append(drifter_line[drnum])
                     ret.append(drifter_pos[drnum])
 
@@ -2945,21 +2981,20 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     shdf = shdf.to_crs("EPSG:4326")
                     ax.add_geometries(shdf.geometry, self.crs_lonlat, edgecolor='g', linewidth=2, facecolor='none')
 
-            if show_elements is True:
-                if compare is not None:
-                    for cd in compare_list:
+            if show_elements is True and compare is not None:
+                for cd in compare_list:
+                    j = cd['frame_index'][frame]
+                    if j < 0:   # comparison has no data at this time
+                        cd['points_other'].set_offsets(np.empty((0, 2)))
+                        cd['points_other_deactivated'].set_offsets(np.empty((0, 2)))
+                    else:
                         cd['points_other'].set_offsets(
-                            np.c_[cd['x_other'][range(cd['x_other'].shape[0]),
-                                                i],
-                                  cd['y_other'][range(cd['x_other'].shape[0]),
-                                                i]])
+                            np.c_[cd['x_other'][:, j], cd['y_other'][:, j]])
                         cd['points_other_deactivated'].set_offsets(np.c_[
-                            cd['x_other_deactive'][
-                                cd['index_of_last_deactivated_other'] < i],
-                            cd['y_other_deactive'][
-                                cd['index_of_last_deactivated_other'] < i]])
-                        ret.append(cd['points_other'])
-                        ret.append(cd['points_other_deactivated'])
+                            cd['x_other_deactive'][cd['index_of_last_deactivated_other'] < j],
+                            cd['y_other_deactive'][cd['index_of_last_deactivated_other'] < j]])
+                    ret.append(cd['points_other'])
+                    ret.append(cd['points_other_deactivated'])
 
             return ret
 
@@ -3163,9 +3198,9 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             drifter = [d.copy() for d in drifter]  # Avoid modifying original
             for drnum, dr in enumerate(drifter):
                 # Interpolate drifter time series onto simulation times
-                sts = (self.result.time - self.result.time[0]) / np.timedelta64(1, 's')
-                dr_times = np.array(dr['time'], dtype=self.result.time.dtype)
-                dts = (dr_times-dr_times[0]) / np.timedelta64(1, 's')
+                sts = (frame_times - frame_times[0]) / np.timedelta64(1, 's')
+                dr_times = np.array(dr['time'], dtype=frame_times.dtype)
+                dts = (dr_times - frame_times[0]) / np.timedelta64(1, 's')
                 dr['lon'] = np.interp(sts, dts, dr['lon'])
                 dr['lat'] = np.interp(sts, dts, dr['lat'])
                 dr['lon'][sts < dts[0]] = np.nan
@@ -3193,7 +3228,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         # Set the (two-line) title now, so that tight layout reserves space for it
         _title = self._figure_title() if title == 'auto' else title
         ax.set_title('%s\n%s UTC' % (_title,
-                     np.datetime_as_string(self.result.time[0], unit='s')))
+                     np.datetime_as_string(frame_times[0], unit='s')))
 
         fig.canvas.draw()
         fig.set_layout_engine('tight')
@@ -3245,10 +3280,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
         fig.set_size_inches(newW, newH)
         fig.canvas.draw()
 
-        frames = x.shape[0] if frames is None else frames
-
-        if compare is not None:
-            frames = min(x.shape[0], cd['x_other'].shape[1])
+        frames = len(frame_times) if frames is None else frames
 
         # blit is now provided to animation()
         #blit = sys.platform != 'darwin'  # blitting does not work on mac os
@@ -3508,6 +3540,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
             # Find map coordinates of comparison simulations
             cd['dataset'] = other.result
+            cd['time_other'] = other.result.time.values
             cd['x_other'] = other.result.lon.copy()
             cd['y_other'] = other.result.lat.copy()
             cd['x_other_deactive'], cd['y_other_deactive'] = \
@@ -3612,10 +3645,15 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
 
         start_time = datetime.now()
 
+        period_start = self.result.time.values[0]
+        period_end = self.result.time.values[-1]
         if compare is not None:
             # Extend map coverage to cover comparison simulations
             cd, compare_args = self._get_comparison_xy_for_plots(compare)
             kwargs.update(compare_args)
+            for c in cd:
+                period_start = min(period_start, c['time_other'][0])
+                period_end = max(period_end, c['time_other'][-1])
 
         if drifter is not None:
             if isinstance(drifter, xr.Dataset):  # Temporary - should use TrajAn
@@ -3623,7 +3661,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             # Extend map coverage to cover provided trajectory
             # TODO: drifter should be list of dictionaries
             ttime = np.array(drifter['time'], dtype=self.result.time.dtype)
-            i = np.where((ttime >= self.result.time[0].values) & (ttime <= self.result.time[-1].values))[0]
+            i = np.where((ttime >= period_start) & (ttime <= period_end))[0]
             drifter['lon'] = np.atleast_1d(drifter['lon'])
             drifter['lat'] = np.atleast_1d(drifter['lat'])
             tlonmin = drifter['lon'][i].min()
@@ -3671,8 +3709,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                     linecolor = 'gray'
                 if compare is not None and legend is not None:
                     if legend is True:
-                        if hasattr(compare, 'len'):
-                            numleg = len(compare)
+                        if hasattr(compare, '__len__'):
+                            numleg = len(compare) + 1
                         else:
                             numleg = 2
                         legend = [
@@ -3960,7 +3998,8 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 plt.title(title)
 
         if drifter is not None:
-            self._plot_drifter(ax, self.crs_lonlat, drifter)
+            self._plot_drifter(ax, self.crs_lonlat, drifter,
+                               period=(period_start, period_end))
 
         try:
             handles, labels = ax.get_legend_handles_labels()
@@ -3992,12 +4031,14 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
             return 'OpenDrift - ' + type(
                 self).__name__ + ' (%s)' % self._substance_name()
 
-    def _plot_drifter(self, ax, gcrs, drifter):
+    def _plot_drifter(self, ax, gcrs, drifter, period=None):
         '''Plot provided trajectory along with simulated'''
         time = np.array(drifter['time'], dtype=self.result.time.dtype)
-        i = np.where((time >= self.result.time[0].values) & (time <= self.result.time[-1].values))[0]
+        if period is None:  # default: period of this simulation only
+            period = (self.result.time.values[0], self.result.time.values[-1])
+        i = np.where((time >= period[0]) & (time <= period[1]))[0]
         lon, lat = (np.atleast_1d(drifter['lon'])[i],
-                np.atleast_1d(drifter['lat'])[i])
+                    np.atleast_1d(drifter['lat'])[i])
         dlabel = drifter['label'] if 'label' in drifter else 'Drifter'
         dcolor = drifter['color'] if 'color' in drifter else 'r'
         dlinewidth = drifter['linewidth'] if 'linewidth' in drifter else 2
