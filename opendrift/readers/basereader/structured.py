@@ -411,6 +411,23 @@ class StructuredReader(BaseReader):
         """
         return env
 
+    def lonlat_bounds(self, densify_pts=21):
+        """
+        Override method from variables
+        """
+        if self.projected:
+            return super().lonlat_bounds(densify_pts)
+        
+        corn = self.xy2lonlat(
+            [self.xmin, self.xmin, self.xmax, self.xmax],
+            [self.ymax, self.ymin, self.ymax, self.ymin]
+        )
+        lonmin = np.min(corn[0])
+        lonmax = np.max(corn[0])
+        latmin = np.min(corn[1])
+        latmax = np.max(corn[1])
+        return (lonmin, latmin, lonmax, latmax)
+
     def xy2lonlat(self, x, y):
         if self.projected:
             return super().xy2lonlat(x, y)
