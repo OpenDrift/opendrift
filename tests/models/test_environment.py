@@ -90,3 +90,42 @@ def test_skip_env_variable():
     o.seed_elements(lon=3, lat=60, time=datetime.now())
     o.run(steps=1)
     assert 'ocean_vertical_diffusivity' not in o.required_variables
+
+
+def test_lcc_at_high_latitudes(test_data_fake_ig):
+    """
+    Test that data with lcc projection such as the DMI HARMONIE/IG model
+    is not discarded at high latitutes within actual coverage. 
+    """
+    from opendrift.config import CONFIG_LEVEL_ADVANCED
+    c = Configurable()
+    c._add_config(
+        {'drift:wind_uncertainty': 
+            {
+                'type': 'float',
+                'default': 0,
+                'min': 0,
+                'max': 5,
+                'units': 'm/s',
+                'description':
+                'Add gaussian perturbation with this standard deviation to wind components at each time step.',
+                'level': CONFIG_LEVEL_ADVANCED
+            }
+        }
+    )
+    required_variables = {
+        'x_wind': {
+            'fallback': None
+        },
+        'y_wind': {
+            'fallback': None
+        },
+    }
+    env = Environment(required_variables, c._config)
+    env.add_reader(test_data_fake_ig)
+    env.finalize(simulation_extent=(-10.0, 81.0, -9.0, 82.0))
+    e, p, k = env.get_environment(
+        variables=['x_wind', 'y_wind'],
+        time=test_data_fake_ig.start_time, lon=np.array([-9.5]), lat=np.array([81.5]), z=np.array([0]))
+    assert np.isclose(e.tolist(), [1.33, 0.48], rtol=0.1).all()
+    assert not env.discarded_readers
