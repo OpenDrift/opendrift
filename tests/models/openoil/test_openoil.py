@@ -16,10 +16,11 @@ def test_seed():
     o.add_reader([fake_eddy])
     o.set_config('environment:constant:x_wind', 0)
     o.set_config('environment:constant:y_wind', 0)
-    o.seed_elements(lon=4, lat=60, number=100, time=fake_eddy.start_time)
+    o.seed_elements(lon=4, lat=60, number=100, time=fake_eddy.start_time, mass_oil=4)
     assert len(o.elements) == 0
     assert len(o.elements_deactivated) == 0
     assert len(o.elements_scheduled) == 100
+    assert o.elements_scheduled.mass_oil == 4
 
 
 def test_oil_in_ice():
