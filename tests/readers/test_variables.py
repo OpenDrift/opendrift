@@ -134,3 +134,10 @@ def test_environment_mapping(test_data):
     r.activate_environment_mapping('land_binary_mask_from_ocean_depth')
     assert 'land_binary_mask' in r.derived_variables
 
+def test_lonlat_bounds(test_data_fake_ig):
+    """
+    Test the lonlat_bounds method
+    """
+    bbox = test_data_fake_ig.lonlat_bounds()
+    assert np.isclose(bbox, [-109.8, 55.7, 37.8, 86.1], rtol=0.2).all()
+

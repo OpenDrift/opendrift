@@ -441,15 +441,14 @@ class Environment(Timeable, Configurable):
                         'Simulation has no simulation_extent, cannot check reader coverage'
                     )
                     return False
-                # TODO
-                # need a better coverage/overlap check below
-                corners = reader.xy2lonlat(
-                    [reader.xmin, reader.xmin, reader.xmax, reader.xmax],
-                    [reader.ymax, reader.ymin, reader.ymax, reader.ymin])
-                rlonmin = np.min(corners[0])
-                rlonmax = np.max(corners[0])
-                rlatmin = np.min(corners[1])
-                rlatmax = np.max(corners[1])
+                # NOTE: A better overlap test has been implemented
+                bbox = reader.lonlat_bounds()
+                rlonmin = bbox[0]
+                rlonmax = bbox[2]
+                rlatmin = bbox[1]
+                rlatmax = bbox[3]
+                # This seems like a fix e.g. for TOPAZ5
+                # TODO: We might handle the case of a dataset which covers the pole(s) in lonlat_bounds as well
                 if hasattr(
                         reader, 'proj4'
                 ) and 'stere' in reader.proj4 and 'lat_0=90' in reader.proj4:

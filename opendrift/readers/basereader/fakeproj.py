@@ -10,6 +10,12 @@ class fakeproj:
         # Simply return x and y since these are also row/column indices
         return x, y
 
+    def transform_bounds(self, left, bottom, right, top, *args, **kwargs):
+        """
+        Fake transform_bounds
+        """
+        return (left, bottom, right, top)
+
     srs = 'None'
 
 
