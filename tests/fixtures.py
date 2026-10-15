@@ -24,6 +24,15 @@ def test_data_fake_ig(test_data):
     return reader_netCDF_CF_generic.Reader(Path(test_data) / 'harmonie_ig_coverage' / 'fake_dmi_ig_wind.nc')
 
 @pytest.fixture
+def test_data_fake_wind_ob_tran(test_data):
+    """
+    Return reader_netCDF_CF_generic.Reader containing fake wind data
+    with same coverage as the old DMI NEA model (using rotated pole / ob_tran projection)
+    """
+    from opendrift.readers import reader_netCDF_CF_generic
+    return reader_netCDF_CF_generic.Reader(Path(test_data) / 'ob_tran_coverage' / 'fake_wind_ob_tran.nc')
+
+@pytest.fixture
 def show_plot(pytestconfig):
     return pytestconfig.getoption('plot')
 
