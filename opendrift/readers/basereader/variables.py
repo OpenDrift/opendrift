@@ -68,10 +68,15 @@ class ReaderDomain(Timeable):
         # TODO: Consider adding a test for whether the pole(s) are covered by the projection.
         if isinstance(self.proj, pyproj.Proj):
             x1, y1, x2, y2 = self.xmin, self.ymin, self.xmax, self.ymax
-            if self.proj.crs.is_geographic and 'ob_tran' in str(self.proj4):
-                # Perhaps also test if min, max < 2 * pi ?
-                logger.debug('NB: Converting degrees to radians due to ob_tran srs')
-                x1, y1, x2, y2 = np.radians((x1, y1, x2, y2))
+            if self.proj.crs.is_geographic:
+                if 'ob_tran' in str(self.proj4):
+                    # Perhaps also test if min, max < 2 * pi ?
+                    logger.debug('NB: Converting degrees to radians due to ob_tran srs')
+                    x1, y1, x2, y2 = np.radians((x1, y1, x2, y2))
+                else:
+                    # transform_bounds does not work well with lon in range (0, 360)
+                    # So a pragmatic fix is just to return the coords as is (same as in xy2lonlat)
+                    return x1, y1, x2, y2
             return self.proj.transform_bounds(
                 x1, y1, x2, y2, densify_pts=densify_pts, direction="INVERSE"
             )
