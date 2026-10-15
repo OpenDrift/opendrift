@@ -66,9 +66,14 @@ class ReaderDomain(Timeable):
         # It will e.g be a little off for datasets where the pole is an interior point (polar stereographic)
         # but should still be an improvement compared to just transforming the 'corners'.
         # TODO: Consider adding a test for whether the pole(s) are covered by the projection.
-        if isinstance(self.proj, pyproj.Proj): 
+        if isinstance(self.proj, pyproj.Proj):
+            x1, y1, x2, y2 = self.xmin, self.ymin, self.xmax, self.ymax
+            if self.proj.crs.is_geographic and 'ob_tran' in str(self.proj4):
+                # Perhaps also test if min, max < 2 * pi ?
+                logger.debug('NB: Converting degrees to radians due to ob_tran srs')
+                x1, y1, x2, y2 = np.radians((x1, y1, x2, y2))
             return self.proj.transform_bounds(
-                self.xmin, self.ymin, self.xmax, self.ymax, densify_pts=densify_pts, direction="INVERSE"
+                x1, y1, x2, y2, densify_pts=densify_pts, direction="INVERSE"
             )
         return self.xmin, self.ymin, self.xmax, self.ymax
 
