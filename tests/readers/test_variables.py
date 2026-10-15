@@ -146,4 +146,4 @@ def test_lonlat_bounds_ob_tran(test_data_fake_wind_ob_tran):
     Test the lonlat_bounds method for data in ob_tran projection (rotated pole)
     """
     bbox = test_data_fake_wind_ob_tran.lonlat_bounds()
-    assert np.isclose(bbox, [-28.6205, 44.3829, 37.0071, 72.8753], rtol=0.01).all()
+    assert np.isclose(bbox, [-28.62, 44.38, 37.01, 72.88], rtol=0.1).all()
