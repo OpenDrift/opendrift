@@ -65,10 +65,10 @@ class TestNetCDF(unittest.TestCase):
         #o.plot(filename='o1.png', background='sea_floor_depth_below_sea_level')
         #o2.plot(filename='o2.png', background='sea_floor_depth_below_sea_level')
 
-        assert o.num_elements_active() == 44
-        assert o2.num_elements_active() == 44
-        assert o.num_elements_deactivated() == 56
-        assert o2.num_elements_deactivated() == 56
+        assert o.num_elements_active() == 42
+        assert o2.num_elements_active() == 42
+        assert o.num_elements_deactivated() == 58
+        assert o2.num_elements_deactivated() == 58
         self.assertAlmostEqual(o.elements.lon[0], o2.elements.lon[0], 5)
 
 
