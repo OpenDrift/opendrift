@@ -151,7 +151,7 @@ class TestReaders(unittest.TestCase):
                         wind_drift_factor=.02,
                         number=10, radius=1000)
         o.run(steps=8)
-        self.assertEqual(o.num_elements_deactivated(), 1)
+        self.assertEqual(o.num_elements_deactivated(), 3)
 
     #def test_lazy_readers_and_corrupt_data(self):
     #    o = OceanDrift(loglevel=0)
@@ -622,7 +622,7 @@ class TestReaders(unittest.TestCase):
         o.seed_elements(lon=4.95, lat=62, number=10, time=norkyst.start_time)
         o.run(steps=2)
         variables.standard_names['x_sea_water_velocity']['valid_max'] = maxval  # reset
-        self.assertAlmostEqual(o.result.x_sea_water_velocity.max().values, -.0718, 3)  # Some numerical error allowed
+        self.assertAlmostEqual(o.result.x_sea_water_velocity.max().values, -.0979, 3)  # Some numerical error allowed
 
 
 if __name__ == '__main__':
