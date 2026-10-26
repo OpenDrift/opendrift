@@ -985,6 +985,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                                         z=0 * lon,
                                         time=land_reader.start_time,
                                         element_ID=self.elements.ID)[0]['land_binary_mask']
+            land = np.nan_to_num(land, nan=0.0)
             if land.max() == 0:
                 logger.info('All points are in ocean')
                 return lon, lat, None
