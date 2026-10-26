@@ -550,7 +550,8 @@ class Environment(Timeable, Configurable):
             self.discard_reader_if_not_relevant(reader, time)
 
         if profiles_depth is None:
-            profiles_depth = np.abs(z).max()
+            z_arr = np.asarray(z)
+            profiles_depth = np.abs(z_arr).max() if z_arr.size > 0 else 0.0
         if 'drift:truncate_ocean_model_below_m' in self._config:
             truncate_depth = self.get_config(
                 'drift:truncate_ocean_model_below_m')
