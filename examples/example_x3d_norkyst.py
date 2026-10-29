@@ -20,6 +20,9 @@ import numpy as np
 import xarray as xr
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.models.oceandrift import OceanDrift
+import coloredlogs
+
+coloredlogs.install('debug')
 
 thredds_url = 'https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be'
 x3d_url = ('x3d+https://rgw.met.no/5e4f32366fc74342866b4c67dbd4713d:'
