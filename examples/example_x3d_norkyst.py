@@ -28,10 +28,6 @@ thredds_url = 'https://thredds.met.no/thredds/dodsC/fou-hi/norkystv3_800m_m00_be
 x3d_url = ('x3d+https://rgw.met.no/5e4f32366fc74342866b4c67dbd4713d:'
            'norkyst800m-v3/norkyst800')
 
-# The x3d store does not carry the projection variable of the THREDDS dataset
-proj4 = ('+proj=stere +lat_0=90 +lat_ts=60 +lon_0=70 +x_0=3369600 +y_0=1844800 '
-         '+a=6378137 +b=6356752.3142 +units=m +no_defs')
-
 start = datetime.now(timezone.utc).replace(tzinfo=None, minute=0, second=0, microsecond=0)
 
 #%%
@@ -56,7 +52,7 @@ print(f'THREDDS: open {open_thredds:.2f} s, run {run_thredds:.2f} s')
 # directly to the reader.
 t0 = time.perf_counter()
 reader_x3d = reader_netCDF_CF_generic.Reader(xr.open_dataset(x3d_url),
-                                             proj4=proj4, name='norkyst_x3d')
+                                             name='norkyst_x3d')
 open_x3d = time.perf_counter() - t0
 
 o_x3d = OceanDrift(loglevel=50)
