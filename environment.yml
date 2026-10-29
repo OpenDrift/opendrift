@@ -38,5 +38,8 @@ dependencies:
   - python-dotenv
   - pip
   - git
+  - rust
+  - maturin>=1.5,<2
   - pip:
     - trajan @ git+http://github.com/OpenDrift/trajan.git
+    - x3d @ git+https://github.com/gauteh/x3d.git
