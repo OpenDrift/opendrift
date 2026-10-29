@@ -38,6 +38,8 @@ dependencies:
   - python-dotenv
   - pip
   - git
+  - c-compiler
+  - binutils
   - rust
   - maturin>=1.5,<2
   - pip:
