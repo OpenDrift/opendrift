@@ -71,8 +71,9 @@ run_x3d = time.perf_counter() - t0
 print(f'x3d:     open {open_x3d:.2f} s, run {run_x3d:.2f} s')
 
 #%%
-# Compare timing and trajectories. x3d stores the data as int16 (current 1 mm/s,
-# wind 1 cm/s precision), so trajectories are close, but not identical.
+# Compare timing and trajectories. The interpolated current fields are identical
+# in both readers, but x3d stores wind as int16 with 1 cm/s precision, so the
+# trajectories differ by a few meters.
 print(f'Speedup (total): {(open_thredds + run_thredds) / (open_x3d + run_x3d):.1f}x')
 print(f'Speedup (run):   {run_thredds / run_x3d:.1f}x')
 dist = np.hypot(ds_thredds.lon.values - ds_x3d.lon.values,
@@ -81,4 +82,5 @@ print(f'Max position difference: {np.nanmax(dist):.1f} m (approx.)')
 
 #%%
 # Plot both runs
-o_thredds.plot(compare=o_x3d, legend=['THREDDS', 'x3d'], fast=True)
+o_thredds.plot(compare=o_x3d, legend=[f'THREDDS (run time {run_thredds:.1f} s)',
+                                           f'x3d (run time {run_x3d:.1f} s)'], fast=True)
