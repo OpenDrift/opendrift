@@ -481,7 +481,7 @@ class OpenDriftSimulation(PhysicsMethods, Timeable, Configurable):
                 'max': 45,
                 'units': 'degrees',
                 'description':
-                'Angle by which the wind vector is rotated before wind drift is calculated. Positive values turn the wind to the right in the Northern Hemisphere and to the left in the Southern Hemisphere.',
+                'This is experimental. Angle by which the wind vector is rotated before wind drift is calculated. Positive values turn the wind drift to the right (clockwise) and negative values to the left, independent of hemisphere.',
                 'level': CONFIG_LEVEL_ADVANCED
             },
             'drift:deactivate_north_of': {
