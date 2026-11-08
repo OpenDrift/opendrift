@@ -1,9 +1,9 @@
 History
 =======
 
-Not sure what to do with this...
+Unreleased
 ----------
-* New config option *drift:wind_drift_angle* to rotate the wind before wind drift is calculated (to the right in the Northern Hemisphere, to the left in the Southern Hemisphere). Default is kept to 0, i.e. no change in this case.
+* New experimental config option *drift:wind_drift_angle* to rotate the wind drift by a given angle (positive is clockwise, negative is counter-clockwise). Default is 0, which just mean no rotation.
 
 2026-08-28 / Release v1.14.12
 -----------------------------
