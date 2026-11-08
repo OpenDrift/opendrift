@@ -63,6 +63,48 @@ class TestModels(unittest.TestCase):
         self.assertAlmostEqual(o2.elements.lat[0], lat + 0.0646*.3, 3)
         self.assertAlmostEqual(o2.elements.lon[0], lon + 0.0129, 3)
 
+    def test_wind_drift_angle(self):
+        """Wind drift is rotated clockwise by a positive angle in both hemispheres."""
+        wind_speed = 5  # ms^-1 and heading east
+        wind_drift_factor = 0.02 # so the element moves at 2 % of the wind speed, which means 5 * 0.02 = 0.1 ms^-1
+        time_step_seconds = 3600 # an hour gives distance of around 360 m
+        wind_drift_angle = 30
+        bearing_of_wind = 90  # degrees clockwise from north, so it's pointing towards east
+        
+        # the southern case checks that the direction of rotation doesn't depend on hemisphere (-60 is this case)
+        start_longitudes = np.array([4, 4])
+        start_latitudes = np.array([60, -60])
+        expected_bearing = bearing_of_wind + wind_drift_angle
+        expected_distance = wind_speed * wind_drift_factor * time_step_seconds
+        bearing_tolerance_degrees = 0.01
+        distance_tolerance_metres = 0.1
+
+        # making a fake simple world, similar to what test_wind_and_current_drift_factor() already uses
+        model = OceanDrift(loglevel=50)
+        model.set_config('general:use_auto_landmask', False)
+        model.set_config('environment:constant:land_binary_mask', 0)
+        model.set_config('environment:constant:x_wind', wind_speed)
+        model.set_config('environment:constant:y_wind', 0)
+        model.set_config('drift:wind_drift_angle', wind_drift_angle)
+        model.seed_elements(lon=start_longitudes, lat=start_latitudes,
+                            time=datetime(2024, 1, 1),
+                            wind_drift_factor=wind_drift_factor,
+                            current_drift_factor=0)
+        model.run(steps=1, time_step=time_step_seconds)
+
+        # OpenDrift uses to have WGS84 as a standard Earth shape;
+        # opendrift/models/basemodel/__init__.py in line 4743
+        geod = pyproj.Geod(ellps='WGS84')
+        forward_bearings, backward_bearings, distances = geod.inv(start_longitudes, start_latitudes,
+                                          model.elements.lon, model.elements.lat)
+        # checking the direction
+        np.testing.assert_allclose(forward_bearings, expected_bearing,
+                                   atol=bearing_tolerance_degrees)
+        
+        # checking speed (via distance, since the time step is fixed)
+        np.testing.assert_allclose(distances, expected_distance,
+                                   atol=distance_tolerance_metres)
+
     def test_windblow(self):
         o = WindBlow(loglevel=30)
         reader_arome = reader_netCDF_CF_generic.Reader(tdf + '2Feb2016_Nordic_sigma_3d/AROME_MetCoOp_00_DEF_20160202_subset.nc')
