@@ -747,6 +747,25 @@ class PhysicsMethods:
                     factor*ice_velocity_x,
                     factor*ice_velocity_y)
 
+    def _rotate_wind_components(self, x_wind, y_wind, angle_degrees):
+        """Rotate wind vectors clockwise by an angle (scalar or one per element).
+
+        A positive angle turns the wind to the right of its direction, and a
+        negative angle to the left, independent of hemisphere. The wind speed
+        is not changed by the rotation. Clockwise rotation matrix:
+
+            [x_rotated]   [ cos(theta)   sin(theta)] [x_wind]
+            [y_rotated] = [-sin(theta)   cos(theta)] [y_wind]
+        """
+        angle_radians = np.radians(angle_degrees)
+        cosine_of_angle = np.cos(angle_radians)
+        sine_of_angle = np.sin(angle_radians)
+        # Both new components must be calculated from the original
+        # velocity components, so that neither is overwritten before it is used again.
+        rotated_x_wind = x_wind * cosine_of_angle + y_wind * sine_of_angle
+        rotated_y_wind = -x_wind * sine_of_angle + y_wind * cosine_of_angle
+        return rotated_x_wind, rotated_y_wind
+
     def advect_wind(self, factor=1):
         # Elements at/near ocean surface (z>wind_drift_depth) are advected with given percentage
         # of wind speed. NB: Only basic Euler scheme is implemented
@@ -825,6 +844,13 @@ class PhysicsMethods:
                           % (np.sum(surface), self.num_elements_active(),
                              wind_drift_depth[0],
                              speed.min(), speed.max()))
+
+        wind_drift_angle = self.get_config('drift:wind_drift_angle')
+        if wind_drift_angle != 0:
+            # Rotate only the local copies of the wind, so that other
+            # processes reading self.environment are not affected
+            x_wind, y_wind = self._rotate_wind_components(
+                x_wind, y_wind, wind_drift_angle)
 
         self.update_positions(x_wind*wdf*factor, y_wind*wdf*factor)
 

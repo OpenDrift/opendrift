@@ -1,6 +1,10 @@
 History
 =======
 
+Unreleased
+----------
+* New experimental config option *drift:wind_drift_angle* to rotate the wind drift by a given angle (positive is clockwise, negative is counter-clockwise). Default is 0, which just mean no rotation.
+
 2026-08-28 / Release v1.14.12
 -----------------------------
 * Bugfix in reader_ROMS_native: sigma-to-z interpolation could select the wrong
