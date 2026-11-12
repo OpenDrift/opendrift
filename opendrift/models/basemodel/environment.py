@@ -153,6 +153,7 @@ class Environment(Timeable, Configurable):
             # TODO: discard irrelevant readers
             self.__generate_constant_readers__()
             self.__add_auto_landmask__()
+            self.__set_zero_velocity_on_land__()
             self.__assert_no_missing_variables__()
         if simulation_extent is not None:
             self.prepare_readers(simulation_extent, start, end)
@@ -209,6 +210,16 @@ class Environment(Timeable, Configurable):
                 logger.warning(
                     'Using constant reader for land_binary_mask, '
                     'although config general:use_auto_landmask is True')
+
+    def __set_zero_velocity_on_land__(self):
+        """Readers whose land_binary_mask is used get zero velocity on land"""
+        own_mask = [] if self.get_config('general:use_auto_landmask', False) \
+            else self.priority_list.get('land_binary_mask', [])
+        for reader in self.readers.values():
+            if reader.is_lazy is False:
+                reader = getattr(reader, 'reader', reader)  # unwrap lazy reader
+                if hasattr(reader, 'zero_velocity_on_land'):
+                    reader.zero_velocity_on_land = reader.name in own_mask
 
     def __assert_no_missing_variables__(self):
         missing_variables = self.missing_variables()
@@ -412,6 +423,7 @@ class Environment(Timeable, Configurable):
         for variable in list(self.priority_list):
             if variable not in self.required_variables:
                 del self.priority_list[variable]
+        self.__set_zero_velocity_on_land__()
 
         return reader
 
