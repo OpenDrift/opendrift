@@ -4,6 +4,7 @@ import xarray as xr
 import numpy as np
 from datetime import datetime
 import pytest
+from opendrift import test_data_folder as tdf
 
 
 class TestROMSReader(unittest.TestCase):
@@ -170,6 +171,20 @@ class TestROMSReader(unittest.TestCase):
         assert key in output
         assert reader.do_not_rotate == []
         assert np.allclose(output[key].data[1,0,:], u_expected)
+
+
+def test_zero_velocity_on_land():
+    reader = reader_ROMS_native.Reader(tdf +
+        '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc')
+    x, y = reader.lonlat2xy(np.array([14, 15]), np.array([68, 68.4]))
+    key = 'x_sea_water_velocity'
+    u = reader.get_variables([key], reader.start_time, x, y, 0)[key]
+    land = ~np.isfinite(np.ma.filled(u, np.nan))
+    assert land.any()
+    reader.zero_velocity_on_land = True
+    u0 = reader.get_variables([key], reader.start_time, x, y, 0)[key]
+    assert np.all(np.isfinite(u0))
+    assert np.allclose(u0[~land], np.ma.filled(u, np.nan)[~land])
 
 
 class TestROMSReaderRotation(unittest.TestCase):

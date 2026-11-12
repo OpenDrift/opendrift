@@ -78,6 +78,9 @@ class Reader(StructuredReader):
         r = Reader(ds)
     """
 
+    # Set in environment.py when this reader's land mask is used as landmask
+    zero_velocity_on_land = False
+
     def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={},
                  save_interpolator=False, interpolator_filename=None):
         
@@ -770,6 +773,14 @@ class Reader(StructuredReader):
         variables['x'] = variables['x'].astype(np.float32)
         variables['y'] = variables['y'].astype(np.float32)
         variables['time'] = nearestTime
+
+        # Masked u/v from NaN to 0, per component before rotation (which mixes
+        # u and v), so they are not filled with the neighbour mean
+        if self.zero_velocity_on_land:
+            for par in ('x_sea_water_velocity', 'y_sea_water_velocity'):
+                if par in variables:
+                    variables[par] = np.ma.filled(variables[par], np.nan)
+                    variables[par][~np.isfinite(variables[par])] = 0
 
         if 'x_sea_water_velocity' in variables.keys() and \
             'x_sea_water_velocity' not in self.do_not_rotate:

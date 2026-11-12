@@ -177,5 +177,25 @@ class TestStranding(unittest.TestCase):
         self.assertAlmostEqual(o2.elements.lon[0], 5.1152, 3)
 
 
+    def test_zero_velocity_on_land(self):
+        """ROMS u/v are zero on land only if its land mask is used as landmask"""
+        f = tdf + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc'
+        start_time = reader_ROMS_native.Reader(f).start_time
+        for auto_landmask in (True, False):
+            for lazy in (False, True):
+                o = OceanDrift(loglevel=50)
+                o.set_config('general:use_auto_landmask', auto_landmask)
+                if lazy:
+                    o.add_readers_from_list([f])
+                else:
+                    o.add_reader(reader_ROMS_native.Reader(f))
+                o.seed_elements(lon=14.0, lat=68.15, number=10, time=start_time)
+                o.run(steps=1)
+                r = [getattr(r, 'reader', r) for r in o.env.readers.values()
+                     if r.name == 'roms native']
+                self.assertEqual(len(r), 1)
+                self.assertEqual(r[0].zero_velocity_on_land, not auto_landmask)
+
+
 if __name__ == '__main__':
     unittest.main()
