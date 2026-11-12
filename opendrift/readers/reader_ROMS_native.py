@@ -48,6 +48,9 @@ class Reader(StructuredReader):
         :param interpolator_filename: If save_interpolator is True, user can input this string to control where interpolator is saved.
         :type interpolator_filename: Path, str, optional
 
+        :param destagger_velocity: Average u/v from their staggered grid points onto the rho grid.
+        :type destagger_velocity: bool
+
     Example:
 
     .. code::
@@ -82,8 +85,10 @@ class Reader(StructuredReader):
     zero_velocity_on_land = False
 
     def __init__(self, filename=None, name=None, gridfile=None, standard_name_mapping={},
-                 save_interpolator=False, interpolator_filename=None):
+                 save_interpolator=False, interpolator_filename=None,
+                 destagger_velocity=False):
         
+        self.destagger_velocity = destagger_velocity
         self._mask_rho = None
         self._mask_u = None
         self._mask_v = None
@@ -452,6 +457,50 @@ class Reader(StructuredReader):
         self.s2z_C = self.s2z_C.reshape(len(self.zlevels), M, N)
         logger.info('Time: ' + str(datetime.now() - starttime))
 
+    def _destagger_velocity_component(self, par, indxTime, indy, indx, inds, z_target):
+        """u/v (or ubar/vbar) at the other face of each rho cell, land as NaN"""
+        varname = self.standard_name_mapping[par]
+        if varname not in ('u', 'v', 'ubar', 'vbar'):
+            return None  # e.g. u_eastward/v_northward are already rho-grid
+        shift_axis = 'x' if varname in ('u', 'ubar') else 'y'
+        mask_attr = 'mask_u' if shift_axis == 'x' else 'mask_v'
+
+        if shift_axis == 'x':
+            indx_shift = np.clip(indx - 1, 0, None)
+            indy_shift = indy
+        else:
+            indx_shift = indx
+            indy_shift = np.clip(indy - 1, 0, None)
+
+        var = self.Dataset.variables[varname]
+        ixy_shift = (indy_shift, indx_shift)
+        itxy_shift = (indxTime, indy_shift, indx_shift)
+        itsxy_shift = (indxTime, inds, indy_shift, indx_shift)
+
+        if var.ndim == 3:
+            raw_shift = np.asarray(var[itxy_shift])
+        elif var.ndim == 4:
+            raw_shift = np.asarray(var[itsxy_shift])
+            if len(np.atleast_1d(inds)) > 1:
+                # same sigma-to-z sequence as get_variables, at the shifted index
+                H_shift = self.sea_floor_depth_below_sea_level[indy_shift, indx_shift]
+                zeta_shift = np.asarray(self.zeta[itxy_shift])
+                z_rho_shift = depth.sdepth(H_shift, zeta_shift, self.hc, self.Cs_r,
+                                            Vtransform=self.Vtransform, Vstretching=self.Vstretching)
+                z_rho_shift = z_rho_shift - zeta_shift[np.newaxis]
+                z_rho_shift = z_rho_shift[inds, :, :]
+                raw_shift, _, _, _, _ = depth.multi_zslice(raw_shift, z_rho_shift, z_target)
+                raw_shift[raw_shift > 1e+9] = np.nan
+        else:
+            return None
+
+        mask_obj = getattr(self, mask_attr)  # mask_u/mask_v: static (2D) or wetdry (3D)
+        mask_shift = np.asarray(mask_obj[itxy_shift if mask_obj.ndim == 3 else ixy_shift])
+        if mask_shift.min() == 0:
+            raw_shift = np.where(mask_shift == 0, np.nan, raw_shift)
+
+        return np.asarray(raw_shift, dtype=float)
+
     def get_variables(self, requested_variables, time=None,
                       x=None, y=None, z=None, testing=False):
         start_time = datetime.now()
@@ -726,47 +775,18 @@ class Reader(StructuredReader):
             # Mask values outside domain
             variables[par] = np.ma.array(variables[par], ndmin=2, mask=False)
 
-            # Skipping de-staggering, as it leads to invalid values at later interpolation
-            #if block is True:
-            #    # Unstagger grid for vectors
-            #    logger.debug('Unstaggering ' + par)
-            #    if 'eta_v' in var.dimensions:
-            #        variables[par] = np.ma.array(variables[par],
-            #                            mask=variables[par].mask)
-            #        variables[par][variables[par].mask] = 0
-            #        if variables[par].ndim == 2:
-            #            variables[par] = \
-            #                (variables[par][0:-1,0:-1] +
-            #                variables[par][0:-1,1::])/2
-            #        elif variables[par].ndim == 3:
-            #            variables[par] = \
-            #                (variables[par][:,0:-1,0:-1] +
-            #                variables[par][:,0:-1,1::])/2
-            #        variables[par] = np.ma.masked_where(variables[par]==0,
-            #                                            variables[par])
-            #    elif 'eta_u' in var.dimensions:
-            #        variables[par] = np.ma.array(variables[par],
-            #                            mask=variables[par].mask)
-            #        variables[par][variables[par].mask] = 0
-            #        if variables[par].ndim == 2:
-            #            variables[par] = \
-            #                (variables[par][0:-1,0:-1] +
-            #                 variables[par][1::,0:-1])/2
-            #        elif variables[par].ndim == 3:
-            #            variables[par] = \
-            #                (variables[par][:,0:-1,0:-1] +
-            #                 variables[par][:,1::,0:-1])/2
-            #        variables[par] = np.ma.masked_where(variables[par]==0,
-            #                                            variables[par])
-            #    else:
-            #        if variables[par].ndim == 2:
-            #            variables[par] = variables[par][1::, 1::]
-            #        elif variables[par].ndim == 3:
-            #            variables[par] = variables[par][:,1::, 1::]
+            # Mean of the two faces of each rho cell, ignoring land
+            if (self.destagger_velocity
+                    and par in ('x_sea_water_velocity', 'y_sea_water_velocity')):
+                shifted = self._destagger_velocity_component(
+                    par, indxTime, indy, indx, inds, variables['z'])
+                if shifted is not None:
+                    original = np.ma.filled(variables[par], np.nan).astype(float)
+                    stacked = np.stack([original, shifted])
+                    with np.errstate(invalid='ignore'):
+                        destaggered = np.nanmean(stacked, axis=0)
+                    variables[par] = np.ma.array(destaggered, ndmin=2, mask=False)
 
-        # TODO: should be midpoints, but angle array below needs integer
-        #indx = indx[0:-1]  # Only if de-staggering has been performed
-        #indy = indy[1::]
         variables['x'] = indx
         variables['y'] = indy
 
