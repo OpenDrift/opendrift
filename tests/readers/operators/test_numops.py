@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from . import *
-from opendrift.readers import reader_constant
+from opendrift.readers import reader_constant, reader_netCDF_CF_generic
 
 def test_const_add():
     r = reader_constant.Reader({'wind_speed':5, 'wind_from_direction': 45, 'land_binary_mask': 0})
@@ -49,3 +49,14 @@ def filter_vars():
     r2 = r1.exclude_vars(['wind_from_direction'])
     assert r2.variables == [ 'wind_speed', 'land_binary_mask' ]
 
+
+def test_reader_add_rotates_vectors(test_data):
+    r1 = reader_netCDF_CF_generic.Reader(test_data + '14Jan2016_NorKyst_z_3d/NorKyst-800m_ZDEPTHS_his_00_3Dsubset.nc')
+    r2 = reader_constant.Reader({'x_sea_water_velocity': 1., 'y_sea_water_velocity': 0.})
+    variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
+    kwargs = dict(time=r1.start_time, lon=np.array([4., 4.8, 6.]), lat=np.array([61.5, 62.5, 63.5]),
+                  z=np.zeros(3), rotate_to_proj='+proj=latlong')
+    e1, _ = r1.get_variables_interpolated(variables, **kwargs)
+    e, _ = (r1 + r2).get_variables_interpolated(variables, **kwargs)
+    np.testing.assert_allclose(e['x_sea_water_velocity'], e1['x_sea_water_velocity'] + 1)
+    np.testing.assert_allclose(e['y_sea_water_velocity'], e1['y_sea_water_velocity'])
