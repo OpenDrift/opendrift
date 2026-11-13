@@ -81,13 +81,13 @@ class Combined(BaseReader):
 
         if isinstance(self.b, list):
             N = len(self.b)
-            env_a, env_profiles_a = self.a.get_variables_interpolated(variables, time=time,lon=lon, lat=lat, z=z)
+            env_a, env_profiles_a = self.a.get_variables_interpolated(variables, time=time,lon=lon, lat=lat, z=z, rotate_to_proj=rotate_to_proj)
             #TODO Maybe change structure of profiles_b if there is a list
             env_b = {}
             env_profiles_b = {}
             temp = []
             for reader in self.b:
-                temp.append(reader.get_variables_interpolated(variables,time=time,lon=lon, lat=lat, z=z))
+                temp.append(reader.get_variables_interpolated(variables,time=time,lon=lon, lat=lat, z=z, rotate_to_proj=rotate_to_proj))
             for var in variables:
                 env_b[var] = np.array([env_i[var]  for env_i, _ in temp])
                 profiles_temp = []
@@ -99,8 +99,8 @@ class Combined(BaseReader):
                 env_profiles_b[var] = np.array(profiles_temp)
         else:
             N = -1
-            env_a, env_profiles_a = self.a.get_variables_interpolated(variables, time=time,lon=lon, lat=lat, z=z)
-            env_b, env_profiles_b = self.b.get_variables_interpolated(variables,time=time,lon=lon, lat=lat, z=z)
+            env_a, env_profiles_a = self.a.get_variables_interpolated(variables, time=time,lon=lon, lat=lat, z=z, rotate_to_proj=rotate_to_proj)
+            env_b, env_profiles_b = self.b.get_variables_interpolated(variables,time=time,lon=lon, lat=lat, z=z, rotate_to_proj=rotate_to_proj)
         
         variables = [ var for var in env_a.keys() if var not in ['x', 'y', 'z', 'time'] ]
         #Making disctinction between easy functions or more complex ones that need some external parameters
