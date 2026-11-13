@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+import pandas as pd
 import pytest
 from . import *
 from opendrift.readers import reader_netCDF_CF_generic, reader_ROMS_native
@@ -114,3 +115,23 @@ def test_lonlat2xy_parallel_big(test_data, benchmark):
 
     np.testing.assert_equal(x, xs)
     np.testing.assert_equal(y, ys)
+
+
+def test_block_fetched_again_for_deeper_elements():
+    # Daily reader with current = depth / 100
+    depth = np.array([0., 2, 4, 6, 10, 15, 20, 30, 50])
+    u = np.broadcast_to(depth[None, :, None, None] / 100, (2, len(depth), 3, 4)).copy()
+    coords = {'time': pd.date_range('2023-01-01', periods=2, freq='1D'),
+              'depth': ('depth', depth, {'standard_name': 'depth', 'positive': 'down'}),
+              'lat': ('lat', [59., 60, 61], {'standard_name': 'latitude'}),
+              'lon': ('lon', [0., 1, 2, 3], {'standard_name': 'longitude'})}
+    ds = xr.Dataset({'u': (('time', 'depth', 'lat', 'lon'), u, {'standard_name': 'x_sea_water_velocity'}),
+                     'v': (('time', 'depth', 'lat', 'lon'), 0 * u, {'standard_name': 'y_sea_water_velocity'})},
+                    coords=coords)
+    r = reader_netCDF_CF_generic.Reader(ds)
+    variables = ['x_sea_water_velocity', 'y_sea_water_velocity']
+    lon, lat = np.array([1., 2.]), np.array([60., 60.])
+    time = r.start_time + pd.Timedelta(hours=6)
+    for z in ([0, -1], [-30, -1], [0, -1]):
+        e, _ = r.get_variables_interpolated(variables, time=time, lon=lon, lat=lat, z=np.array(z, dtype=float))
+        np.testing.assert_allclose(e['x_sea_water_velocity'], -np.array(z) / 100, atol=1e-6)
