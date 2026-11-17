@@ -53,6 +53,7 @@ class Tobis(OceanDrift):
     Developed at MET Norway.
 
     Tobis eggs are demersal, meaning that they sink to the sea floor and get stuck there. 
+    Eggs seeded above the seafloor are placed on it before the simulation starts.
     Larvae can swim actively in the water column.
     """
 
@@ -105,6 +106,37 @@ class Tobis(OceanDrift):
         self._set_config_default('drift:vertical_advection_at_surface', True)
 
         self.hatch_time = self.get_hatch_time_func()
+
+    def prepare_run(self):
+        """Settle scheduled eggs before the simulation starts."""
+        super().prepare_run()
+        self.sink_eggs_to_seafloor()
+
+    def sink_eggs_to_seafloor(self):
+        """Move scheduled eggs above the local seafloor to bottom depth."""
+        # Seeds are not moved to self.elements until after prepare_run().
+        shape = (len(self.elements_scheduled),)
+        phase = np.broadcast_to(self.elements_scheduled.phase, shape)
+        eggs = np.where(phase == 0)[0]
+        if len(eggs) == 0:
+            return
+
+        z = np.broadcast_to(self.elements_scheduled.z, shape).copy()
+        environment, _, missing = self.env.get_environment(
+            ['sea_floor_depth_below_sea_level', 'sea_surface_height'],
+            time=self.time, lon=self.elements_scheduled.lon[eggs],
+            lat=self.elements_scheduled.lat[eggs],
+            z=z[eggs],
+            element_ID=self.elements_scheduled.ID[eggs])
+        if np.any(missing):
+            raise ValueError('Missing environment data for moving Tobis eggs.')
+
+        bottom = -(environment.sea_floor_depth_below_sea_level +
+                   environment.sea_surface_height)
+        above = z[eggs] > bottom
+        logger.info('Moving %s eggs to seafloor', np.count_nonzero(above))
+        z[eggs[above]] = bottom[above]
+        self.elements_scheduled.z = z
 
     def get_hatch_time_func(self):
         """
