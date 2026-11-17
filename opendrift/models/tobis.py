@@ -89,7 +89,10 @@ class Tobis(OceanDrift):
                  'description': 'Fraction of timestep swimming',
                  'level': CONFIG_LEVEL_ADVANCED},
             })
-        
+
+        # The eggs are considered demersal, meaning that they are stuck to the sea floor. 
+        # By default they will therefore stay in place until hatched. 
+        # However, egg advection with ocean currents may be turned on if wished. 
         self._add_config({
             'drift:egg_advection':
             {'type': 'bool', 'default':False,
