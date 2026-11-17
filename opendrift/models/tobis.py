@@ -14,7 +14,7 @@
 #
 #
 # Copyright 2026, Mateusz Matuszak, MET Norway
-# Adapted from larvalfish module for Tobis and LADIM. 
+# Adapted from LADIM with larvalfish module as base. 
 
 import datetime
 import numpy as np
