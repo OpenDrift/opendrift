@@ -657,6 +657,7 @@ class Reader(StructuredReader):
 
         masks_store = {}  # To store masks for various grids
         s2z_inds_finalized = False
+        cached_s2z = None  # (zi1, zi2, si_bottom) once the cached coefficients are used
         for par in requested_variables:
             varname = self.standard_name_mapping[par]
             var = self.Dataset.variables[varname]
@@ -753,6 +754,7 @@ class Reader(StructuredReader):
                             # used the wrong sigma layers from F.
                             C = C - si_bottom
                             C[C<1] = 1  # keep C-1 >= 0 at the seabed
+                            cached_s2z = (zi1, zi2, si_bottom)
                             A = A.reshape(len(zle), len(indx)*len(indy))
                             C = C.reshape(len(zle), len(indx)*len(indy))
                             I = np.arange(len(indx)*len(indy))
@@ -799,7 +801,7 @@ class Reader(StructuredReader):
                     and par in ('x_sea_water_velocity', 'y_sea_water_velocity')):
                 shifted = self._destagger_velocity_component(
                     par, indxTime, indy, indx, inds, variables['z'],
-                    (zi1, zi2, si_bottom) if 'A' in locals() else None)
+                    cached_s2z)
                 if shifted is not None:
                     original = np.ma.filled(variables[par], np.nan).astype(float)
                     stacked = np.stack([original, shifted])

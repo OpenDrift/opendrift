@@ -191,17 +191,21 @@ def test_destagger_velocity():
     f = tdf + '2Feb2016_Nordic_sigma_3d/Nordic-4km_SLEVELS_avg_00_subset2Feb2016.nc'
     key = 'x_sea_water_velocity'
     out = {}
-    for destagger in (False, True):
-        reader = reader_ROMS_native.Reader(f, destagger_velocity=destagger)
-        reader.do_not_rotate = [key, 'y_sea_water_velocity']  # compare raw u
-        x, y = reader.lonlat2xy(np.array([14, 15]), np.array([68, 68.4]))
-        for z in (0, np.array([-10., -200.])):
-            # cached s2z coefficients come from the first time, compare at another
-            reader.get_variables([key], reader.start_time, x, y, z)
-            out[destagger, np.size(z)] = np.ma.filled(
-                reader.get_variables([key], reader.end_time, x, y, z)[key], np.nan)
-    for nz in (1, 2):
-        u, u_rho = out[False, nz], out[True, nz]
+    for precalculate in (True, False):
+        for destagger in (False, True):
+            reader = reader_ROMS_native.Reader(f, destagger_velocity=destagger)
+            reader.precalculate_s2z_coefficients = precalculate
+            reader.do_not_rotate = [key, 'y_sea_water_velocity']  # compare raw u
+            x, y = reader.lonlat2xy(np.array([14, 15]), np.array([68, 68.4]))
+            for z in (0, np.array([-10., -200.])):
+                # cached s2z coefficients come from the first time, compare at another
+                reader.get_variables([key], reader.start_time, x, y, z)
+                out[precalculate, destagger, np.size(z)] = np.ma.filled(
+                    reader.get_variables([key], reader.end_time, x, y, z)[key], np.nan)
+    for (precalculate, destagger, nz), u_rho in out.items():
+        if not destagger:
+            continue
+        u = out[precalculate, False, nz]
         with np.errstate(invalid='ignore'):
             expected = np.nanmean(np.stack([u[..., 1:], u[..., :-1]]), axis=0)
         # before the fix, up to 0.004 m/s off at depth:
