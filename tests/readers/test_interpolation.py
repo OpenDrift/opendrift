@@ -32,6 +32,7 @@ from opendrift.readers.interpolation import \
         expand_numpy_array, \
         ReaderBlock, LinearND2DInterpolator, \
         NDImage2DInterpolator, Nearest2DInterpolator, \
+        Linear2DInterpolator, \
         Nearest1DInterpolator, Linear1DInterpolator
 
 o = OceanDrift()
@@ -491,6 +492,43 @@ class TestInterpolation(unittest.TestCase):
         expand_numpy_array(data)
         self.assertEqual(sum(~np.isfinite(data.ravel())), 0)
         self.assertFalse(np.isnan(data.max()))
+
+    def test_linear2d_windowed_expansion(self):
+        # On a large block, NaN-expansion is done in windows around the
+        # missing elements; result must equal expanding the whole block.
+        from scipy.ndimage import map_coordinates
+        ny, nx = 400, 500
+        yy, xx = np.mgrid[0:ny, 0:nx]
+        data = np.sin(xx / 17.) + np.cos(yy / 23.)
+        data[(xx > 250) & (yy > 100) & (yy < 300)] = np.nan  # land
+        # Elements in water, 1, 3 and 8 cells into land, and 40 cells into land
+        x = np.array([100.3, 251.5, 253.2, 258.7, 290.0, 400.0])
+        y = np.array([50.5, 200.5, 120.4, 150.0, 200.0, 350.0])
+
+        reference_data = data.copy()
+        reference = map_coordinates(reference_data, [y, x], cval=np.nan, order=1)
+        for _ in range(10):
+            missing = ~np.isfinite(reference)
+            expand_numpy_array(reference_data)
+            reference[missing] = map_coordinates(
+                reference_data, [y[missing], x[missing]],
+                cval=np.nan, order=1, mode='nearest')
+
+        interpolator = Linear2DInterpolator(np.arange(nx), np.arange(ny), x, y)
+        block = data.copy()
+        with self.assertLogs('opendrift.readers.interpolation.interpolators',
+                             level='WARNING') as logs:
+            result = interpolator(block)
+        # No 'Only NaNs' warnings from windows deep inside land
+        self.assertEqual(logs.output, [
+            'WARNING:opendrift.readers.interpolation.interpolators:'
+            'Still NaN-values after 10 iterations, exiting!'])
+        np.testing.assert_allclose(result, reference, rtol=1e-12, atol=1e-12)
+        self.assertTrue(np.isnan(result[-2]))
+        self.assertTrue(np.isfinite(result[:-2]).all())
+        # Block is filled in place around the missing elements only
+        self.assertTrue(np.isfinite(block[150, 258]))
+        self.assertTrue(np.isnan(block[290, 255]))
 
 
 if __name__ == '__main__':

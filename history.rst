@@ -4,6 +4,7 @@ History
 Unreleased
 ----------
 * New experimental config option *drift:wind_drift_angle* to rotate the wind drift by a given angle (positive is clockwise, negative is counter-clockwise). Default is 0, which just mean no rotation.
+* Faster filling of NaN-values (e.g. land) in linear interpolation (*linearNDFast*): the data is now expanded only around the elements with missing values, instead of over the whole reader block. This is much faster for large reader blocks (e.g. 30-45 times for a 2000x3000 block). Results are unchanged, except for elements far (about 10 cells) inside land in later calls using the same reader block.
 
 2026-08-28 / Release v1.14.12
 -----------------------------

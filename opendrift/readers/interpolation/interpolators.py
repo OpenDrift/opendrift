@@ -143,6 +143,7 @@ class Linear2DInterpolator():
         ny, nx = array2d.shape
         data = array2d
         windows = None
+        try_windows_below = len(missing) + 1  # tile again once missing has halved
         i=0
         while len(missing) > 0:
             i += 1
@@ -151,7 +152,8 @@ class Linear2DInterpolator():
                 break
             logger.debug('Linear2DInterpolator informational: NaN values for %i elements, expanding data %i' %
                           (len(missing), i))
-            if windows is None:
+            if windows is None and len(missing) < try_windows_below:
+                try_windows_below = len(missing) // 2
                 margin = max_iter - i + 3
                 ty = np.clip(np.floor(self.yi[missing]), 0, ny - 1).astype(int) // tile
                 tx = np.clip(np.floor(self.xi[missing]), 0, nx - 1).astype(int) // tile
@@ -171,6 +173,10 @@ class Linear2DInterpolator():
                 for w in windows:
                     sl, window, wmissing, _ = w
                     if len(wmissing) == 0:
+                        continue
+                    if not np.isfinite(window).any():
+                        # Too far from valid data to be filled within max_iter
+                        w[2] = wmissing[:0]
                         continue
                     expand_numpy_array(window)
                     w[3] += 1
