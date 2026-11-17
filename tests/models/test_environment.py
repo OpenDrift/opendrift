@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 import pytest
 import numpy as np
+import pandas as pd
+import xarray as xr
 from opendrift.models.basemodel.environment import Environment
 from opendrift.models.oceandrift import OceanDrift
-from opendrift.readers import reader_oscillating
+from opendrift.readers import reader_oscillating, reader_netCDF_CF_generic
 from opendrift.config import Configurable
 
 
@@ -129,3 +131,36 @@ def test_lcc_at_high_latitudes(test_data_fake_ig):
         time=test_data_fake_ig.start_time, lon=np.array([-9.5]), lat=np.array([81.5]), z=np.array([0]))
     assert np.isclose(e.tolist(), [1.33, 0.48], rtol=0.1).all()
     assert not env.discarded_readers
+
+def test_profiles_from_later_reader_group():
+    # Two readers, so two variable groups: temperature profiles come first,
+    # diffusivity profiles (= depth/1000) only from the second group
+    depth = np.array([0., 5, 10, 20, 30, 50, 75, 100])
+
+    def reader(var, values):
+        data = np.broadcast_to(values[None, :, None, None], (2, len(depth), 3, 4)).copy()
+        coords = {'time': pd.date_range('2023-01-01', periods=2, freq='1D'),
+                  'depth': ('depth', depth, {'standard_name': 'depth', 'positive': 'down'}),
+                  'lat': ('lat', [59., 60, 61], {'standard_name': 'latitude'}),
+                  'lon': ('lon', [0., 1, 2, 3], {'standard_name': 'longitude'})}
+        return reader_netCDF_CF_generic.Reader(xr.Dataset(
+            {var: (('time', 'depth', 'lat', 'lon'), data, {'standard_name': var})}, coords=coords))
+
+    c = Configurable()
+    required_variables = {'sea_water_temperature': {'fallback': 10, 'profiles': True},
+                          'ocean_vertical_diffusivity': {'fallback': 0.02, 'profiles': True}}
+    env = Environment(required_variables, c._config)
+    env.add_reader(reader('sea_water_temperature', 10 - depth / 10))
+    env.add_reader(reader('ocean_vertical_diffusivity', depth / 1000))
+    env.finalize()
+    profiles = None
+    for i in range(2):  # identical calls must give identical profiles
+        e, p, k = env.get_environment(
+            variables=list(required_variables), time=env.readers[list(env.readers)[0]].start_time,
+            lon=np.array([1., 2.]), lat=np.array([60., 60.]), z=np.array([-5., -5.]),
+            profiles=list(required_variables), profiles_depth=50)
+        kz = p['ocean_vertical_diffusivity']
+        np.testing.assert_allclose(kz, np.tile(-p['z'][:, None] / 1000, (1, 2)), atol=1e-6)
+        if profiles is not None:
+            np.testing.assert_array_equal(kz, profiles)
+        profiles = kz.copy()
