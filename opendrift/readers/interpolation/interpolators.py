@@ -130,19 +130,65 @@ class Linear2DInterpolator():
         interp = map_coordinates(array2d, [self.yi, self.xi],
                                  cval=np.nan, order=1)
         missing = np.where(~np.isfinite(interp))[0]
+        if len(missing) == 0:
+            return interp
+
+        # Expand the data in place (kept for later calls on the same block),
+        # over the whole block while many elements are missing, then only in
+        # windows around the tiles that still have missing elements. After i
+        # expansions a cell depends only on cells within i of it, so windows with
+        # a margin of the remaining expansions + 2 give the same values as
+        # expanding the whole block (to rounding).
+        max_iter, tile = 10, 32
+        ny, nx = array2d.shape
+        data = array2d
+        windows = None
         i=0
         while len(missing) > 0:
             i += 1
-            if i > 10:
-                logger.warning('Still NaN-values after 10 iterations, exiting!')
-                return interp
+            if i > max_iter:
+                logger.warning('Still NaN-values after %i iterations, exiting!' % max_iter)
+                break
             logger.debug('Linear2DInterpolator informational: NaN values for %i elements, expanding data %i' %
                           (len(missing), i))
-            expand_numpy_array(array2d)
-            interp[missing] = map_coordinates(
-                array2d, [self.yi[missing], self.xi[missing]],
-                cval=np.nan, order=1, mode='nearest')
+            if windows is None:
+                margin = max_iter - i + 3
+                ty = np.clip(np.floor(self.yi[missing]), 0, ny - 1).astype(int) // tile
+                tx = np.clip(np.floor(self.xi[missing]), 0, nx - 1).astype(int) // tile
+                tiles, which = np.unique(ty * nx + tx, return_inverse=True)
+                if len(tiles) * (tile + 2 * margin)**2 < data.size / 2:
+                    windows = []
+                    for k, (y, x) in enumerate(zip(tiles // nx, tiles % nx)):
+                        y0, x0 = max(0, y * tile - margin), max(0, x * tile - margin)
+                        sl = (slice(y0, (y + 1) * tile + margin + 1), slice(x0, (x + 1) * tile + margin + 1))
+                        windows.append([sl, data[sl].copy(), missing[which.ravel() == k], 0])
+            if windows is None:
+                expand_numpy_array(data)
+                interp[missing] = map_coordinates(
+                    data, [self.yi[missing], self.xi[missing]],
+                    cval=np.nan, order=1, mode='nearest')
+            else:
+                for w in windows:
+                    sl, window, wmissing, _ = w
+                    if len(wmissing) == 0:
+                        continue
+                    expand_numpy_array(window)
+                    w[3] += 1
+                    interp[wmissing] = map_coordinates(
+                        window, [self.yi[wmissing] - sl[0].start, self.xi[wmissing] - sl[1].start],
+                        cval=np.nan, order=1, mode='nearest')
+                    w[2] = wmissing[~np.isfinite(interp[wmissing])]
             missing = np.where(~np.isfinite(interp))[0]
+
+        # Copy the windows back into the block, except near their inner edges
+        for sl, window, _, rounds in windows or []:
+            if rounds > 0:
+                inner = tuple(slice(0 if s.start == 0 else rounds + 1,
+                                    m if s.start + m >= n else m - rounds - 1)
+                              for s, m, n in zip(sl, window.shape, (ny, nx)))
+                block = data[sl][inner]
+                fill = ~np.isfinite(block)
+                block[fill] = window[inner][fill]
 
         return interp
 
