@@ -27,6 +27,8 @@ import trajan
 
 from opendrift.readers import reader_netCDF_CF_generic
 from opendrift.readers import reader_ROMS_native
+from opendrift.readers import reader_constant
+from opendrift.models.oceandrift import OceanDrift
 from opendrift.models.openoil import OpenOil
 from opendrift.models.physics_methods import verticaldiffusivity_Large1994, verticaldiffusivity_Sundby1983, seawater_dynamic_viscosity
 
@@ -247,5 +249,33 @@ class TestPhysics(unittest.TestCase):
         self.assertTrue(o2.elements.lon > o.elements.lon)
         
         
+
+
+def test_diffusivitymodel_fallback():
+    # Ocean model diffusivity only west of 3E, so little mixing there (~0.1 m in 1 h)
+    def run(fallback_model):
+        r_ocean_model = reader_constant.Reader({'ocean_vertical_diffusivity': 1e-6})
+        r_ocean_model.xmax = 3
+        o = OceanDrift(loglevel=50)
+        o.add_reader(r_ocean_model)
+        for var, value in [('land_binary_mask', 0), ('x_wind', 10), ('y_wind', 0),
+                           ('x_sea_water_velocity', 0), ('y_sea_water_velocity', 0),
+                           ('ocean_mixed_layer_thickness', 30), ('ocean_vertical_diffusivity', 1e-7)]:
+            o.set_config('environment:fallback:' + var, value)
+        o.set_config('drift:vertical_mixing', True)
+        o.set_config('vertical_mixing:diffusivitymodel', 'environment')
+        o.set_config('vertical_mixing:diffusivitymodel_fallback', fallback_model)
+        o.seed_elements(lon=[2, 4], lat=[60, 60], z=-10, number=200, time=datetime.now())
+        o.run(duration=timedelta(hours=1), time_step=900)
+        west = o.elements.lon < 3
+        return np.std(o.elements.z[west]), np.std(o.elements.z[~west])
+
+    west, east = run('none')  # east gets the constant fallback
+    assert west < 0.5 and east < 0.5
+    west, east = run('windspeed_Large1994')  # east gets Large1994
+    assert west < 0.5 and east > 2
+
+
 if __name__ == '__main__':
     unittest.main()
+

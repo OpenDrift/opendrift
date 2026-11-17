@@ -140,6 +140,13 @@ class OceanDrift(OpenDriftSimulation):
                 'enum': ['environment', 'stepfunction', 'windspeed_Sundby1983',
                  'windspeed_Large1994', 'constant'], 'level': CONFIG_LEVEL_ADVANCED,
                  'units': 'seconds', 'description': 'Algorithm/source used for profile of vertical diffusivity. Environment means that diffusivity is aquired from readers or environment constants/fallback.'},
+            'vertical_mixing:diffusivitymodel_fallback': {'type': 'enum', 'default': 'none',
+                'enum': ['none', 'windspeed_Sundby1983', 'windspeed_Large1994'],
+                'level': CONFIG_LEVEL_ADVANCED,
+                 'description':
+                 "Only used when diffusivitymodel='environment'. If not 'none', blends diffusivity "
+                 "per element: real ocean-model data where a reader has it, this model's estimate "
+                 "elsewhere (instead of a flat fallback constant)."},
             'vertical_mixing:background_diffusivity': {'type': 'float', 'min': 0, 'max': 1, 'default': 1.2e-5,
                 'level': CONFIG_LEVEL_ADVANCED, 'units': 'm2s-1', 'description':
                 'Background diffusivity used below mixed layer for wind parameterisations.'},
@@ -425,10 +432,49 @@ class OceanDrift(OpenDriftSimulation):
         # get profile of eddy diffusivity
         # get vertical eddy diffusivity from environment or specific model
         diffusivity_model = self.get_config('vertical_mixing:diffusivitymodel')
+        diffusivity_model_fallback = self.get_config('vertical_mixing:diffusivitymodel_fallback')
         diffusivity_fallback = self.get_config('environment:fallback:ocean_vertical_diffusivity')
         # Mixing levels to be used if analytical expression:
         mixing_z_analytical = -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
-        if diffusivity_model == 'environment':
+        # Blend per element only when reader coverage is partial
+        blend_mask = None
+        if (diffusivity_model == 'environment' and diffusivity_model_fallback != 'none'
+                and 'ocean_vertical_diffusivity' in self.environment_profiles):
+            has_real_data = ~np.all(self.environment_profiles['ocean_vertical_diffusivity'] == diffusivity_fallback, axis=0)
+            if has_real_data.any() and not has_real_data.all():
+                blend_mask = has_real_data
+
+        if blend_mask is not None:
+            env_K = self.environment_profiles['ocean_vertical_diffusivity']
+            env_z = np.asarray(self.environment_profiles['z'], dtype=float)
+            # 1 m grid covering both the reader profiles and the mixed layer
+            mixing_z = -np.arange(0, max(self.environment.ocean_mixed_layer_thickness.max() + 2,
+                                         -env_z.min() + 1))
+            order = np.argsort(env_z)
+            env_z_sorted = env_z[order]
+            env_K_sorted = env_K[order][:, blend_mask]
+            # Fill NaN with the nearest valid value above in each column (below
+            # the seafloor), else below; columns without any keep the fallback model
+            valid = np.isfinite(env_K_sorted)
+            usable = valid.any(axis=0)
+            nz, cols = env_K_sorted.shape[0], np.arange(env_K_sorted.shape[1])[None, :]
+            levels = np.arange(nz)[:, None]
+            above = np.minimum.accumulate(np.where(valid, levels, nz - 1)[::-1], axis=0)[::-1]
+            below = np.maximum.accumulate(np.where(valid, levels, 0), axis=0)
+            fill_idx = np.where(valid[above, cols], above, below)
+            env_K_sorted = env_K_sorted[fill_idx, cols]
+            interpolator = interp1d(
+                env_z_sorted, env_K_sorted, axis=0, bounds_error=False,
+                fill_value=(env_K_sorted[0], env_K_sorted[-1]))
+            Kprofiles = self.get_diffusivity_profile(diffusivity_model_fallback, np.abs(mixing_z))
+            blend_idx = np.where(blend_mask)[0]
+            Kprofiles[:, blend_idx[usable]] = interpolator(mixing_z)[:, usable]
+            logger.debug(
+                'Using diffusivity from ocean model for %d/%d elements (interpolated '
+                'from %d native levels onto the %d-level mixing grid); %s for the remaining %d'
+                % (int(blend_mask.sum()), len(blend_mask), len(env_z), len(mixing_z),
+                   diffusivity_model_fallback, int((~blend_mask).sum())))
+        elif diffusivity_model == 'environment':
             if 'ocean_vertical_diffusivity' in self.environment_profiles and not (
                     self.environment_profiles['ocean_vertical_diffusivity'].min() ==
                     diffusivity_fallback and
@@ -439,9 +485,11 @@ class OceanDrift(OpenDriftSimulation):
                 mixing_z = self.environment_profiles['z'].copy()
                 logger.debug('Using diffusivity from ocean model')
             else:
-                logger.debug('Using diffusivity from Large1994 since model diffusivities not available')
+                model = ('windspeed_Large1994' if diffusivity_model_fallback == 'none'
+                         else diffusivity_model_fallback)
+                logger.debug('Using diffusivity from %s since model diffusivities not available' % model)
                 mixing_z = mixing_z_analytical
-                Kprofiles = self.get_diffusivity_profile('windspeed_Large1994', np.abs(mixing_z))
+                Kprofiles = self.get_diffusivity_profile(model, np.abs(mixing_z))
         elif diffusivity_model == 'constant':
             logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (diffusivity_fallback))
             mixing_z = self.environment_profiles['z'].copy()
