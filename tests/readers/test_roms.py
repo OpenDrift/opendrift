@@ -195,12 +195,18 @@ def test_destagger_velocity():
         reader = reader_ROMS_native.Reader(f, destagger_velocity=destagger)
         reader.do_not_rotate = [key, 'y_sea_water_velocity']  # compare raw u
         x, y = reader.lonlat2xy(np.array([14, 15]), np.array([68, 68.4]))
-        out[destagger] = np.ma.filled(
-            reader.get_variables([key], reader.start_time, x, y, 0)[key], np.nan)
-    u, u_rho = out[False], out[True]
-    with np.errstate(invalid='ignore'):
-        expected = np.nanmean(np.stack([u[:, 1:], u[:, :-1]]), axis=0)
-    assert np.allclose(u_rho[:, 1:], expected, equal_nan=True)
+        for z in (0, np.array([-10., -200.])):
+            # cached s2z coefficients come from the first time, compare at another
+            reader.get_variables([key], reader.start_time, x, y, z)
+            out[destagger, np.size(z)] = np.ma.filled(
+                reader.get_variables([key], reader.end_time, x, y, z)[key], np.nan)
+    for nz in (1, 2):
+        u, u_rho = out[False, nz], out[True, nz]
+        with np.errstate(invalid='ignore'):
+            expected = np.nanmean(np.stack([u[..., 1:], u[..., :-1]]), axis=0)
+        # before the fix, up to 0.004 m/s off at depth:
+        # print(np.nanmax(np.abs(u_rho[..., 1:] - expected)))
+        assert np.allclose(u_rho[..., 1:], expected, equal_nan=True)
 
 
 class TestROMSReaderRotation(unittest.TestCase):
