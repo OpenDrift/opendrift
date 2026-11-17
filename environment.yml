@@ -36,6 +36,7 @@ dependencies:
   - copernicusmarine>=2.4
   - bottleneck
   - python-dotenv
+  - pytmd
   - pip
   - git
   - pip:

@@ -44,6 +44,7 @@ opendrift_gui = "opendrift.scripts.opendrift_gui:main"
 
 [project.optional-dependencies]
 grib = ["cfgrib", "pygrib"]
+tides = ["pyTMD"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
