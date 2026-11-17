@@ -457,8 +457,12 @@ class Reader(StructuredReader):
         self.s2z_C = self.s2z_C.reshape(len(self.zlevels), M, N)
         logger.info('Time: ' + str(datetime.now() - starttime))
 
-    def _destagger_velocity_component(self, par, indxTime, indy, indx, inds, z_target):
-        """u/v (or ubar/vbar) at the other face of each rho cell, land as NaN"""
+    def _destagger_velocity_component(self, par, indxTime, indy, indx, inds, z_target,
+                                      s2z=None):
+        """u/v (or ubar/vbar) at the other face of each rho cell, land as NaN
+
+        s2z: (zi1, zi2, si_bottom) to use the cached s2z coefficients, as the main face
+        """
         varname = self.standard_name_mapping[par]
         if varname not in ('u', 'v', 'ubar', 'vbar'):
             return None  # e.g. u_eastward/v_northward are already rho-grid
@@ -481,7 +485,19 @@ class Reader(StructuredReader):
             raw_shift = np.asarray(var[itxy_shift])
         elif var.ndim == 4:
             raw_shift = np.asarray(var[itsxy_shift])
-            if len(np.atleast_1d(inds)) > 1:
+            if len(np.atleast_1d(inds)) > 1 and s2z is not None:
+                # same cached coefficients as the main face, at the shifted index
+                zi1, zi2, si_bottom = s2z
+                ixs = np.ix_(np.arange(zi1, zi2), indy_shift, indx_shift)
+                A = np.asarray(self.s2z_A[ixs]).reshape(zi2 - zi1, -1)
+                C = np.asarray(self.s2z_C[ixs]).reshape(zi2 - zi1, -1) - si_bottom
+                C[C < 1] = 1
+                F = raw_shift.reshape(raw_shift.shape[0], -1)
+                I = np.arange(F.shape[1])
+                raw_shift = ((1-A)*F[(C-1, I)] + A*F[(C, I)]).reshape(
+                    (zi2 - zi1,) + raw_shift.shape[1:])
+                raw_shift[raw_shift > 1e+9] = np.nan
+            elif len(np.atleast_1d(inds)) > 1:
                 # same sigma-to-z sequence as get_variables, at the shifted index
                 H_shift = self.sea_floor_depth_below_sea_level[indy_shift, indx_shift]
                 zeta_shift = np.asarray(self.zeta[itxy_shift])
@@ -676,11 +692,14 @@ class Reader(StructuredReader):
                         si_bottom, si_top = int(min(inds)), int(max(inds))
                         self._ensure_s2z_coefficients()
                         C = np.asarray(self.s2z_C[zi1:zi2, yi1:yi2, xi1:xi2])
+                        # layers also cover the other u/v face (de-staggering)
+                        C_e = C if not self.destagger_velocity else np.asarray(
+                            self.s2z_C[zi1:zi2, max(yi1 - 1, 0):yi2, max(xi1 - 1, 0):xi2])
                         # multi_zslice always returns finite clipped ints;
                         # this guard is only for a degenerate empty slice.
-                        if C.size:
-                            C_bottom = int(C.min())
-                            C_top = int(C.max())
+                        if C_e.size:
+                            C_bottom = int(C_e.min())
+                            C_top = int(C_e.max())
                             si_bottom = int(min(si_bottom, max(0, C_bottom - 1)))
                             si_top = int(max(si_top, min(self.num_layers - 1, C_top)))
                             inds = range(si_bottom, si_top + 1)
@@ -779,7 +798,8 @@ class Reader(StructuredReader):
             if (self.destagger_velocity
                     and par in ('x_sea_water_velocity', 'y_sea_water_velocity')):
                 shifted = self._destagger_velocity_component(
-                    par, indxTime, indy, indx, inds, variables['z'])
+                    par, indxTime, indy, indx, inds, variables['z'],
+                    (zi1, zi2, si_bottom) if 'A' in locals() else None)
                 if shifted is not None:
                     original = np.ma.filled(variables[par], np.nan).astype(float)
                     stacked = np.stack([original, shifted])
