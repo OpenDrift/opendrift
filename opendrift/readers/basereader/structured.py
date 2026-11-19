@@ -271,6 +271,18 @@ class StructuredReader(BaseReader):
                     block_after = block_before
                     self.var_block_after[blockvars_after] = block_after
 
+        # Fetch again if elements are outside both the levels of a block and
+        # the depths it was fetched for, keeping those depths so blocks only grow
+        blocks = [b for b in (block_before, block_after)
+                  if b is not None and b.z is not None]
+        if any((mz.min() < min(np.min(b.z), b.z_fetched[0])) or
+               (mz.max() > max(np.max(b.z), b.z_fetched[1])) for b in blocks):
+            zf = np.ravel([b.z_fetched for b in blocks])
+            mx = np.append(mx, np.full(len(zf), mx[-1]))
+            my = np.append(my, np.full(len(zf), my[-1]))
+            mz = np.append(mz, zf)
+            block_before = block_after = None
+
         # Fetch data, if no buffer is available
         if block_before is None or \
                 block_before.time != time_before:
@@ -293,6 +305,7 @@ class StructuredReader(BaseReader):
                    len(self.var_block_before[blockvars_before].y), len_z,
                    time_before))
             block_before = self.var_block_before[blockvars_before]
+            block_before.z_fetched = (mz.min(), mz.max())
         if block_after is None or block_after.time != time_after:
             if time_after is None:
                 self.var_block_after[blockvars_after] = block_before
@@ -316,6 +329,7 @@ class StructuredReader(BaseReader):
                               len(self.var_block_after[blockvars_after].y),
                               len_z, time_after))
                 block_after = self.var_block_after[blockvars_after]
+                block_after.z_fetched = (mz.min(), mz.max())
 
         if (block_before is not None and block_before.covers_positions(
             reader_x, reader_y) is False) or (\
