@@ -16,6 +16,7 @@ from PIL import ImageTk, Image
 logging.getLogger('PIL').setLevel(logging.INFO)
 import tkinter as tk
 from tkinter import ttk
+import tkinter.font as tkfont
 from importlib.resources import files
 import opendrift
 from opendrift.models.oceandrift import OceanDrift
@@ -115,7 +116,10 @@ class OpenDriftGUI(tk.Tk):
         # Layout frames
         ##################
         self.n = ttk.Notebook(self.master)
-        self.n.grid()
+        self.n.grid(row=0, column=0, sticky='nsew')
+        # Let the notebook follow the window size
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
         self.seed = tk.Frame(self.n)
         self.confignotebook = ttk.Notebook(self.n)
         self.config = tk.Frame(self.confignotebook)
@@ -151,6 +155,9 @@ class OpenDriftGUI(tk.Tk):
         self.output = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
         self.output.grid(row=70, column=0, columnspan=7, sticky='nsew')
+        self.seed.rowconfigure(70, weight=1)
+        self.output.rowconfigure(60, weight=1)
+        self.output.columnconfigure(0, weight=1)
 
         self.results = tk.Frame(self.seed, bd=2,
                                relief=tk.FLAT, padx=5, pady=0)
@@ -345,14 +352,14 @@ class OpenDriftGUI(tk.Tk):
         ##############
         # Output box
         ##############
-        self.text = tk.Text(self.output, wrap="word", height=50)
-        self.text.grid(row=60, columnspan=10, sticky='nsw')
+        self.text = tk.Text(self.output, wrap="word", height=5)
+        self.text.grid(row=60, column=0, columnspan=10, sticky='nsew')
         self.text.tag_configure("stderr", foreground="#b22222")
         if os.getenv('OPENDRIFT_GUI_OUTPUT', 'gui') == 'gui':
             sys.stdout = TextRedirector(self.text, "stdout")
             sys.stderr = TextRedirector(self.text, "stderr")
-        s = tk.Scrollbar(self)
-        s.grid(row=60, column=6, sticky='ns')
+        s = tk.Scrollbar(self.output)
+        s.grid(row=60, column=10, sticky='ns')
         s.config(command=self.text.yview)
         self.text.config(yscrollcommand=s.set)
 
@@ -426,6 +433,26 @@ class OpenDriftGUI(tk.Tk):
         except Exception as e:
             print('No custom configuration')
             #print(e)
+
+        self.fit_to_screen()
+
+    def fit_to_screen(self, margin=80, max_output_rows=60):
+        """Make window fill the screen vertically (output box takes the slack)
+
+        margin: pixels reserved for window decorations / taskbar
+        max_output_rows: maximum height of the output box, in text rows
+        """
+        self.update_idletasks()
+        width = self.winfo_reqwidth()
+        # Window height at which the output box has max_output_rows rows
+        rowheight = tkfont.Font(font=self.text.cget('font')).metrics('linespace')
+        extra_rows = max(max_output_rows - int(self.text.cget('height')), 0)
+        max_height = self.winfo_reqheight() + extra_rows * rowheight
+        height = min(self.winfo_screenheight() - margin, max_height)
+        self.geometry('%dx%d+%d+0' % (width, height,
+                      max((self.winfo_screenwidth() - width) // 2, 0)))
+        self.minsize(width, min(300, height))
+        self.maxsize(self.winfo_screenwidth(), max_height)
 
     def copy_position(self, a, b, c):
         self.elat.delete(0, tk.END)
