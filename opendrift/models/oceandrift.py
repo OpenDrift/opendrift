@@ -531,6 +531,12 @@ class OceanDrift(OpenDriftSimulation):
         else:
             z_index = interp1d(-mixing_z, z_i, bounds_error=False,
                                fill_value=(0,len(z_i)-1))  # Extrapolation
+        # T/S profiles stay on the reader levels, which may differ from the mixing grid
+        z_index_TS = z_index
+        if Sprofiles is not None:
+            env_z = self.environment_profiles['z']
+            z_index_TS = 0 if len(env_z) == 1 else interp1d(
+                -env_z, range(len(env_z)), bounds_error=False, fill_value=(0, len(env_z) - 1))
 
         # Internal loop for fast time step of vertical mixing model.
         # Random walk needs faster time step than horizontal advection.
@@ -554,7 +560,7 @@ class OceanDrift(OpenDriftSimulation):
             surface = self.elements.z == 0
 
             # Update the terminal velocity of particles
-            self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
+            self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index_TS)
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
