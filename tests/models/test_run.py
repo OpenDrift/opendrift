@@ -364,7 +364,8 @@ class TestRun(unittest.TestCase):
                     'zmin': -10, 'zmax': -10, 'zmean': -10},
                 {'vt': -.005, 'K': 0, 'K_below': .01, 'T': 60, # Sinking
                     #'zmin': -74.0, 'zmax': -21.4, 'zmean': -50.2},  # With old seed_elements
-                    'zmin': -74.79, 'zmax': -21.6, 'zmean': -49.97},
+                    #'zmin': -74.79, 'zmax': -21.6, 'zmean': -49.97},  # K on the profile levels
+                    'zmin': -73.73, 'zmax': -22.89, 'zmean': -50.54},
                 {'vt': 0, 'K': .01, 'K_below': .01, 'T': 60, # Mixing
                     #'zmin': -39.8, 'zmax': -0.1, 'zmean': -14.5},
                     'zmin': -42.76, 'zmax': -0.02, 'zmean': -14.38},
@@ -376,7 +377,8 @@ class TestRun(unittest.TestCase):
                     'zmin': -78.76, 'zmax': -19.74, 'zmean': -48.0},
                 {'vt': 0, 'K': .02, 'K_below': .001, 'T': 60,  # Mixing in mixed layer
                     #'zmin': -22.8, 'zmax': -0.1, 'zmean': -9.8},
-                    'zmin': -21.3, 'zmax': -0.1, 'zmean': -9.55},
+                    #'zmin': -21.3, 'zmax': -0.1, 'zmean': -9.55},  # K on the profile levels
+                    'zmin': -22.50, 'zmax': -0.10, 'zmean': -11.35},
                 ]
 
         N=100
