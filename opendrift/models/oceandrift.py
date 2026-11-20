@@ -17,7 +17,7 @@
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, PchipInterpolator
 import logging; logger = logging.getLogger(__name__)
 from opendrift.models.basemodel import OpenDriftSimulation
 from opendrift.elements import LagrangianArray
@@ -49,6 +49,34 @@ class Lagrangian3DArray(LagrangianArray):
             'description': 'Terminal rise/sinking velocity (buoyancy) '
                 'in the ocean column',
                                'default': 0.})])
+
+
+def _log_pchip_profiles(depth, K):
+    """Breakpoints and cubic coefficients (4, levels-1, columns) of a monotone (PCHIP)
+    interpolation of log K between the levels at depth (increasing, m) of each column"""
+    if len(depth) < 2:
+        depth, K = np.array([0., 1.]), np.repeat(K, 2, axis=0)
+    p = PchipInterpolator(depth, np.log(np.maximum(K, 1e-12)), axis=0)
+    return p.x, p.c
+
+
+def _eval_log_pchip(x, c, cols, depth):
+    """K and dK/d(depth) at each element's depth from its column's log-PCHIP profile,
+    linear in K between the first two levels and constant beyond the deepest level"""
+    seg = np.clip(np.searchsorted(x, depth, side='right') - 1, 0, len(x) - 2)
+    t = np.minimum(depth, x[-1]) - x[seg]
+    c0, c1, c2, c3 = c[:, seg, cols]
+    K = np.exp(((c0*t + c1)*t + c2)*t + c3)
+    dK = K*((3*c0*t + 2*c1)*t + c2)
+    dK[depth >= x[-1]] = 0
+    top = (seg == 0) & (depth < x[1])  # linear in K between the first two levels
+    if top.any():
+        h = x[1] - x[0]
+        K0 = np.exp(c[3, 0, cols[top]])
+        K1 = np.exp(((c[0, 0, cols[top]]*h + c[1, 0, cols[top]])*h + c[2, 0, cols[top]])*h + c[3, 0, cols[top]])
+        dK[top] = (K1 - K0)/h
+        K[top] = K0 + dK[top]*(np.maximum(depth[top], x[0]) - x[0])
+    return K, dK
 
 
 class OceanDrift(OpenDriftSimulation):
@@ -436,22 +464,21 @@ class OceanDrift(OpenDriftSimulation):
         diffusivity_fallback = self.get_config('environment:fallback:ocean_vertical_diffusivity')
         # Mixing levels to be used if analytical expression:
         mixing_z_analytical = -np.arange(0, self.environment.ocean_mixed_layer_thickness.max() + 2)
-        # Blend per element only when reader coverage is partial
+        # Reader K is interpolated per element (log-PCHIP, see _eval_log_pchip); elements
+        # without it use the fallback model on a 1 m grid, or the constant fallback K for 'none'
         blend_mask = None
-        if (diffusivity_model == 'environment' and diffusivity_model_fallback != 'none'
+        reader_K = None  # (elements, breakpoints, coefficients) of the reader profiles
+        if (diffusivity_model == 'environment'
                 and 'ocean_vertical_diffusivity' in self.environment_profiles):
             has_real_data = ~np.all(self.environment_profiles['ocean_vertical_diffusivity'] == diffusivity_fallback, axis=0)
-            if has_real_data.any() and not has_real_data.all():
+            if has_real_data.any():
                 blend_mask = has_real_data
 
         if blend_mask is not None:
             env_K = self.environment_profiles['ocean_vertical_diffusivity']
             env_z = np.asarray(self.environment_profiles['z'], dtype=float)
-            # 1 m grid covering both the reader profiles and the mixed layer
-            mixing_z = -np.arange(0, max(self.environment.ocean_mixed_layer_thickness.max() + 2,
-                                         -env_z.min() + 1))
-            order = np.argsort(env_z)
-            env_z_sorted = env_z[order]
+            order = np.argsort(env_z)[::-1]  # surface first
+            env_depth = -env_z[order]
             env_K_sorted = env_K[order][:, blend_mask]
             # Fill NaN with the nearest valid value above in each column (below
             # the seafloor), else below; columns without any keep the fallback model
@@ -459,37 +486,30 @@ class OceanDrift(OpenDriftSimulation):
             usable = valid.any(axis=0)
             nz, cols = env_K_sorted.shape[0], np.arange(env_K_sorted.shape[1])[None, :]
             levels = np.arange(nz)[:, None]
-            above = np.minimum.accumulate(np.where(valid, levels, nz - 1)[::-1], axis=0)[::-1]
-            below = np.maximum.accumulate(np.where(valid, levels, 0), axis=0)
+            above = np.maximum.accumulate(np.where(valid, levels, 0), axis=0)
+            below = np.minimum.accumulate(np.where(valid, levels, nz - 1)[::-1], axis=0)[::-1]
             fill_idx = np.where(valid[above, cols], above, below)
-            env_K_sorted = env_K_sorted[fill_idx, cols]
-            interpolator = interp1d(
-                env_z_sorted, env_K_sorted, axis=0, bounds_error=False,
-                fill_value=(env_K_sorted[0], env_K_sorted[-1]))
-            Kprofiles = self.get_diffusivity_profile(diffusivity_model_fallback, np.abs(mixing_z))
-            blend_idx = np.where(blend_mask)[0]
-            Kprofiles[:, blend_idx[usable]] = interpolator(mixing_z)[:, usable]
-            logger.debug(
-                'Using diffusivity from ocean model for %d/%d elements (interpolated '
-                'from %d native levels onto the %d-level mixing grid); %s for the remaining %d'
-                % (int(blend_mask.sum()), len(blend_mask), len(env_z), len(mixing_z),
-                   diffusivity_model_fallback, int((~blend_mask).sum())))
-        elif diffusivity_model == 'environment':
-            if 'ocean_vertical_diffusivity' in self.environment_profiles and not (
-                    self.environment_profiles['ocean_vertical_diffusivity'].min() ==
-                    diffusivity_fallback and
-                    self.environment_profiles['ocean_vertical_diffusivity'].max() ==
-                    diffusivity_fallback):
-                Kprofiles = self.environment_profiles[
-                    'ocean_vertical_diffusivity']
-                mixing_z = self.environment_profiles['z'].copy()
-                logger.debug('Using diffusivity from ocean model')
+            env_K_sorted = env_K_sorted[fill_idx, cols][:, usable]
+            reader_idx = np.where(blend_mask)[0][usable]
+            x, c = _log_pchip_profiles(env_depth, env_K_sorted)
+            reader_K = (reader_idx, x, c)
+            grid_idx = np.setdiff1d(np.arange(len(blend_mask)), reader_idx)
+            mixing_z = mixing_z_analytical
+            if diffusivity_model_fallback == 'none':
+                Kprofiles = np.full((len(mixing_z), len(grid_idx)), diffusivity_fallback, dtype=float)
             else:
-                model = ('windspeed_Large1994' if diffusivity_model_fallback == 'none'
-                         else diffusivity_model_fallback)
-                logger.debug('Using diffusivity from %s since model diffusivities not available' % model)
-                mixing_z = mixing_z_analytical
-                Kprofiles = self.get_diffusivity_profile(model, np.abs(mixing_z))
+                Kprofiles = self.get_diffusivity_profile(diffusivity_model_fallback, np.abs(mixing_z))[:, grid_idx]
+            logger.debug(
+                'Using diffusivity from ocean model for %d/%d elements (log-PCHIP between '
+                '%d levels); %s for the remaining %d'
+                % (len(reader_idx), len(blend_mask), len(env_z),
+                   diffusivity_model_fallback, len(grid_idx)))
+        elif diffusivity_model == 'environment':
+            model = ('windspeed_Large1994' if diffusivity_model_fallback == 'none'
+                     else diffusivity_model_fallback)
+            logger.debug('Using diffusivity from %s since model diffusivities not available' % model)
+            mixing_z = mixing_z_analytical
+            Kprofiles = self.get_diffusivity_profile(model, np.abs(mixing_z))
         elif diffusivity_model == 'constant':
             logger.debug('Using constant diffusivity specified by fallback_values[''ocean_vertical_diffusivity''] = %s m2.s-1' % (diffusivity_fallback))
             mixing_z = self.environment_profiles['z'].copy()
@@ -501,8 +521,9 @@ class OceanDrift(OpenDriftSimulation):
             mixing_z = mixing_z_analytical
             Kprofiles = self.get_diffusivity_profile(diffusivity_model, np.abs(mixing_z))
 
-        logger.debug('Diffusivities are in range %s to %s' %
-                      (Kprofiles.min(), Kprofiles.max()))
+        if Kprofiles.size > 0:
+            logger.debug('Diffusivities are in range %s to %s' %
+                          (Kprofiles.min(), Kprofiles.max()))
 
         # get profiles of salinity and temperature
         # (to save interpolation time in the inner loop)
@@ -531,6 +552,12 @@ class OceanDrift(OpenDriftSimulation):
         else:
             z_index = interp1d(-mixing_z, z_i, bounds_error=False,
                                fill_value=(0,len(z_i)-1))  # Extrapolation
+        # T/S profiles stay on the reader levels, which may differ from the mixing grid
+        z_index_TS = z_index
+        if Sprofiles is not None:
+            env_z = self.environment_profiles['z']
+            z_index_TS = 0 if len(env_z) == 1 else interp1d(
+                -env_z, range(len(env_z)), bounds_error=False, fill_value=(0, len(env_z) - 1))
 
         # Internal loop for fast time step of vertical mixing model.
         # Random walk needs faster time step than horizontal advection.
@@ -554,13 +581,22 @@ class OceanDrift(OpenDriftSimulation):
             surface = self.elements.z == 0
 
             # Update the terminal velocity of particles
-            self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index)
+            self.update_terminal_velocity(Tprofiles=Tprofiles, Sprofiles=Sprofiles, z_index=z_index_TS)
             w = self.elements.terminal_velocity
 
             # Diffusivity and its gradient at z
             zi = np.round(z_index(-self.elements.z)).astype(np.uint16)
-            Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
-            dKdz = gradK[zi, range(Kprofiles.shape[1])]
+            if reader_K is None:
+                Kz = Kprofiles[zi, range(Kprofiles.shape[1])]
+                dKdz = gradK[zi, range(Kprofiles.shape[1])]
+            else:
+                reader_idx, x, c = reader_K
+                Kz = np.empty(self.num_elements_active())
+                dKdz = np.empty(self.num_elements_active())
+                Kz[grid_idx] = Kprofiles[zi[grid_idx], range(len(grid_idx))]
+                dKdz[grid_idx] = gradK[zi[grid_idx], range(len(grid_idx))]
+                Kz[reader_idx], dKdz[reader_idx] = _eval_log_pchip(
+                    x, c, np.arange(len(reader_idx)), -self.elements.z[reader_idx])
 
             # Visser et al. 1997 random walk mixing
             # requires an inner loop time step dt such that
